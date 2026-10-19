@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/features/home/screens/home.dart';
+import 'package:project_anima/features/library/screens/library.dart';
 import 'package:project_anima/features/search/screens/search.dart';
 
 /// Enumeration of root application navigation tabs.
@@ -57,6 +58,7 @@ class NavigationController extends ChangeNotifier {
     final destinationWidget = switch (newIndex) {
       0 => const HomeScreen(),
       1 => const SearchScreen(),
+      2 => const LibraryScreen(),
       _ => const HomeScreen(),
     };
 
