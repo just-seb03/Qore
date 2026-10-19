@@ -67,6 +67,11 @@ class AppSearchBar extends StatelessWidget {
         focusNode: focusNode,
         autoFocus: autoFocus,
         onChanged: onChanged,
+        contextMenuBuilder: (context, editableTextState) {
+          return AdaptiveTextSelectionToolbar.editableText(
+            editableTextState: editableTextState,
+          );
+        },
         hintText: hintText,
         hintStyle: WidgetStateProperty.all(
           TextStyle(
