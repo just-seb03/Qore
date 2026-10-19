@@ -3,6 +3,7 @@
 /// with Material Design 3 Expressive guidelines, a monochromatic dark palette,
 /// and an integrated subtle film grain texture. Designed with low coupling
 /// and high cohesion for seamless integration into any screen or scaffold.
+/// Automatically integrates with NavigationController when no custom callback is supplied.
 ///
 /// Components / Classes / Functions:
 /// - BottomNavTab: Enum representing the available navigation destinations.
@@ -11,6 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/film_grain.dart';
+import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Navigation destinations supported by [AppBottomNav].
@@ -23,13 +25,14 @@ enum BottomNavTab {
 /// Global Material 3 Expressive Bottom Navigation Bar.
 ///
 /// Implements low coupling by delegating destination selection through the
-/// [onDestinationSelected] callback while managing visual presentation and
-/// cohesive styling internally.
+/// [onDestinationSelected] callback (falling back to [NavigationController]),
+/// while managing visual presentation and cohesive styling internally.
 class AppBottomNav extends StatelessWidget {
   /// The index of the currently active destination.
   final int currentIndex;
 
-  /// Callback triggered when a navigation destination is tapped.
+  /// Optional callback triggered when a destination is tapped.
+  /// If null, defaults to triggering [NavigationController.navigateToTab].
   final ValueChanged<int>? onDestinationSelected;
 
   /// Optional grain intensity override for custom visual styling.
@@ -60,7 +63,13 @@ class AppBottomNav extends StatelessWidget {
           intensity: grainIntensity,
           child: NavigationBar(
             selectedIndex: currentIndex,
-            onDestinationSelected: onDestinationSelected,
+            onDestinationSelected: (index) {
+              if (onDestinationSelected != null) {
+                onDestinationSelected!(index);
+              } else {
+                NavigationController.instance.navigateToTab(context, index);
+              }
+            },
             backgroundColor: Colors.transparent, // Handled by outer container
             indicatorColor: AppColors.navIndicator,
             elevation: 0,

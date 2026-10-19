@@ -6,7 +6,6 @@
 /// Components / Classes / Functions:
 /// - Home: Type alias pointing to HomeScreen for flexible naming conventions.
 /// - HomeScreen: Screen widget displaying the HomeHeader with AppBottomNav.
-/// - _HomeScreenState: State class managing navigation destination index.
 library;
 
 import 'package:flutter/material.dart';
@@ -18,22 +17,8 @@ import 'package:project_anima/features/home/components/home_header.dart';
 typedef Home = HomeScreen;
 
 /// Home screen with the futuristic header and bottom navigation bar.
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
-
-  @override
-  State<HomeScreen> createState() => _HomeScreenState();
-}
-
-class _HomeScreenState extends State<HomeScreen> {
-  int _currentIndex = 0;
-
-  void _onNavigationChanged(int index) {
-    if (_currentIndex == index) return;
-    setState(() {
-      _currentIndex = index;
-    });
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -47,9 +32,8 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: AppBottomNav(
-        currentIndex: _currentIndex,
-        onDestinationSelected: _onNavigationChanged,
+      bottomNavigationBar: const AppBottomNav(
+        currentIndex: 0,
       ),
     );
   }
