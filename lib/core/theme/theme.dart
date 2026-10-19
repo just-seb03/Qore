@@ -40,6 +40,9 @@ abstract final class AppColors {
   static const Color onSurfaceVariant = Color(0xFF8E8E96);
   static const Color onSurfaceDisabled = Color(0xFF4A4A52);
 
+  /// Futuristic off-white with a subtle cool undertone for high-impact typography.
+  static const Color futuristicWhite = Color(0xFFE6E8EC);
+
   /// Bottom navigation indicator and state colors.
   static const Color navIndicator = Color(0xFF28282E);
   static const Color navActiveIcon = Color(0xFFFFFFFF);
