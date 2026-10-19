@@ -51,7 +51,12 @@ class AppSearchBar extends StatelessWidget {
     this.hintText = 'Search titles, genres, creators...',
     this.focusNode,
     this.autoFocus = false,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+    this.padding = const EdgeInsets.only(
+      left: 16.0,
+      top: 32.0,
+      right: 16.0,
+      bottom: 8.0,
+    ),
   });
 
   @override
