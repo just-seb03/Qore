@@ -10,6 +10,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -47,7 +48,7 @@ class LibraryFilterPills extends StatefulWidget {
     this.onFiltersChanged,
     this.padding = const EdgeInsets.only(
       left: 16.0,
-      top: 32.0,
+      top: 0.0,
       right: 16.0,
       bottom: 8.0,
     ),
@@ -206,8 +207,8 @@ class _ConnectedPillButton extends StatelessWidget {
                     item.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13.0,
+                    style: GoogleFonts.inconsolata(
+                      fontSize: 13.5,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                       color: foregroundColor,
                       letterSpacing: 0.2,

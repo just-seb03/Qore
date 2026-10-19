@@ -1,7 +1,6 @@
 /// File: search.dart
-/// Description: Search screen implementing the exclusive Material Design 3 Expressive
-/// AppSearchBar component and hosting the global AppBottomNav on an empty surface
-/// sharing the core monochromatic theme color palette.
+/// Description: Search screen displaying the centered Zen Dots SearchHeader and
+/// the Material Design 3 Expressive AppSearchBar with the global AppBottomNav below.
 ///
 /// Components / Classes / Functions:
 /// - Search: Type alias for SearchScreen.
@@ -13,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
+import 'package:project_anima/features/search/components/search_header.dart';
 
 /// Type alias allowing both `Search` and `SearchScreen` across the codebase.
 typedef Search = SearchScreen;
@@ -40,8 +40,9 @@ class _SearchScreenState extends State<SearchScreen> {
       backgroundColor: AppColors.bottomNavBackground,
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
+            const SearchHeader(),
             AppSearchBar(
               controller: _searchController,
               onChanged: (_) => setState(() {}),

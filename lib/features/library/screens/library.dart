@@ -1,7 +1,6 @@
 /// File: library.dart
-/// Description: Library screen displaying an empty canvas with the top-centered Material Design 3
-/// Expressive connected pill filter component and the global AppBottomNav below.
-/// Positions the filter group in the top slot matching the search bar vertical position.
+/// Description: Library screen displaying the centered Zen Dots LibraryHeader,
+/// the Material Design 3 Expressive connected pill filter component, and the global AppBottomNav.
 ///
 /// Components / Classes / Functions:
 /// - Library: Type alias for LibraryScreen.
@@ -13,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
+import 'package:project_anima/features/library/components/library_header.dart';
 
 /// Type alias allowing both `Library` and `LibraryScreen` across the codebase.
 typedef Library = LibraryScreen;
@@ -35,6 +35,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       body: SafeArea(
         child: Column(
           children: [
+            const LibraryHeader(),
             LibraryFilterPills(
               initialSelectedIndices: _selectedFilters,
               onFiltersChanged: (indices) {

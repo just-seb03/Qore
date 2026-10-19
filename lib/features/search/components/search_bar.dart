@@ -9,6 +9,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -53,7 +54,7 @@ class AppSearchBar extends StatelessWidget {
     this.autoFocus = false,
     this.padding = const EdgeInsets.only(
       left: 16.0,
-      top: 32.0,
+      top: 0.0,
       right: 16.0,
       bottom: 8.0,
     ),
@@ -79,16 +80,16 @@ class AppSearchBar extends StatelessWidget {
         },
         hintText: hintText,
         hintStyle: WidgetStateProperty.all(
-          TextStyle(
+          GoogleFonts.inconsolata(
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-            fontSize: 14.0,
+            fontSize: 14.5,
             fontWeight: FontWeight.w400,
           ),
         ),
         textStyle: WidgetStateProperty.all(
-          TextStyle(
+          GoogleFonts.inconsolata(
             color: colorScheme.onSurface,
-            fontSize: 14.5,
+            fontSize: 15.0,
             fontWeight: FontWeight.w500,
           ),
         ),

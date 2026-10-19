@@ -9,6 +9,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 /// Centralized monochromatic dark color palette.
 ///
@@ -75,6 +76,7 @@ abstract final class AppTheme {
         outline: AppColors.outline,
         outlineVariant: AppColors.outlineVariant,
       ),
+      fontFamily: GoogleFonts.inconsolata().fontFamily,
       navigationBarTheme: NavigationBarThemeData(
         height: 68.0,
         backgroundColor: AppColors.bottomNavBackground,
@@ -88,14 +90,14 @@ abstract final class AppTheme {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
           if (states.contains(WidgetState.selected)) {
-            return const TextStyle(
+            return GoogleFonts.inconsolata(
               fontSize: 12.0,
               fontWeight: FontWeight.w600,
               color: AppColors.navActiveLabel,
               letterSpacing: 0.3,
             );
           }
-          return const TextStyle(
+          return GoogleFonts.inconsolata(
             fontSize: 12.0,
             fontWeight: FontWeight.w500,
             color: AppColors.navInactiveLabel,
