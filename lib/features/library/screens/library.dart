@@ -1,11 +1,12 @@
 /// File: library.dart
-/// Description: Library screen displaying an empty canvas with the Material Design 3
-/// Expressive connected pill filter component at the top and the global AppBottomNav below.
+/// Description: Library screen displaying an empty canvas with the top-centered Material Design 3
+/// Expressive connected pill filter component and the global AppBottomNav below.
+/// Positions the filter group in the top slot matching the search bar vertical position.
 ///
 /// Components / Classes / Functions:
 /// - Library: Type alias for LibraryScreen.
 /// - LibraryScreen: Screen widget displaying the Library filters and bottom navigation.
-/// - _LibraryScreenState: State class managing screen view lifecycle.
+/// - _LibraryScreenState: State class managing screen view lifecycle and active filters.
 library;
 
 import 'package:flutter/material.dart';
@@ -25,7 +26,7 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  int _selectedFilter = 0;
+  Set<int> _selectedFilters = const <int>{};
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +34,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
       backgroundColor: AppColors.bottomNavBackground,
       body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             LibraryFilterPills(
-              initialIndex: _selectedFilter,
-              onFilterChanged: (index) {
+              initialSelectedIndices: _selectedFilters,
+              onFiltersChanged: (indices) {
                 setState(() {
-                  _selectedFilter = index;
+                  _selectedFilters = indices;
                 });
               },
             ),
