@@ -135,24 +135,29 @@ List<ArtworkBatchResultItem> processArtworkBatchInIsolate(List<ArtworkBatchItem>
         continue;
       }
 
-      // 4. Generate 100x100 Thumbnail (PNG)
+      // 4. Generate 200x200 Thumbnail (PNG) for crisp high-DPI rendering
       final thumbnailImg = img.copyResize(
         decoded,
-        width: 100,
-        height: 100,
-        interpolation: img.Interpolation.linear,
+        width: 200,
+        height: 200,
+        interpolation: img.Interpolation.cubic,
       );
       final thumbBytes = img.encodePng(thumbnailImg);
       thumbFile.writeAsBytesSync(thumbBytes, flush: true);
 
-      // 5. Generate 800x800 Cover (JPEG quality 85%)
-      final coverImg = img.copyResize(
-        decoded,
-        width: 800,
-        height: 800,
-        interpolation: img.Interpolation.linear,
-      );
-      final coverBytes = img.encodeJpg(coverImg, quality: 85);
+      // 5. Generate high-fidelity Cover (JPEG quality 90%)
+      final img.Image coverImg;
+      if (decoded.width > 800 || decoded.height > 800) {
+        coverImg = img.copyResize(
+          decoded,
+          width: 800,
+          height: 800,
+          interpolation: img.Interpolation.cubic,
+        );
+      } else {
+        coverImg = decoded;
+      }
+      final coverBytes = img.encodeJpg(coverImg, quality: 90);
       coverFile.writeAsBytesSync(coverBytes, flush: true);
 
       // Also save album copies if albumId is available

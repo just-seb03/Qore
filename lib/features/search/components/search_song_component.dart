@@ -192,7 +192,7 @@ class _SongTopResultCard extends StatelessWidget {
                         height: 84.0,
                         borderRadius: 6.0,
                         fallbackIcon: Icons.music_note_rounded,
-                        isThumbnail: true,
+                        isThumbnail: false,
                       ),
                     ),
                     const SizedBox(width: 20.0),

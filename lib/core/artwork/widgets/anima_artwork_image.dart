@@ -62,20 +62,31 @@ class AnimaArtworkImage extends StatelessWidget {
     return ListenableBuilder(
       listenable: ArtworkService.instance,
       builder: (context, _) {
-        final path = isThumbnail
-            ? ArtworkService.instance.getThumbnailPath(mediaStoreId, albumId: albumId)
-            : ArtworkService.instance.getCoverPath(mediaStoreId, albumId: albumId);
+        final coverPath = ArtworkService.instance.getCoverPath(mediaStoreId, albumId: albumId);
+        final thumbPath = ArtworkService.instance.getThumbnailPath(mediaStoreId, albumId: albumId);
+
+        // Prioritize full high-resolution cover when not in thumbnail mode
+        // or whenever widget dimensions exceed compact list tiles (> 64dp).
+        final bool preferCover = !isThumbnail || ((width ?? 48.0) > 64.0);
+        final String? path = preferCover
+            ? (coverPath ?? thumbPath)
+            : (thumbPath ?? coverPath);
 
         if (path != null) {
           final file = File(path);
+          final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
+          final int cacheSize = preferCover
+              ? (width != null ? (width! * dpr).round().clamp(240, 800) : 800)
+              : (width != null ? (width! * dpr).round().clamp(100, 240) : 150);
+
           final imageWidget = Image.file(
             file,
             width: width,
             height: height,
             fit: fit,
-            // Crucial Rule 6.2.2: Prevent PaintingBinding.imageCache overflow
-            cacheWidth: isThumbnail ? 100 : 800,
-            cacheHeight: isThumbnail ? 100 : 800,
+            filterQuality: FilterQuality.medium,
+            cacheWidth: cacheSize,
+            cacheHeight: cacheSize,
             errorBuilder: (ctx, err, stack) => _buildFallback(context),
           );
 
