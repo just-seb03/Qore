@@ -1,17 +1,19 @@
 /// File: home.dart
 /// Description: Home screen hosting the global AppBottomNav component, requesting
-/// audio permissions on initial launch, and featuring the futuristic Zen Dots HomeHeader.
+/// audio permissions on initial launch, triggering background music indexing,
+/// and featuring the futuristic Zen Dots HomeHeader.
 /// Maintains low coupling and shares the monochromatic theme palette.
 ///
 /// Components / Classes / Functions:
 /// - Home: Type alias pointing to HomeScreen for flexible naming conventions.
 /// - HomeScreen: Screen widget displaying the HomeHeader with AppBottomNav.
-/// - _HomeScreenState: State class managing initial permission request lifecycle.
+/// - _HomeScreenState: State class managing initial permission request lifecycle and background sync.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/core/permissions/audio_permission_service.dart';
+import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/home/components/home_header.dart';
 
@@ -44,7 +46,12 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _requestInitialPermissions() async {
     final hasPermission = await AudioPermissionService.instance.hasPermission();
     if (!hasPermission) {
-      await AudioPermissionService.instance.requestPermission();
+      final status = await AudioPermissionService.instance.requestPermission();
+      if (status.isGranted) {
+        MusicIndexer.instance.syncWithDevice();
+      }
+    } else {
+      MusicIndexer.instance.syncWithDevice();
     }
   }
 
