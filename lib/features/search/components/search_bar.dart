@@ -2,9 +2,12 @@
 /// Description: Material Design 3 Expressive SearchBar component leveraging the
 /// material_3_expressive package and material_symbols_icons. Features M3ESearchBar,
 /// morphing M3ELoadingIndicator, and M3EIconButton matching the project's monochromatic design.
+/// Implements static caching of Inconsolata TextStyles to prevent font-map lookups on keystroke rebuilds.
 ///
 /// Components / Classes / Functions:
 /// - AppSearchBar: Primary M3 Expressive search bar widget with dynamic loading and clear actions.
+///   - _baseHintTextStyle: Static cached TextStyle for hint text.
+///   - _baseTextStyle: Static cached TextStyle for input text.
 /// - ExpressiveSearchBar: Type alias pointing to AppSearchBar.
 library;
 
@@ -43,6 +46,18 @@ class AppSearchBar extends StatelessWidget {
   /// External padding around the search bar container.
   final EdgeInsetsGeometry padding;
 
+  /// Pre-cached base text style for the search input hint.
+  static final TextStyle _baseHintTextStyle = GoogleFonts.inconsolata(
+    fontSize: 14.5,
+    fontWeight: FontWeight.w400,
+  );
+
+  /// Pre-cached base text style for the search input text.
+  static final TextStyle _baseTextStyle = GoogleFonts.inconsolata(
+    fontSize: 15.0,
+    fontWeight: FontWeight.w500,
+  );
+
   const AppSearchBar({
     super.key,
     this.controller,
@@ -79,18 +94,14 @@ class AppSearchBar extends StatelessWidget {
           );
         },
         hintText: hintText,
-        hintStyle: WidgetStateProperty.all(
-          GoogleFonts.inconsolata(
+        hintStyle: WidgetStatePropertyAll(
+          _baseHintTextStyle.copyWith(
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
-            fontSize: 14.5,
-            fontWeight: FontWeight.w400,
           ),
         ),
-        textStyle: WidgetStateProperty.all(
-          GoogleFonts.inconsolata(
+        textStyle: WidgetStatePropertyAll(
+          _baseTextStyle.copyWith(
             color: colorScheme.onSurface,
-            fontSize: 15.0,
-            fontWeight: FontWeight.w500,
           ),
         ),
         leading: Padding(

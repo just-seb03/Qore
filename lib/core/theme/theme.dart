@@ -1,11 +1,14 @@
 /// File: theme.dart
 /// Description: Defines the core monochromatic dark theme, design tokens, and
 /// component themes according to Material Design 3 Expressive guidelines.
-/// Provides centralized styling used across screens and navigation components.
+/// Implements static caching of ThemeData and GoogleFonts text styles to prevent
+/// runtime font-map re-parsing and redundant theme reconstructions.
 ///
 /// Components / Classes / Functions:
 /// - AppColors: Design tokens holding the monochromatic dark color palette.
-/// - AppTheme: Factory and builder for the application's Material 3 dark theme.
+/// - AppTheme: Factory provider holding pre-built, cached Material 3 dark theme data.
+///   - darkTheme: Pre-built ThemeData instance created once on initial access.
+///   - _buildDarkTheme(): Private builder constructing theme tokens and cached font styles.
 library;
 
 import 'package:flutter/material.dart';
@@ -56,8 +59,38 @@ abstract final class AppColors {
 abstract final class AppTheme {
   const AppTheme._();
 
-  /// Generates the configured Material 3 Expressive dark theme data.
-  static ThemeData get darkTheme {
+  // Pre-cached GoogleFonts text styles to eliminate font-family re-parsing on state updates
+  static final String? _fontFamily = GoogleFonts.inconsolata().fontFamily;
+
+  static final TextStyle _selectedNavLabelStyle = GoogleFonts.inconsolata(
+    fontSize: 12.0,
+    fontWeight: FontWeight.w600,
+    color: AppColors.navActiveLabel,
+    letterSpacing: 0.3,
+  );
+
+  static final TextStyle _unselectedNavLabelStyle = GoogleFonts.inconsolata(
+    fontSize: 12.0,
+    fontWeight: FontWeight.w500,
+    color: AppColors.navInactiveLabel,
+    letterSpacing: 0.2,
+  );
+
+  static const IconThemeData _selectedNavIconTheme = IconThemeData(
+    size: 24.0,
+    color: AppColors.navActiveIcon,
+  );
+
+  static const IconThemeData _unselectedNavIconTheme = IconThemeData(
+    size: 24.0,
+    color: AppColors.navInactiveIcon,
+  );
+
+  /// Pre-built, cached Material 3 Expressive dark theme data.
+  /// Constructed exactly once during application runtime to avoid rebuild allocations.
+  static final ThemeData darkTheme = _buildDarkTheme();
+
+  static ThemeData _buildDarkTheme() {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
@@ -76,7 +109,7 @@ abstract final class AppTheme {
         outline: AppColors.outline,
         outlineVariant: AppColors.outlineVariant,
       ),
-      fontFamily: GoogleFonts.inconsolata().fontFamily,
+      fontFamily: _fontFamily,
       navigationBarTheme: NavigationBarThemeData(
         height: 68.0,
         backgroundColor: AppColors.bottomNavBackground,
@@ -90,31 +123,15 @@ abstract final class AppTheme {
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
           if (states.contains(WidgetState.selected)) {
-            return GoogleFonts.inconsolata(
-              fontSize: 12.0,
-              fontWeight: FontWeight.w600,
-              color: AppColors.navActiveLabel,
-              letterSpacing: 0.3,
-            );
+            return _selectedNavLabelStyle;
           }
-          return GoogleFonts.inconsolata(
-            fontSize: 12.0,
-            fontWeight: FontWeight.w500,
-            color: AppColors.navInactiveLabel,
-            letterSpacing: 0.2,
-          );
+          return _unselectedNavLabelStyle;
         }),
         iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
           if (states.contains(WidgetState.selected)) {
-            return const IconThemeData(
-              size: 24.0,
-              color: AppColors.navActiveIcon,
-            );
+            return _selectedNavIconTheme;
           }
-          return const IconThemeData(
-            size: 24.0,
-            color: AppColors.navInactiveIcon,
-          );
+          return _unselectedNavIconTheme;
         }),
       ),
       appBarTheme: const AppBarTheme(

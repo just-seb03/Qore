@@ -2,9 +2,11 @@
 /// Description: Header component for the Home screen displaying a prominent,
 /// futuristic title in the 'Zen Dots' typeface, aligned to the left margin
 /// with stacked words and clean styling without glow effects.
+/// Implements static caching of typography to avoid frame-by-frame font re-parsing.
 ///
 /// Components / Classes / Functions:
 /// - HomeHeader: Stateless widget rendering the futuristic multi-line section header.
+///   - _titleTextStyle: Pre-cached TextStyle for GoogleFonts.zenDots.
 library;
 
 import 'package:flutter/material.dart';
@@ -21,6 +23,15 @@ class HomeHeader extends StatelessWidget {
 
   /// Custom padding around the header.
   final EdgeInsetsGeometry padding;
+
+  // Cached TextStyle to eliminate runtime font parsing on build
+  static final TextStyle _titleTextStyle = GoogleFonts.zenDots(
+    fontSize: 34.0,
+    fontWeight: FontWeight.w400,
+    height: 1.15,
+    letterSpacing: 1.0,
+    color: AppColors.futuristicWhite,
+  );
 
   const HomeHeader({
     super.key,
@@ -42,13 +53,7 @@ class HomeHeader extends StatelessWidget {
         child: Text(
           title,
           textAlign: TextAlign.left,
-          style: GoogleFonts.zenDots(
-            fontSize: 34.0,
-            fontWeight: FontWeight.w400,
-            height: 1.15,
-            letterSpacing: 1.0,
-            color: AppColors.futuristicWhite,
-          ),
+          style: _titleTextStyle,
         ),
       ),
     );

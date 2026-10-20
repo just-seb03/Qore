@@ -1,9 +1,11 @@
 /// File: search_header.dart
 /// Description: Top header component for the Search screen displaying a centered
 /// title in the 'Zen Dots' typeface without background or separator lines.
+/// Implements static caching of the Zen Dots TextStyle to prevent font parsing overhead.
 ///
 /// Components / Classes / Functions:
 /// - SearchHeader: Stateless widget rendering the centered Zen Dots section title.
+///   - _titleTextStyle: Pre-cached TextStyle for GoogleFonts.zenDots.
 library;
 
 import 'package:flutter/material.dart';
@@ -17,6 +19,14 @@ class SearchHeader extends StatelessWidget {
 
   /// Custom padding around the header text.
   final EdgeInsetsGeometry padding;
+
+  /// Cached text style for the Zen Dots title to avoid resolving font map on rebuilds.
+  static final TextStyle _titleTextStyle = GoogleFonts.zenDots(
+    fontSize: 22.0,
+    fontWeight: FontWeight.w400,
+    letterSpacing: 1.2,
+    color: AppColors.futuristicWhite,
+  );
 
   const SearchHeader({
     super.key,
@@ -35,12 +45,7 @@ class SearchHeader extends StatelessWidget {
         child: Text(
           title,
           textAlign: TextAlign.center,
-          style: GoogleFonts.zenDots(
-            fontSize: 22.0,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 1.2,
-            color: AppColors.futuristicWhite,
-          ),
+          style: _titleTextStyle,
         ),
       ),
     );

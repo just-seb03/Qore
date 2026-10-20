@@ -3,10 +3,13 @@
 /// button group for the Library screen. Features identical button widths,
 /// independent multi-selection (zero, some, or all), strict adherence to
 /// AppColors, and top-centered positioning matching the search bar layout.
+/// Implements static caching of Inconsolata TextStyles to prevent font overhead during selection toggles.
 ///
 /// Components / Classes / Functions:
 /// - LibraryFilterPills: Stateful widget displaying the top-centered, equal-width connected filter pills.
 /// - _ConnectedPillButton: Internal optimized button item rendering M3 Expressive connected corner radii.
+///   - _selectedTextStyle: Pre-cached TextStyle for selected pill item.
+///   - _unselectedTextStyle: Pre-cached TextStyle for unselected pill item.
 library;
 
 import 'package:flutter/material.dart';
@@ -151,6 +154,20 @@ class _ConnectedPillButton extends StatelessWidget {
   final BorderRadius shape;
   final VoidCallback onTap;
 
+  /// Pre-cached Inconsolata style for selected pill.
+  static final TextStyle _selectedTextStyle = GoogleFonts.inconsolata(
+    fontSize: 13.5,
+    fontWeight: FontWeight.w600,
+    letterSpacing: 0.2,
+  );
+
+  /// Pre-cached Inconsolata style for unselected pill.
+  static final TextStyle _unselectedTextStyle = GoogleFonts.inconsolata(
+    fontSize: 13.5,
+    fontWeight: FontWeight.w500,
+    letterSpacing: 0.2,
+  );
+
   const _ConnectedPillButton({
     required this.item,
     required this.isSelected,
@@ -207,11 +224,8 @@ class _ConnectedPillButton extends StatelessWidget {
                     item.label,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inconsolata(
-                      fontSize: 13.5,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    style: (isSelected ? _selectedTextStyle : _unselectedTextStyle).copyWith(
                       color: foregroundColor,
-                      letterSpacing: 0.2,
                     ),
                   ),
                 ),
