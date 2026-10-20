@@ -36,6 +36,18 @@ class NavigationController extends ChangeNotifier {
 
   int _currentIndex = 0;
 
+  /// Maximum elapsed time between taps on the search destination to qualify as consecutive double-tap.
+  static const Duration doubleTapTimeout = Duration(milliseconds: 1500);
+
+  DateTime? _lastSearchTapTime;
+
+  /// Trigger dispatched when the search screen should reset to its initial state
+  /// (e.g. tapped twice consecutively in the bottom navigation bar).
+  final ValueNotifier<int> searchResetNotifier = ValueNotifier<int>(0);
+
+  /// Trigger dispatched when the active search screen should scroll back to top.
+  final ValueNotifier<int> searchScrollToTopNotifier = ValueNotifier<int>(0);
+
   /// Gets the currently active tab index.
   int get currentIndex => _currentIndex;
 
@@ -43,17 +55,52 @@ class NavigationController extends ChangeNotifier {
   void setIndex(int index) {
     if (_currentIndex == index) return;
     _currentIndex = index;
+    _lastSearchTapTime = null;
     notifyListeners();
+  }
+
+  /// Handles destination selection from the bottom navigation bar.
+  /// Coordinates tab transitions and detects consecutive double-taps on the Search tab.
+  void handleDestinationSelected(BuildContext? context, int newIndex) {
+    final bool isSameTab = (_currentIndex == newIndex);
+
+    if (newIndex == NavigationTab.search.index) {
+      final now = DateTime.now();
+      if (_lastSearchTapTime != null &&
+          now.difference(_lastSearchTapTime!) <= doubleTapTimeout) {
+        // Consecutive tap on search detected: trigger reset to initial state
+        searchResetNotifier.value++;
+        _lastSearchTapTime = null;
+      } else {
+        if (isSameTab) {
+          // Single tap on already active search tab: scroll to top
+          searchScrollToTopNotifier.value++;
+        }
+        _lastSearchTapTime = now;
+      }
+    } else {
+      // Switched to a different tab; clear search tap tracking
+      _lastSearchTapTime = null;
+    }
+
+    if (!isSameTab) {
+      _currentIndex = newIndex;
+      notifyListeners();
+      // Delegate visual directional slide animation to MenuTransitionController
+      MenuTransitionController.instance.animateTo(newIndex);
+    }
   }
 
   /// Changes the active tab and triggers the animated menu transition.
-  void navigateToTab(BuildContext context, int newIndex) {
-    if (_currentIndex == newIndex) return;
+  void navigateToTab(BuildContext? context, int newIndex) {
+    handleDestinationSelected(context, newIndex);
+  }
 
-    _currentIndex = newIndex;
+  /// Resets controller state to the initial Home tab.
+  void reset() {
+    _currentIndex = 0;
+    _lastSearchTapTime = null;
     notifyListeners();
-
-    // Delegate visual directional slide animation to MenuTransitionController
-    MenuTransitionController.instance.animateTo(newIndex);
   }
 }
+

@@ -23,6 +23,7 @@ import 'package:project_anima/features/search/components/search_song_component.d
 /// Dynamic, Spotify-style multi-tier search results view.
 class SearchResultsList extends StatelessWidget {
   final MusicSearchController controller;
+  final ScrollController? scrollController;
   final ValueChanged<Song>? onSongTap;
   final ValueChanged<AlbumDiscoveryItem>? onAlbumTap;
   final ValueChanged<ArtistDiscoveryItem>? onArtistTap;
@@ -30,6 +31,7 @@ class SearchResultsList extends StatelessWidget {
   const SearchResultsList({
     super.key,
     required this.controller,
+    this.scrollController,
     this.onSongTap,
     this.onAlbumTap,
     this.onArtistTap,
@@ -137,6 +139,7 @@ class SearchResultsList extends StatelessWidget {
 
         // 4. Render Dynamic Spotify-style Hierarchical Sections
         return ListView(
+          controller: scrollController,
           padding: const EdgeInsets.only(top: 12.0, bottom: 24.0),
           children: _buildDynamicSections(results),
         );

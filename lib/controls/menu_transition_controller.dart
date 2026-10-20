@@ -314,23 +314,45 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
   }
 
   Widget _buildAnimatedContent() {
-    if (!_isTransitioning) {
-      return _menuScreens[_activeCurrentIndex];
-    }
-
+    // Maintain all screens permanently mounted in the tree to preserve user state
+    // (such as search queries, results, and scroll positions) across tab switches.
+    // Inactive screens are hidden with Offstage and paused with TickerMode.
     return ClipRect(
       child: Stack(
         fit: StackFit.expand,
-        children: [
-          SlideTransition(
-            position: _outgoingAnimation,
-            child: _menuScreens[_activePreviousIndex],
-          ),
-          SlideTransition(
-            position: _incomingAnimation,
-            child: _menuScreens[_activeCurrentIndex],
-          ),
-        ],
+        children: List.generate(_menuScreens.length, (index) {
+          final bool isCurrent = index == _activeCurrentIndex;
+          final bool isPrevious = index == _activePreviousIndex;
+          final bool isVisible =
+              _isTransitioning ? (isCurrent || isPrevious) : isCurrent;
+
+          Animation<Offset> slideAnim;
+          if (_isTransitioning) {
+            if (isCurrent) {
+              slideAnim = _incomingAnimation;
+            } else if (isPrevious) {
+              slideAnim = _outgoingAnimation;
+            } else {
+              slideAnim = const AlwaysStoppedAnimation(Offset.zero);
+            }
+          } else {
+            slideAnim = const AlwaysStoppedAnimation(Offset.zero);
+          }
+
+          return KeyedSubtree(
+            key: ValueKey<int>(index),
+            child: Offstage(
+              offstage: !isVisible,
+              child: TickerMode(
+                enabled: isVisible,
+                child: SlideTransition(
+                  position: slideAnim,
+                  child: _menuScreens[index],
+                ),
+              ),
+            ),
+          );
+        }),
       ),
     );
   }
@@ -352,8 +374,7 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
           return AppBottomNav(
             currentIndex: _controller.currentIndex,
             onDestinationSelected: (index) {
-              _controller.animateTo(index);
-              NavigationController.instance.setIndex(index);
+              NavigationController.instance.handleDestinationSelected(context, index);
             },
           );
         },

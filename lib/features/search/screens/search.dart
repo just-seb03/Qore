@@ -12,6 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
+import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/search/music_search_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
@@ -35,19 +36,60 @@ class SearchScreen extends StatefulWidget {
   State<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends State<SearchScreen> {
+class _SearchScreenState extends State<SearchScreen>
+    with AutomaticKeepAliveClientMixin {
   final TextEditingController _searchController = TextEditingController();
   final MusicSearchController _searchEngine = MusicSearchController();
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  bool get wantKeepAlive => true;
+
+  @override
+  void initState() {
+    super.initState();
+    NavigationController.instance.searchResetNotifier.addListener(_onSearchReset);
+    NavigationController.instance.searchScrollToTopNotifier.addListener(_onScrollToTop);
+  }
+
+  /// Resets search query, engine results, and scroll offset back to initial state.
+  /// Triggered strictly when the user taps the search button twice in a row on the bottom nav.
+  void _onSearchReset() {
+    if (!mounted) return;
+    _searchController.clear();
+    _searchEngine.clear();
+    if (_scrollController.hasClients) {
+      _scrollController.jumpTo(0.0);
+    }
+    FocusScope.of(context).unfocus();
+  }
+
+  /// Smoothly scrolls results back to top when single-tapping the already active search tab.
+  void _onScrollToTop() {
+    if (!mounted) return;
+    if (_scrollController.hasClients && _scrollController.offset > 0) {
+      _scrollController.animateTo(
+        0.0,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
 
   @override
   void dispose() {
+    NavigationController.instance.searchResetNotifier.removeListener(_onSearchReset);
+    NavigationController.instance.searchScrollToTopNotifier.removeListener(_onScrollToTop);
     _searchController.dispose();
     _searchEngine.dispose();
+    _scrollController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    super.build(context);
+
     return Scaffold(
       backgroundColor: AppColors.bottomNavBackground,
       body: SafeArea(
@@ -63,6 +105,7 @@ class _SearchScreenState extends State<SearchScreen> {
             Expanded(
               child: SearchResultsList(
                 controller: _searchEngine,
+                scrollController: _scrollController,
               ),
             ),
           ],
