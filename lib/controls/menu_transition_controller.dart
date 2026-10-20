@@ -2,10 +2,13 @@
 /// Description: Dedicated global transition controller and animated host control
 /// coordinating bidirectional slide transitions between primary menus: Home, Search, and Library.
 /// Decoupled from core navigation state management to isolate animation orchestration.
+/// Implements composited GPU SlideTransition with pre-interpolated `Tween<Offset>`
+/// to prevent widget tree rebuilds during transitions.
 ///
 /// Components / Classes / Functions:
 /// - MenuTransitionDirection: Enum specifying horizontal slide direction (forward/backward).
 /// - OvershootResistanceCurve: Custom curve with fast acceleration, hard braking, and elastic resistance.
+/// - _ClampedOffsetTween: Internal Tween clamping progress to prevent offscreen bounce during overshoot.
 /// - MenuTransitionController: Singleton ChangeNotifier managing transition state and direction.
 /// - MenuTransitionControl: Reusable widget animating simultaneous directional page sliding.
 library;
@@ -42,6 +45,19 @@ class OvershootResistanceCurve extends Curve {
   double transformInternal(double t) {
     final double tau = t - 1.0;
     return 1.0 + (intensity + 1.0) * tau * tau * tau + intensity * tau * tau;
+  }
+}
+
+/// Specialized [Tween] that clamps interpolation progress to [0.0, 1.0].
+///
+/// Prevents the outgoing screen from bouncing or wobbling off-screen when the
+/// transition curve overshoots (> 1.0) during incoming settling.
+class _ClampedOffsetTween extends Tween<Offset> {
+  _ClampedOffsetTween({super.begin, super.end});
+
+  @override
+  Offset lerp(double t) {
+    return super.lerp(t.clamp(0.0, 1.0));
   }
 }
 
@@ -162,12 +178,16 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
   late final AnimationController _animController;
   late final Animation<double> _animation;
 
+  late Animation<Offset> _incomingAnimation;
+  late Animation<Offset> _outgoingAnimation;
+
   int _renderedCurrentIndex = 0;
   int _activePreviousIndex = 0;
   int _activeCurrentIndex = 0;
   MenuTransitionDirection _activeDirection = MenuTransitionDirection.forward;
+  bool _isTransitioning = false;
 
-  late final List<Widget> _menuScreens;
+  late List<Widget> _menuScreens;
 
   @override
   void initState() {
@@ -192,8 +212,11 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
       curve: animCurve,
     );
 
+    _updateSlideAnimations(_activeDirection == MenuTransitionDirection.forward);
+
     _animController.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
+        _isTransitioning = false;
         _controller.notifyAnimationFinished();
         if (mounted) {
           setState(() {});
@@ -201,28 +224,85 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
       }
     });
 
-    _menuScreens = widget.children ??
+    final screens = widget.children ??
         const [
           HomeScreen(showBottomNav: false),
           SearchScreen(showBottomNav: false),
           LibraryScreen(showBottomNav: false),
         ];
 
+    _menuScreens = List<Widget>.generate(
+      screens.length,
+      (index) => RepaintBoundary(
+        key: ValueKey<int>(index),
+        child: screens[index],
+      ),
+      growable: false,
+    );
+
     _controller.addListener(_onControllerChanged);
+  }
+
+  void _updateSlideAnimations(bool isForward) {
+    final incomingBegin =
+        isForward ? const Offset(1.0, 0.0) : const Offset(-1.0, 0.0);
+    final outgoingEnd =
+        isForward ? const Offset(-1.0, 0.0) : const Offset(1.0, 0.0);
+
+    _incomingAnimation = Tween<Offset>(
+      begin: incomingBegin,
+      end: Offset.zero,
+    ).animate(_animation);
+
+    _outgoingAnimation = _ClampedOffsetTween(
+      begin: Offset.zero,
+      end: outgoingEnd,
+    ).animate(_animation);
   }
 
   void _onControllerChanged() {
     if (!mounted) return;
 
     if (_controller.currentIndex != _renderedCurrentIndex) {
-      setState(() {
-        _activePreviousIndex = _renderedCurrentIndex;
-        _activeCurrentIndex = _controller.currentIndex;
-        _activeDirection = _controller.direction;
-        _renderedCurrentIndex = _controller.currentIndex;
-      });
+      if (!_controller.isAnimating) {
+        setState(() {
+          _renderedCurrentIndex = _controller.currentIndex;
+          _activeCurrentIndex = _controller.currentIndex;
+          _activePreviousIndex = _controller.currentIndex;
+          _isTransitioning = false;
+        });
+        return;
+      }
 
+      final isForward = _controller.direction == MenuTransitionDirection.forward;
+      _activePreviousIndex = _renderedCurrentIndex;
+      _activeCurrentIndex = _controller.currentIndex;
+      _activeDirection = _controller.direction;
+      _renderedCurrentIndex = _controller.currentIndex;
+
+      _updateSlideAnimations(isForward);
+
+      _isTransitioning = true;
       _animController.forward(from: 0.0);
+      setState(() {});
+    }
+  }
+
+  @override
+  void didUpdateWidget(MenuTransitionControl oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.duration != oldWidget.duration) {
+      _animController.duration = widget.duration ?? _controller.duration;
+    }
+    if (widget.children != oldWidget.children && widget.children != null) {
+      _menuScreens = List<Widget>.generate(
+        widget.children!.length,
+        (index) => RepaintBoundary(
+          key: ValueKey<int>(index),
+          child: widget.children![index],
+        ),
+        growable: false,
+      );
     }
   }
 
@@ -234,51 +314,24 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
   }
 
   Widget _buildAnimatedContent() {
-    return AnimatedBuilder(
-      animation: _animation,
-      builder: (context, _) {
-        final isAnimating = _animController.isAnimating;
+    if (!_isTransitioning) {
+      return _menuScreens[_activeCurrentIndex];
+    }
 
-        if (!isAnimating) {
-          return RepaintBoundary(
-            key: ValueKey<int>(_activeCurrentIndex),
-            child: _menuScreens[_activeCurrentIndex],
-          );
-        }
-
-        final t = _animation.value;
-        final isForward = _activeDirection == MenuTransitionDirection.forward;
-
-        // Clamp outgoing translation to 1.0 so once fully exited it does not bounce back.
-        final outgoingT = t.clamp(0.0, 1.0);
-        final outgoingOffset = isForward ? Offset(-outgoingT, 0.0) : Offset(outgoingT, 0.0);
-
-        // Incoming window uses full curve value t (including overshoot > 1.0)
-        // allowing it to brake sharply, overshoot center, and spring back with resistance.
-        final incomingOffset = isForward ? Offset(1.0 - t, 0.0) : Offset(-1.0 + t, 0.0);
-
-        return ClipRect(
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              FractionalTranslation(
-                translation: outgoingOffset,
-                child: RepaintBoundary(
-                  key: ValueKey<int>(_activePreviousIndex),
-                  child: _menuScreens[_activePreviousIndex],
-                ),
-              ),
-              FractionalTranslation(
-                translation: incomingOffset,
-                child: RepaintBoundary(
-                  key: ValueKey<int>(_activeCurrentIndex),
-                  child: _menuScreens[_activeCurrentIndex],
-                ),
-              ),
-            ],
+    return ClipRect(
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          SlideTransition(
+            position: _outgoingAnimation,
+            child: _menuScreens[_activePreviousIndex],
           ),
-        );
-      },
+          SlideTransition(
+            position: _incomingAnimation,
+            child: _menuScreens[_activeCurrentIndex],
+          ),
+        ],
+      ),
     );
   }
 
