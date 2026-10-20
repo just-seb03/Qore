@@ -12,9 +12,11 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
+import 'package:project_anima/core/search/music_search_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_header.dart';
+import 'package:project_anima/features/search/components/search_results_list.dart';
 
 /// Type alias allowing both `Search` and `SearchScreen` across the codebase.
 typedef Search = SearchScreen;
@@ -35,10 +37,12 @@ class SearchScreen extends StatefulWidget {
 
 class _SearchScreenState extends State<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final MusicSearchController _searchEngine = MusicSearchController();
 
   @override
   void dispose() {
     _searchController.dispose();
+    _searchEngine.dispose();
     super.dispose();
   }
 
@@ -53,6 +57,13 @@ class _SearchScreenState extends State<SearchScreen> {
             const SearchHeader(),
             AppSearchBar(
               controller: _searchController,
+              onChanged: (text) => _searchEngine.onQueryChanged(text),
+              onClear: () => _searchEngine.clear(),
+            ),
+            Expanded(
+              child: SearchResultsList(
+                controller: _searchEngine,
+              ),
             ),
           ],
         ),

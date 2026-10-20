@@ -111,6 +111,7 @@ class AppDatabase {
     );
 
     // Indices for playback history
+    // Indices for playback history
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_history_played_at ON playback_history (played_at DESC)',
     );
