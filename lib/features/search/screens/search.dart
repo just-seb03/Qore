@@ -13,10 +13,14 @@ library;
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
+import 'package:project_anima/core/database/dao/song_dao.dart';
+import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/search/music_search_controller.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/player/screens/player_screen.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_header.dart';
 import 'package:project_anima/features/search/components/search_results_list.dart';
@@ -55,10 +59,27 @@ class _SearchScreenState extends State<SearchScreen>
     NavigationController.instance.searchScrollToTopNotifier.addListener(_onScrollToTop);
   }
 
-  void _handleRecentItemTap(RecentSearchItem item) {
+  Future<void> _handleRecentItemTap(RecentSearchItem item) async {
     RecentSearchController.instance.touchItem(item);
+    if (item.type == RecentSearchType.song) {
+      final song = await SongDao().getSongByMediaStoreId(item.representativeSongId);
+      if (song != null && mounted) {
+        _handleSongTap(song);
+        return;
+      }
+    }
     _searchController.text = item.title;
     _searchEngine.onQueryChanged(item.title);
+  }
+
+  void _handleSongTap(Song song) {
+    PlaybackController.instance.playSong(
+      song,
+      queue: _searchEngine.resultsGroup.matchedSongs.isNotEmpty
+          ? _searchEngine.resultsGroup.matchedSongs
+          : [song],
+    );
+    Navigator.of(context).push(PlayerScreen.route());
   }
 
   /// Resets search query, engine results, and scroll offset back to initial state.
@@ -115,6 +136,7 @@ class _SearchScreenState extends State<SearchScreen>
               child: SearchResultsList(
                 controller: _searchEngine,
                 scrollController: _scrollController,
+                onSongTap: _handleSongTap,
                 onRecentItemTap: _handleRecentItemTap,
               ),
             ),

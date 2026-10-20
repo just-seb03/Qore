@@ -58,6 +58,19 @@ class SongDao {
     return 0;
   }
 
+  /// Retrieves a single song by its MediaStore ID.
+  Future<Song?> getSongByMediaStoreId(int mediaStoreId) async {
+    final db = await _appDatabase.database;
+    final List<Map<String, dynamic>> results = await db.query(
+      'songs',
+      where: 'media_store_id = ?',
+      whereArgs: [mediaStoreId],
+      limit: 1,
+    );
+    if (results.isEmpty) return null;
+    return Song.fromMap(results.first);
+  }
+
   /// Searches indexed songs using high-speed B-Tree indices (title, artist, album)
   /// with multi-level relevance ranking (exact prefix, contains, artist, album).
   /// Operates in < 2 ms on native SQLite with zero external engine dependencies.
