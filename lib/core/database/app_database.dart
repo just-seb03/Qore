@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 2;
+  static const int databaseVersion = 3;
 
   Database? _db;
 
@@ -92,6 +92,26 @@ class AppDatabase {
         ''');
       } catch (_) {}
     }
+
+    if (oldVersion < 3) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS recent_searches (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            entity_type TEXT NOT NULL,
+            entity_key TEXT UNIQUE NOT NULL,
+            title TEXT NOT NULL,
+            subtitle TEXT NOT NULL,
+            representative_song_id INTEGER NOT NULL,
+            album_id INTEGER,
+            searched_at INTEGER NOT NULL
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_recent_searches_searched_at ON recent_searches (searched_at DESC)',
+        );
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
@@ -112,6 +132,21 @@ class AppDatabase {
           value TEXT
         )
       ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS recent_searches (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          entity_type TEXT NOT NULL,
+          entity_key TEXT UNIQUE NOT NULL,
+          title TEXT NOT NULL,
+          subtitle TEXT NOT NULL,
+          representative_song_id INTEGER NOT NULL,
+          album_id INTEGER,
+          searched_at INTEGER NOT NULL
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_recent_searches_searched_at ON recent_searches (searched_at DESC)',
+      );
     } catch (_) {}
   }
 
@@ -154,7 +189,21 @@ class AppDatabase {
       )
     ''');
 
-    // 3. Mandatory B-Tree Indices for zero-jank retrieval
+    // 4. Table: recent_searches (max 20 entries)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS recent_searches (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        entity_type TEXT NOT NULL,
+        entity_key TEXT UNIQUE NOT NULL,
+        title TEXT NOT NULL,
+        subtitle TEXT NOT NULL,
+        representative_song_id INTEGER NOT NULL,
+        album_id INTEGER,
+        searched_at INTEGER NOT NULL
+      )
+    ''');
+
+    // 5. Mandatory B-Tree Indices for zero-jank retrieval
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs (artist COLLATE NOCASE)',
     );
@@ -180,6 +229,11 @@ class AppDatabase {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_history_artist ON playback_history (artist COLLATE NOCASE)',
+    );
+
+    // Indices for recent searches
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_recent_searches_searched_at ON recent_searches (searched_at DESC)',
     );
   }
 

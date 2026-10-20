@@ -13,7 +13,9 @@ library;
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
+import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/search/music_search_controller.dart';
+import 'package:project_anima/core/search/recent_search_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_header.dart';
@@ -48,8 +50,15 @@ class _SearchScreenState extends State<SearchScreen>
   @override
   void initState() {
     super.initState();
+    RecentSearchController.instance.init();
     NavigationController.instance.searchResetNotifier.addListener(_onSearchReset);
     NavigationController.instance.searchScrollToTopNotifier.addListener(_onScrollToTop);
+  }
+
+  void _handleRecentItemTap(RecentSearchItem item) {
+    RecentSearchController.instance.touchItem(item);
+    _searchController.text = item.title;
+    _searchEngine.onQueryChanged(item.title);
   }
 
   /// Resets search query, engine results, and scroll offset back to initial state.
@@ -106,6 +115,7 @@ class _SearchScreenState extends State<SearchScreen>
               child: SearchResultsList(
                 controller: _searchEngine,
                 scrollController: _scrollController,
+                onRecentItemTap: _handleRecentItemTap,
               ),
             ),
           ],
