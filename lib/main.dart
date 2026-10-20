@@ -10,10 +10,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/controls/menu_transition_controller.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  ArtworkService.instance.initialize();
   runApp(const AnimaApp());
 }
 

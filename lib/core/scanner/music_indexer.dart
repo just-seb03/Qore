@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/models/indexing_result.dart';
@@ -187,6 +188,12 @@ class MusicIndexer {
         debugPrint(
           '🎵 [MusicIndexer] Sincronización completada: $totalSongs canciones en ${stopwatch.elapsedMilliseconds} ms. (Sin cambios / 0 deltas)',
         );
+
+        // Ensure missing artworks are enqueued for background processing
+        _songDao.getAllSongs().then((songs) {
+          ArtworkService.instance.enqueueSongs(songs);
+        });
+
         return IndexingResult(
           totalSongs: totalSongs,
           addedCount: 0,
@@ -221,6 +228,11 @@ class MusicIndexer {
         '🎵 [MusicIndexer] Sincronización completada: $totalSongs canciones en ${stopwatch.elapsedMilliseconds} ms. '
         '(Añadidas: ${addedIds.length}, Modificadas: ${updatedIds.length}, Eliminadas: ${deletedIds.length})',
       );
+
+      // Auto-enqueue newly indexed tracks into ArtworkService background throttled queue
+      if (parsedSongs.isNotEmpty) {
+        ArtworkService.instance.enqueueSongs(parsedSongs);
+      }
 
       return IndexingResult(
         totalSongs: totalSongs,
