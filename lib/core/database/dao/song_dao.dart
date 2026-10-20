@@ -7,6 +7,8 @@
 library;
 
 import 'package:project_anima/core/database/app_database.dart';
+import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:sqflite/sqflite.dart';
 
@@ -140,5 +142,99 @@ class SongDao {
   Future<void> clearAll() async {
     final db = await _appDatabase.database;
     await db.delete('songs');
+  }
+
+  // ==========================================
+  // Section 4.2: Anti-N+1 Relational Discovery
+  // ==========================================
+
+  /// Retrieves aggregated artist statistics in a single relational query (Rule 4.2).
+  /// Strictly eliminates N+1 loops by joining songs and playback_history in SQLite.
+  Future<List<ArtistDiscoveryItem>> getDiscoveryArtists({int limit = 15}) async {
+    final db = await _appDatabase.database;
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT 
+        s.artist AS name,
+        COUNT(s.id) AS song_count,
+        COUNT(DISTINCT s.album) AS album_count,
+        MIN(s.media_store_id) AS representative_song_id,
+        MIN(s.album_id) AS representative_album_id,
+        MAX(ph.played_at) AS last_played
+      FROM songs s
+      LEFT JOIN playback_history ph ON s.artist = ph.artist COLLATE NOCASE
+      WHERE s.artist IS NOT NULL AND s.artist != '' AND s.artist != '<Desconocido>'
+      GROUP BY s.artist COLLATE NOCASE
+      ORDER BY last_played DESC, song_count DESC
+      LIMIT ?;
+      ''',
+      [limit],
+    );
+
+    return results.map((row) => ArtistDiscoveryItem.fromMap(row)).toList();
+  }
+
+  /// Retrieves aggregated album statistics in a single relational query (Rule 4.2).
+  /// Eliminates N+1 loops by grouping songs and calculating total tracks and duration.
+  Future<List<AlbumDiscoveryItem>> getDiscoveryAlbums({int limit = 15}) async {
+    final db = await _appDatabase.database;
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT
+        s.album AS name,
+        s.artist AS artist,
+        s.album_id AS album_id,
+        MIN(s.media_store_id) AS representative_song_id,
+        COUNT(s.id) AS song_count,
+        SUM(s.duration) AS total_duration,
+        MAX(ph.played_at) AS last_played
+      FROM songs s
+      LEFT JOIN playback_history ph ON s.id = ph.song_id
+      WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+      GROUP BY s.album COLLATE NOCASE, s.artist COLLATE NOCASE
+      ORDER BY last_played DESC, song_count DESC
+      LIMIT ?;
+      ''',
+      [limit],
+    );
+
+    return results.map((row) => AlbumDiscoveryItem.fromMap(row)).toList();
+  }
+
+  /// Records a playback event in `playback_history` backed by B-Tree indices.
+  Future<void> recordPlayback({
+    required int songId,
+    String? artist,
+    int? timestampSeconds,
+  }) async {
+    final db = await _appDatabase.database;
+    final int playedAt =
+        timestampSeconds ?? (DateTime.now().millisecondsSinceEpoch ~/ 1000);
+
+    await db.insert('playback_history', {
+      'song_id': songId,
+      'artist': artist,
+      'played_at': playedAt,
+    });
+  }
+
+  /// Retrieves recently played tracks using a single relational JOIN query.
+  Future<List<Song>> getRecentlyPlayedSongs({int limit = 15}) async {
+    final db = await _appDatabase.database;
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT s.*
+      FROM playback_history ph
+      JOIN songs s ON ph.song_id = s.id
+      ORDER BY ph.played_at DESC
+      LIMIT ?;
+      ''',
+      [limit],
+    );
+
+    return results.map((row) => Song.fromMap(row)).toList();
   }
 }
