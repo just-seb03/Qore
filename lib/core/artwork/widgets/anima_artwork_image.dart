@@ -28,6 +28,12 @@ class AnimaArtworkImage extends StatelessWidget {
   /// Corner radius for rounded artwork cards. Defaults to 8.0.
   final double borderRadius;
 
+  /// Whether to render as a perfect circle (Spotify artist avatar style).
+  final bool isCircular;
+
+  /// Custom icon used for the fallback container (e.g. person, album, or music note).
+  final IconData? fallbackIcon;
+
   /// Whether to display the 100x100 thumbnail or the 800x800 full cover.
   final bool isThumbnail;
 
@@ -44,6 +50,8 @@ class AnimaArtworkImage extends StatelessWidget {
     this.width = 48.0,
     this.height = 48.0,
     this.borderRadius = 8.0,
+    this.isCircular = false,
+    this.fallbackIcon,
     this.isThumbnail = true,
     this.fit = BoxFit.cover,
     this.fallback,
@@ -60,21 +68,25 @@ class AnimaArtworkImage extends StatelessWidget {
 
         if (path != null) {
           final file = File(path);
-          if (file.existsSync()) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: Image.file(
-                file,
-                width: width,
-                height: height,
-                fit: fit,
-                // Crucial Rule 6.2.2: Prevent PaintingBinding.imageCache overflow
-                cacheWidth: isThumbnail ? 100 : 800,
-                cacheHeight: isThumbnail ? 100 : 800,
-                errorBuilder: (ctx, err, stack) => _buildFallback(context),
-              ),
-            );
+          final imageWidget = Image.file(
+            file,
+            width: width,
+            height: height,
+            fit: fit,
+            // Crucial Rule 6.2.2: Prevent PaintingBinding.imageCache overflow
+            cacheWidth: isThumbnail ? 100 : 800,
+            cacheHeight: isThumbnail ? 100 : 800,
+            errorBuilder: (ctx, err, stack) => _buildFallback(context),
+          );
+
+          if (isCircular) {
+            return ClipOval(child: imageWidget);
           }
+
+          return ClipRRect(
+            borderRadius: BorderRadius.circular(borderRadius),
+            child: imageWidget,
+          );
         }
 
         return _buildFallback(context);
@@ -87,6 +99,31 @@ class AnimaArtworkImage extends StatelessWidget {
 
     final theme = Theme.of(context);
     final iconSize = ((width ?? 48.0) * 0.45).clamp(16.0, 64.0);
+    final icon = fallbackIcon ?? Icons.music_note_rounded;
+
+    final containerChild = Center(
+      child: Icon(
+        icon,
+        size: iconSize,
+        color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
+      ),
+    );
+
+    if (isCircular) {
+      return Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: theme.colorScheme.surfaceContainerHighest,
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.05),
+            width: 0.5,
+          ),
+        ),
+        child: containerChild,
+      );
+    }
 
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
@@ -101,13 +138,7 @@ class AnimaArtworkImage extends StatelessWidget {
             width: 0.5,
           ),
         ),
-        child: Center(
-          child: Icon(
-            Icons.music_note_rounded,
-            size: iconSize,
-            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.4),
-          ),
-        ),
+        child: containerChild,
       ),
     );
   }

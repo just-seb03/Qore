@@ -237,4 +237,44 @@ class SongDao {
 
     return results.map((row) => Song.fromMap(row)).toList();
   }
+
+  /// Retrieves up to [limit] songs belonging to [artist], ordered by title.
+  Future<List<Song>> getSongsByArtist(String artist, {int limit = 5}) async {
+    final db = await _appDatabase.database;
+    final List<Map<String, dynamic>> results = await db.query(
+      'songs',
+      where: 'artist = ? COLLATE NOCASE',
+      whereArgs: [artist],
+      orderBy: 'title COLLATE NOCASE ASC',
+      limit: limit,
+    );
+    return results.map((row) => Song.fromMap(row)).toList();
+  }
+
+  /// Retrieves up to [limit] songs belonging to [album], optionally scoped to [artist].
+  Future<List<Song>> getSongsByAlbum(String album, {String? artist, int limit = 5}) async {
+    final db = await _appDatabase.database;
+    final bool hasArtist = artist != null && artist.trim().isNotEmpty;
+    final where = hasArtist
+        ? 'album = ? COLLATE NOCASE AND artist = ? COLLATE NOCASE'
+        : 'album = ? COLLATE NOCASE';
+    final whereArgs = hasArtist ? [album, artist] : [album];
+
+    final List<Map<String, dynamic>> results = await db.query(
+      'songs',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'title COLLATE NOCASE ASC',
+      limit: limit,
+    );
+    return results.map((row) => Song.fromMap(row)).toList();
+  }
+
+  /// Retrieves unique artists for search dictionary indexing.
+  Future<List<ArtistDiscoveryItem>> getAllUniqueArtists({int limit = 1000}) =>
+      getDiscoveryArtists(limit: limit);
+
+  /// Retrieves unique albums for search dictionary indexing.
+  Future<List<AlbumDiscoveryItem>> getAllUniqueAlbums({int limit = 1000}) =>
+      getDiscoveryAlbums(limit: limit);
 }

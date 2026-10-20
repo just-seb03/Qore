@@ -1,52 +1,66 @@
 /// File: music_search_controller.dart
-/// Description: Zero-Jank Search Controller implementing 280 ms debouncing,
-/// 20-item paginated loading, SQLite FTS5 integration, and out-of-order response cancellation.
+/// Description: Zero-Jank Search Controller orchestrating 280 ms debouncing,
+/// out-of-order sequence cancellation, and Spotify-style multi-tier fuzzy matching
+/// across Artists, Albums, and Songs (strictly limited to 5).
 ///
 /// Components / Classes / Functions:
-/// - MusicSearchController: State notifier coordinating instant search, debounce, and pagination.
+/// - MusicSearchController: State notifier coordinating search input, debounce, and fuzzy results.
 library;
 
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/search/fuzzy_search_engine.dart';
+import 'package:project_anima/core/search/models/search_results_group.dart';
 
-/// Coordinator for zero-jank instant search (Module 5).
+/// Coordinator for Spotify-styled fuzzy search and entity categorization.
 class MusicSearchController extends ChangeNotifier {
   final SongDao _songDao;
+  final FuzzySearchEngine _fuzzyEngine;
 
-  MusicSearchController({SongDao? songDao})
-      : _songDao = songDao ?? SongDao();
+  MusicSearchController({SongDao? songDao, FuzzySearchEngine? fuzzyEngine})
+      : _songDao = songDao ?? SongDao(),
+        _fuzzyEngine = fuzzyEngine ?? FuzzySearchEngine(songDao: songDao ?? SongDao()) {
+    // Pre-warm in-memory search dictionary in background
+    _fuzzyEngine.reloadDictionary();
+  }
+
+  /// Data access object instance.
+  SongDao get songDao => _songDao;
 
   /// Debounce threshold strictly complying with Rule 5.2.1 (250 - 300 ms).
   static const Duration debounceDuration = Duration(milliseconds: 280);
 
-  /// Pagination size strictly complying with Rule 5.2.2 (Max 20 initial songs).
-  static const int pageSize = 20;
+  /// Maximum songs to display in secondary list.
+  static const int maxSongResults = 5;
 
   Timer? _debounceTimer;
   int _searchSequence = 0;
 
   String _query = '';
-  List<Song> _results = [];
+  SearchResultsGroup _resultsGroup = SearchResultsGroup.empty();
   bool _isLoading = false;
-  bool _isLoadingMore = false;
-  bool _hasMore = false;
 
   /// Active query string.
   String get query => _query;
 
-  /// Matching songs returned by the search engine.
-  List<Song> get results => List.unmodifiable(_results);
+  /// Full Spotify-style grouped search results (Top Result, Songs, Albums, Artists).
+  SearchResultsGroup get resultsGroup => _resultsGroup;
+
+  /// Backward-compatible getter returning matched songs.
+  List<Song> get results => _resultsGroup.matchedSongs;
 
   /// True while an initial query search is in-flight.
   bool get isLoading => _isLoading;
 
-  /// True while fetching the next page of 20 results via infinite scroll.
-  bool get isLoadingMore => _isLoadingMore;
+  /// True if at least one result (artist, album, or song) was found.
+  bool get hasResults => _resultsGroup.isNotEmpty;
 
-  /// True if additional pages exist for the current query.
-  bool get hasMore => _hasMore;
+  /// Refreshes the in-memory search dictionary (e.g. after background indexing).
+  Future<void> reloadDictionary() async {
+    await _fuzzyEngine.reloadDictionary();
+  }
 
   /// Handles user input keystrokes, applying the 280 ms debounce filter.
   void onQueryChanged(String newQuery) {
@@ -57,10 +71,8 @@ class MusicSearchController extends ChangeNotifier {
     _debounceTimer?.cancel();
 
     if (_query.isEmpty) {
-      _results.clear();
+      _resultsGroup = SearchResultsGroup.empty();
       _isLoading = false;
-      _isLoadingMore = false;
-      _hasMore = false;
       notifyListeners();
       return;
     }
@@ -74,59 +86,26 @@ class MusicSearchController extends ChangeNotifier {
     });
   }
 
-  /// Dispatches the search to SQLite FTS5 with query sequence tracking.
+  /// Dispatches query to the FuzzySearchEngine with sequence tracking.
   Future<void> _executeSearch(String queryToSearch) async {
     final int currentSequence = ++_searchSequence;
 
     try {
-      final songs = await _songDao.searchSongsFts(
+      final results = await _fuzzyEngine.search(
         queryToSearch,
-        limit: pageSize,
-        offset: 0,
+        songLimit: maxSongResults,
       );
 
       // Discard results if a newer search was initiated during async execution
       if (currentSequence != _searchSequence) return;
 
-      _results = songs;
-      _hasMore = songs.length >= pageSize;
+      _resultsGroup = results;
     } catch (_) {
       if (currentSequence != _searchSequence) return;
-      _results = [];
-      _hasMore = false;
+      _resultsGroup = SearchResultsGroup.empty(queryToSearch);
     } finally {
       if (currentSequence == _searchSequence) {
         _isLoading = false;
-        notifyListeners();
-      }
-    }
-  }
-
-  /// Loads the next batch of 20 results (Rule 5.2.2 pagination).
-  Future<void> loadMore() async {
-    if (_isLoading || _isLoadingMore || !_hasMore || _query.isEmpty) return;
-
-    _isLoadingMore = true;
-    notifyListeners();
-
-    final int currentSequence = _searchSequence;
-
-    try {
-      final moreSongs = await _songDao.searchSongsFts(
-        _query,
-        limit: pageSize,
-        offset: _results.length,
-      );
-
-      if (currentSequence != _searchSequence) return;
-
-      _results.addAll(moreSongs);
-      _hasMore = moreSongs.length >= pageSize;
-    } catch (_) {
-      // Keep existing results intact on error
-    } finally {
-      if (currentSequence == _searchSequence) {
-        _isLoadingMore = false;
         notifyListeners();
       }
     }
@@ -137,10 +116,8 @@ class MusicSearchController extends ChangeNotifier {
     _debounceTimer?.cancel();
     _searchSequence++;
     _query = '';
-    _results.clear();
+    _resultsGroup = SearchResultsGroup.empty();
     _isLoading = false;
-    _isLoadingMore = false;
-    _hasMore = false;
     notifyListeners();
   }
 

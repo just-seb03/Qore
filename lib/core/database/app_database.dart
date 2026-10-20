@@ -61,6 +61,12 @@ class AppDatabase {
   /// Enables foreign key constraints and WAL mode where supported.
   Future<void> _onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
+    try {
+      await db.execute('PRAGMA journal_mode = WAL');
+      await db.execute('PRAGMA synchronous = NORMAL');
+    } catch (_) {
+      // In-memory or specific platforms may ignore WAL
+    }
   }
 
   /// Creates tables and mandatory B-Tree indices according to architectural specs.

@@ -1,66 +1,69 @@
 /// File: search_results_list.dart
-/// Description: Paginated, zero-jank search results list component for SearchScreen.
-/// Displays indexed audio tracks with dual-tier 100x100 thumbnails (AnimaArtworkImage),
-/// formatted duration, and infinite scroll pagination driven by MusicSearchController.
+/// Description: Spotify-styled dynamic search results coordinator.
+/// Orchestrates SearchArtistComponent, SearchAlbumComponent, and SearchSongComponent,
+/// dynamically prioritizing the dominant category (Artist, Album, or Song) as the Top Result,
+/// followed by secondary sections (up to 5 songs, albums, and artists).
 ///
 /// Components / Classes / Functions:
-/// - SearchResultsList: Reactive scrollable results list with infinite loading.
-/// - SearchSongTile: Individual song item tile enforcing 100x100 thumbnail memory limits.
+/// - SearchResultsList: Reactive scrollable results list orchestrating the three search components.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/search/models/search_entity_type.dart';
 import 'package:project_anima/core/search/music_search_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/search/components/search_album_component.dart';
+import 'package:project_anima/features/search/components/search_artist_component.dart';
+import 'package:project_anima/features/search/components/search_song_component.dart';
 
-/// Scrollable results list connected to [MusicSearchController] with infinite scroll.
-class SearchResultsList extends StatefulWidget {
+/// Dynamic, Spotify-style multi-tier search results view.
+class SearchResultsList extends StatelessWidget {
   final MusicSearchController controller;
   final ValueChanged<Song>? onSongTap;
+  final ValueChanged<AlbumDiscoveryItem>? onAlbumTap;
+  final ValueChanged<ArtistDiscoveryItem>? onArtistTap;
 
   const SearchResultsList({
     super.key,
     required this.controller,
     this.onSongTap,
+    this.onAlbumTap,
+    this.onArtistTap,
   });
 
-  @override
-  State<SearchResultsList> createState() => _SearchResultsListState();
-}
+  static final TextStyle _emptyHeaderStyle = GoogleFonts.zenDots(
+    fontSize: 13.0,
+    letterSpacing: 1.5,
+    color: AppColors.futuristicWhite.withValues(alpha: 0.35),
+  );
 
-class _SearchResultsListState extends State<SearchResultsList> {
-  final ScrollController _scrollController = ScrollController();
+  static final TextStyle _emptySubtitleStyle = GoogleFonts.inconsolata(
+    fontSize: 13.5,
+    color: AppColors.futuristicWhite.withValues(alpha: 0.25),
+  );
 
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_onScroll);
-  }
+  static final TextStyle _noResultsHeaderStyle = GoogleFonts.zenDots(
+    fontSize: 13.0,
+    letterSpacing: 1.2,
+    color: AppColors.futuristicWhite.withValues(alpha: 0.4),
+  );
 
-  void _onScroll() {
-    if (!_scrollController.hasClients) return;
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    final currentScroll = _scrollController.position.pixels;
-    // Trigger loadMore when scrolled to 80% of current list extent
-    if (currentScroll >= (maxScroll * 0.8)) {
-      widget.controller.loadMore();
-    }
-  }
-
-  @override
-  void dispose() {
-    _scrollController.dispose();
-    super.dispose();
-  }
+  static final TextStyle _noResultsSubtitleStyle = GoogleFonts.inconsolata(
+    fontSize: 13.5,
+    color: AppColors.futuristicWhite.withValues(alpha: 0.3),
+  );
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.controller,
+      listenable: controller,
       builder: (context, _) {
-        final ctrl = widget.controller;
+        final ctrl = controller;
+        final results = ctrl.resultsGroup;
 
         // 1. Initial State: Empty query
         if (ctrl.query.isEmpty) {
@@ -76,27 +79,20 @@ class _SearchResultsListState extends State<SearchResultsList> {
                 const SizedBox(height: 12.0),
                 Text(
                   'BUSCAR EN LA BIBLIOTECA',
-                  style: GoogleFonts.zenDots(
-                    fontSize: 13.0,
-                    letterSpacing: 1.5,
-                    color: AppColors.futuristicWhite.withValues(alpha: 0.35),
-                  ),
+                  style: _emptyHeaderStyle,
                 ),
                 const SizedBox(height: 4.0),
                 Text(
                   'Títulos, artistas o álbumes indexados',
-                  style: GoogleFonts.inconsolata(
-                    fontSize: 13.5,
-                    color: AppColors.futuristicWhite.withValues(alpha: 0.25),
-                  ),
+                  style: _emptySubtitleStyle,
                 ),
               ],
             ),
           );
         }
 
-        // 2. Loading initial search results
-        if (ctrl.isLoading && ctrl.results.isEmpty) {
+        // 2. Loading state while waiting for debounce/search
+        if (ctrl.isLoading && results.isEmpty) {
           return const Center(
             child: SizedBox(
               width: 32,
@@ -109,8 +105,8 @@ class _SearchResultsListState extends State<SearchResultsList> {
           );
         }
 
-        // 3. No matches found
-        if (ctrl.results.isEmpty) {
+        // 3. No matches found across any category
+        if (results.isEmpty) {
           return Center(
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -125,20 +121,13 @@ class _SearchResultsListState extends State<SearchResultsList> {
                   const SizedBox(height: 12.0),
                   Text(
                     'SIN RESULTADOS',
-                    style: GoogleFonts.zenDots(
-                      fontSize: 13.0,
-                      letterSpacing: 1.2,
-                      color: AppColors.futuristicWhite.withValues(alpha: 0.4),
-                    ),
+                    style: _noResultsHeaderStyle,
                   ),
                   const SizedBox(height: 6.0),
                   Text(
                     'No encontramos coincidencias para "${ctrl.query}"',
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inconsolata(
-                      fontSize: 13.5,
-                      color: AppColors.futuristicWhite.withValues(alpha: 0.3),
-                    ),
+                    style: _noResultsSubtitleStyle,
                   ),
                 ],
               ),
@@ -146,125 +135,155 @@ class _SearchResultsListState extends State<SearchResultsList> {
           );
         }
 
-        // 4. Render Paginated Results List
-        return ListView.builder(
-          controller: _scrollController,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          itemCount: ctrl.results.length + (ctrl.hasMore ? 1 : 0),
-          itemBuilder: (context, index) {
-            if (index == ctrl.results.length) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16.0),
-                child: Center(
-                  child: SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.0,
-                      color: AppColors.futuristicWhite,
-                    ),
-                  ),
-                ),
-              );
-            }
-
-            final song = ctrl.results[index];
-            return SearchSongTile(
-              song: song,
-              onTap: () => widget.onSongTap?.call(song),
-            );
-          },
+        // 4. Render Dynamic Spotify-style Hierarchical Sections
+        return ListView(
+          padding: const EdgeInsets.only(top: 12.0, bottom: 24.0),
+          children: _buildDynamicSections(results),
         );
       },
     );
   }
-}
 
-/// Individual item tile rendering track metadata and 100x100 thumbnail.
-class SearchSongTile extends StatelessWidget {
-  final Song song;
-  final VoidCallback? onTap;
+  /// Builds the dynamic component order based on the dominant entity type.
+  List<Widget> _buildDynamicSections(dynamic results) {
+    final List<Widget> widgets = [];
+    final primaryType = results.primaryType;
+    final topResult = results.topResult;
 
-  const SearchSongTile({
-    super.key,
-    required this.song,
-    this.onTap,
-  });
-
-  String _formatDuration(int ms) {
-    final int totalSeconds = ms ~/ 1000;
-    final int minutes = totalSeconds ~/ 60;
-    final int seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4.0),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(10.0),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-            child: Row(
-              children: [
-                // Module 6 Dual-Tier thumbnail (100x100 cache protected)
-                AnimaArtworkImage(
-                  mediaStoreId: song.mediaStoreId,
-                  albumId: song.albumId,
-                  width: 48.0,
-                  height: 48.0,
-                  borderRadius: 8.0,
-                  isThumbnail: true,
-                ),
-                const SizedBox(width: 14.0),
-                // Song Title & Artist / Album metadata
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        song.title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inconsolata(
-                          fontSize: 15.5,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.futuristicWhite,
-                        ),
-                      ),
-                      const SizedBox(height: 3.0),
-                      Text(
-                        '${song.artist ?? '<Desconocido>'} • ${song.album ?? '<Desconocido>'}',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inconsolata(
-                          fontSize: 13.0,
-                          fontWeight: FontWeight.w400,
-                          color: AppColors.futuristicWhite.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 10.0),
-                // Formatted Duration
-                Text(
-                  _formatDuration(song.duration),
-                  style: GoogleFonts.inconsolata(
-                    fontSize: 12.5,
-                    color: AppColors.futuristicWhite.withValues(alpha: 0.4),
-                  ),
-                ),
-              ],
-            ),
+    if (primaryType == SearchEntityType.artist) {
+      // 1. Dominant Artist Top Result
+      if (topResult?.artist != null) {
+        widgets.add(
+          SearchArtistComponent(
+            topResultArtist: topResult!.artist,
+            isTopResultOnly: true,
+            onArtistTap: onArtistTap,
           ),
-        ),
-      ),
-    );
+        );
+        widgets.add(const SizedBox(height: 20.0));
+      }
+
+      // 2. Secondary Songs (Up to 5)
+      if (results.matchedSongs.isNotEmpty) {
+        widgets.add(
+          SearchSongComponent(
+            songs: results.matchedSongs,
+            onSongTap: onSongTap,
+          ),
+        );
+        widgets.add(const SizedBox(height: 24.0));
+      }
+
+      // 3. Secondary Albums
+      if (results.matchedAlbums.isNotEmpty) {
+        widgets.add(
+          SearchAlbumComponent(
+            secondaryAlbums: results.matchedAlbums,
+            onAlbumTap: onAlbumTap,
+          ),
+        );
+        widgets.add(const SizedBox(height: 24.0));
+      }
+
+      // 4. Secondary Artists
+      if (results.matchedArtists.isNotEmpty) {
+        widgets.add(
+          SearchArtistComponent(
+            secondaryArtists: results.matchedArtists,
+            onArtistTap: onArtistTap,
+          ),
+        );
+      }
+    } else if (primaryType == SearchEntityType.album) {
+      // 1. Dominant Album Top Result
+      if (topResult?.album != null) {
+        widgets.add(
+          SearchAlbumComponent(
+            topResultAlbum: topResult!.album,
+            isTopResultOnly: true,
+            onAlbumTap: onAlbumTap,
+          ),
+        );
+        widgets.add(const SizedBox(height: 20.0));
+      }
+
+      // 2. Secondary Songs (Up to 5)
+      if (results.matchedSongs.isNotEmpty) {
+        widgets.add(
+          SearchSongComponent(
+            songs: results.matchedSongs,
+            onSongTap: onSongTap,
+          ),
+        );
+        widgets.add(const SizedBox(height: 24.0));
+      }
+
+      // 3. Artists
+      if (results.matchedArtists.isNotEmpty) {
+        widgets.add(
+          SearchArtistComponent(
+            secondaryArtists: results.matchedArtists,
+            onArtistTap: onArtistTap,
+          ),
+        );
+        widgets.add(const SizedBox(height: 24.0));
+      }
+
+      // 4. Secondary Albums
+      if (results.matchedAlbums.isNotEmpty) {
+        widgets.add(
+          SearchAlbumComponent(
+            secondaryAlbums: results.matchedAlbums,
+            onAlbumTap: onAlbumTap,
+          ),
+        );
+      }
+    } else {
+      // 1. Dominant Song Top Result
+      if (topResult?.song != null) {
+        widgets.add(
+          SearchSongComponent(
+            topResultSong: topResult!.song,
+            isTopResultOnly: true,
+            onSongTap: onSongTap,
+          ),
+        );
+        widgets.add(const SizedBox(height: 20.0));
+      }
+
+      // 2. Secondary Songs (Up to 5)
+      if (results.matchedSongs.isNotEmpty) {
+        widgets.add(
+          SearchSongComponent(
+            songs: results.matchedSongs,
+            onSongTap: onSongTap,
+          ),
+        );
+        widgets.add(const SizedBox(height: 24.0));
+      }
+
+      // 3. Artists
+      if (results.matchedArtists.isNotEmpty) {
+        widgets.add(
+          SearchArtistComponent(
+            secondaryArtists: results.matchedArtists,
+            onArtistTap: onArtistTap,
+          ),
+        );
+        widgets.add(const SizedBox(height: 24.0));
+      }
+
+      // 4. Albums
+      if (results.matchedAlbums.isNotEmpty) {
+        widgets.add(
+          SearchAlbumComponent(
+            secondaryAlbums: results.matchedAlbums,
+            onAlbumTap: onAlbumTap,
+          ),
+        );
+      }
+    }
+
+    return widgets;
   }
 }
