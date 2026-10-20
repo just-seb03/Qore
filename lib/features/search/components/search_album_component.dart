@@ -226,7 +226,7 @@ class _AlbumTopResultCard extends StatelessWidget {
                           ),
                           const SizedBox(height: 6.0),
                           Text(
-                            '${album.songCount} ${album.songCount == 1 ? "track" : "tracks"}',
+                            '${album.songCount} ${album.songCount == 1 ? "canción" : "canciones"}',
                             style: _metadataTextStyle.copyWith(fontSize: 12.5),
                           ),
                         ],

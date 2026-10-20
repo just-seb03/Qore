@@ -283,9 +283,18 @@ class FuzzySearchEngine {
         }
       }
     } else if (primaryType == SearchEntityType.album && bestAlbum != null) {
-      // Songs from this album first
+      // Songs from this album first, matching by album name and effective album artist
+      final albumNameLower = bestAlbum.name.toLowerCase();
+      final albumArtistLower = bestAlbum.artist.toLowerCase();
       final albumSongs = _cachedSongs
-          .where((s) => s.album != null && s.album!.toLowerCase() == bestAlbum!.name.toLowerCase())
+          .where((s) {
+            if (s.album == null || s.album!.toLowerCase() != albumNameLower) return false;
+            if (albumArtistLower == '<desconocido>') return true;
+            final effectiveSongArtist = (s.albumArtist != null && s.albumArtist!.trim().isNotEmpty)
+                ? s.albumArtist!.trim()
+                : (s.artist ?? '');
+            return effectiveSongArtist.toLowerCase() == albumArtistLower;
+          })
           .take(songLimit)
           .toList();
       secondarySongs.addAll(albumSongs);

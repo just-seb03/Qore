@@ -27,6 +27,7 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
     String title = item.fallbackTitle;
     String artist = item.fallbackArtist ?? '<Desconocido>';
     String album = item.fallbackAlbum ?? '<Desconocido>';
+    String? albumArtist = item.fallbackAlbumArtist;
     int duration = item.duration;
 
     try {
@@ -41,6 +42,9 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
         }
         if (metadata.album != null && metadata.album!.trim().isNotEmpty) {
           album = metadata.album!.trim();
+        }
+        if (metadata.albumArtist != null && metadata.albumArtist!.trim().isNotEmpty) {
+          albumArtist = metadata.albumArtist!.trim();
         }
         if (metadata.duration != null && metadata.duration!.inMilliseconds > 0) {
           duration = metadata.duration!.inMilliseconds;
@@ -80,11 +84,21 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
       album = '<Desconocido>';
     }
 
+    if (albumArtist != null) {
+      final clean = albumArtist.trim();
+      if (clean.isEmpty || clean == '<Desconocido>' || clean == '<unknown>') {
+        albumArtist = null;
+      } else {
+        albumArtist = clean;
+      }
+    }
+
     results.add(Song(
       mediaStoreId: item.mediaStoreId,
       title: title,
       artist: artist,
       album: album,
+      albumArtist: albumArtist,
       albumId: item.albumId,
       duration: duration,
       path: item.path,
@@ -180,6 +194,21 @@ class MusicIndexer {
       ).toSet();
 
       final int deltaCount = addedIds.length + updatedIds.length + deletedIds.length;
+
+      // Check if one-time album_artist backfill is needed for cached songs
+      final bool needsBackfill = !await _songDao.isAlbumArtistBackfilled();
+      if (needsBackfill) {
+        final Map<int, String> backfillMap = {
+          for (final item in deviceItems)
+            if (item.fallbackAlbumArtist != null &&
+                item.fallbackAlbumArtist!.trim().isNotEmpty)
+              item.mediaStoreId: item.fallbackAlbumArtist!.trim(),
+        };
+        if (backfillMap.isNotEmpty) {
+          await _songDao.backfillAlbumArtists(backfillMap);
+        }
+        await _songDao.markAlbumArtistBackfilled();
+      }
 
       // Si delta == 0: Finalizar sincronización de inmediato sin tocar el disco
       if (deltaCount == 0) {
@@ -281,6 +310,7 @@ class MusicIndexer {
           fallbackTitle: (raw['title'] as String?) ?? '',
           fallbackArtist: raw['artist'] as String?,
           fallbackAlbum: raw['album'] as String?,
+          fallbackAlbumArtist: raw['albumArtist'] as String?,
           albumId: (raw['albumId'] as num?)?.toInt(),
         ));
       }

@@ -39,7 +39,7 @@ class MainActivity : FlutterActivity() {
         val contentResolver: ContentResolver = applicationContext.contentResolver
         val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
 
-        val projection = arrayOf(
+        val projectionList = mutableListOf(
             MediaStore.Audio.Media._ID,
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media.TITLE,
@@ -52,6 +52,10 @@ class MainActivity : FlutterActivity() {
             MediaStore.Audio.Media.SIZE,
             MediaStore.Audio.Media.IS_MUSIC
         )
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+            projectionList.add(MediaStore.Audio.AudioColumns.ALBUM_ARTIST)
+        }
+        val projection = projectionList.toTypedArray()
 
         val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= 30000"
         val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
@@ -70,6 +74,11 @@ class MainActivity : FlutterActivity() {
             val titleCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.TITLE)
             val artistCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
             val albumCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
+            val albumArtistCol = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                c.getColumnIndex(MediaStore.Audio.AudioColumns.ALBUM_ARTIST)
+            } else {
+                c.getColumnIndex("album_artist")
+            }
             val albumIdCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val durationCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val dateModifiedCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
@@ -81,12 +90,15 @@ class MainActivity : FlutterActivity() {
                 val duration = c.getLong(durationCol)
                 if (duration < 30000) continue
 
+                val albumArtist = if (albumArtistCol != -1) c.getString(albumArtistCol) else null
+
                 val songMap = mapOf(
                     "id" to c.getLong(idCol),
                     "path" to path,
                     "title" to (c.getString(titleCol) ?: ""),
                     "artist" to (c.getString(artistCol) ?: "<Desconocido>"),
                     "album" to (c.getString(albumCol) ?: "<Desconocido>"),
+                    "albumArtist" to albumArtist,
                     "albumId" to c.getLong(albumIdCol),
                     "duration" to duration,
                     "dateModified" to c.getLong(dateModifiedCol),

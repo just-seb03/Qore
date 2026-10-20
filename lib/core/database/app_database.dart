@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 1;
+  static const int databaseVersion = 2;
 
   Database? _db;
 
@@ -50,12 +50,15 @@ class AppDatabase {
       path = join(dbFolder, databaseName);
     }
 
-    return await openDatabase(
+    _db = await openDatabase(
       path,
       version: databaseVersion,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
+      onOpen: _onOpen,
       onConfigure: _onConfigure,
     );
+    return _db!;
   }
 
   /// Enables foreign key constraints and WAL mode where supported.
@@ -69,6 +72,49 @@ class AppDatabase {
     }
   }
 
+  /// Handles schema migrations across versions.
+  Future<void> _onUpgrade(Database db, int oldVersion, int newVersion) async {
+    if (oldVersion < 2) {
+      try {
+        await db.execute('ALTER TABLE songs ADD COLUMN album_artist TEXT');
+      } catch (_) {}
+      try {
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_songs_album_artist ON songs (album_artist COLLATE NOCASE)',
+        );
+      } catch (_) {}
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS app_metadata (
+            key TEXT PRIMARY KEY,
+            value TEXT
+          )
+        ''');
+      } catch (_) {}
+    }
+  }
+
+  /// Verifies schema integrity on database opening.
+  Future<void> _onOpen(Database db) async {
+    // Defensive check to ensure album_artist column exists on pre-existing databases
+    try {
+      final columns = await db.rawQuery('PRAGMA table_info(songs)');
+      final hasAlbumArtist = columns.any((col) => col['name'] == 'album_artist');
+      if (!hasAlbumArtist) {
+        await db.execute('ALTER TABLE songs ADD COLUMN album_artist TEXT');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_songs_album_artist ON songs (album_artist COLLATE NOCASE)',
+        );
+      }
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS app_metadata (
+          key TEXT PRIMARY KEY,
+          value TEXT
+        )
+      ''');
+    } catch (_) {}
+  }
+
   /// Creates tables and mandatory B-Tree indices according to architectural specs.
   Future<void> _onCreate(Database db, int version) async {
     // 1. Table: songs
@@ -79,6 +125,7 @@ class AppDatabase {
         title TEXT NOT NULL,
         artist TEXT,
         album TEXT,
+        album_artist TEXT,
         album_id INTEGER,
         duration INTEGER,
         path TEXT NOT NULL,
@@ -99,12 +146,23 @@ class AppDatabase {
       )
     ''');
 
+    // 3. Table: app_metadata
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS app_metadata (
+        key TEXT PRIMARY KEY,
+        value TEXT
+      )
+    ''');
+
     // 3. Mandatory B-Tree Indices for zero-jank retrieval
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs (artist COLLATE NOCASE)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_album ON songs (album COLLATE NOCASE)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_songs_album_artist ON songs (album_artist COLLATE NOCASE)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_title ON songs (title COLLATE NOCASE)',
@@ -116,7 +174,6 @@ class AppDatabase {
       'CREATE INDEX IF NOT EXISTS idx_songs_media_store_id ON songs (media_store_id)',
     );
 
-    // Indices for playback history
     // Indices for playback history
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_history_played_at ON playback_history (played_at DESC)',

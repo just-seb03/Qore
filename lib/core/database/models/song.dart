@@ -23,6 +23,9 @@ class Song {
   /// Album title. Defaults to `'<Desconocido>'` if null.
   final String? album;
 
+  /// Main album artist credited for the whole album, if distinct from [artist].
+  final String? albumArtist;
+
   /// Android MediaStore album ID, if available.
   final int? albumId;
 
@@ -47,6 +50,7 @@ class Song {
     required this.title,
     this.artist,
     this.album,
+    this.albumArtist,
     this.albumId,
     required this.duration,
     required this.path,
@@ -63,6 +67,7 @@ class Song {
       'title': title,
       'artist': (artist == null || artist!.trim().isEmpty) ? '<Desconocido>' : artist,
       'album': (album == null || album!.trim().isEmpty) ? '<Desconocido>' : album,
+      'album_artist': (albumArtist == null || albumArtist!.trim().isEmpty) ? null : albumArtist,
       'album_id': albumId,
       'duration': duration,
       'path': path,
@@ -80,6 +85,7 @@ class Song {
       title: map['title'] as String,
       artist: map['artist'] as String?,
       album: map['album'] as String?,
+      albumArtist: map['album_artist'] as String?,
       albumId: map['album_id'] as int?,
       duration: (map['duration'] as int?) ?? 0,
       path: map['path'] as String,
@@ -96,6 +102,7 @@ class Song {
     String? title,
     String? artist,
     String? album,
+    String? albumArtist,
     int? albumId,
     int? duration,
     String? path,
@@ -109,6 +116,7 @@ class Song {
       title: title ?? this.title,
       artist: artist ?? this.artist,
       album: album ?? this.album,
+      albumArtist: albumArtist ?? this.albumArtist,
       albumId: albumId ?? this.albumId,
       duration: duration ?? this.duration,
       path: path ?? this.path,
@@ -131,6 +139,6 @@ class Song {
 
   @override
   String toString() {
-    return 'Song(id: $id, mediaStoreId: $mediaStoreId, title: $title, artist: $artist, album: $album, duration: ${duration}ms)';
+    return 'Song(id: $id, mediaStoreId: $mediaStoreId, title: $title, artist: $artist, album: $album, albumArtist: $albumArtist, duration: ${duration}ms)';
   }
 }

@@ -237,7 +237,7 @@ class _ArtistTopResultCard extends StatelessWidget {
                               const SizedBox(width: 10.0),
                               Flexible(
                                 child: Text(
-                                  '${artist.songCount} ${artist.songCount == 1 ? "track" : "tracks"}',
+                                  '${artist.songCount} ${artist.songCount == 1 ? "canción" : "canciones"}',
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: _statsTextStyle,

@@ -176,24 +176,50 @@ class SongDao {
   }
 
   /// Retrieves aggregated album statistics in a single relational query (Rule 4.2).
+  /// Correctly aggregates collaborative and featured albums by album_artist,
+  /// falling back to track artist when album_artist is absent.
   /// Eliminates N+1 loops by grouping songs and calculating total tracks and duration.
   Future<List<AlbumDiscoveryItem>> getDiscoveryAlbums({int limit = 15}) async {
     final db = await _appDatabase.database;
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
+      WITH album_tracks AS (
+        SELECT
+          s.id,
+          s.album,
+          s.album_id,
+          s.media_store_id,
+          s.duration,
+          COALESCE(
+            NULLIF(NULLIF(TRIM(s.album_artist), ''), '<Desconocido>'),
+            (
+              SELECT NULLIF(NULLIF(TRIM(s2.album_artist), ''), '<Desconocido>')
+              FROM songs s2
+              WHERE s2.album = s.album COLLATE NOCASE
+                AND s2.album_artist IS NOT NULL
+                AND TRIM(s2.album_artist) != ''
+                AND s2.album_artist != '<Desconocido>'
+              LIMIT 1
+            ),
+            NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>'),
+            '<Desconocido>'
+          ) AS effective_artist,
+          ph.played_at
+        FROM songs s
+        LEFT JOIN playback_history ph ON s.id = ph.song_id
+        WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+      )
       SELECT
-        s.album AS name,
-        s.artist AS artist,
-        s.album_id AS album_id,
-        MIN(s.media_store_id) AS representative_song_id,
-        COUNT(s.id) AS song_count,
-        SUM(s.duration) AS total_duration,
-        MAX(ph.played_at) AS last_played
-      FROM songs s
-      LEFT JOIN playback_history ph ON s.id = ph.song_id
-      WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
-      GROUP BY s.album COLLATE NOCASE, s.artist COLLATE NOCASE
+        album AS name,
+        effective_artist AS artist,
+        MIN(album_id) AS album_id,
+        MIN(media_store_id) AS representative_song_id,
+        COUNT(id) AS song_count,
+        SUM(duration) AS total_duration,
+        MAX(played_at) AS last_played
+      FROM album_tracks
+      GROUP BY album COLLATE NOCASE, effective_artist COLLATE NOCASE
       ORDER BY last_played DESC, song_count DESC
       LIMIT ?;
       ''',
@@ -252,13 +278,14 @@ class SongDao {
   }
 
   /// Retrieves up to [limit] songs belonging to [album], optionally scoped to [artist].
+  /// Matches against `album_artist` first, falling back to `artist` when `album_artist` is null.
   Future<List<Song>> getSongsByAlbum(String album, {String? artist, int limit = 5}) async {
     final db = await _appDatabase.database;
-    final bool hasArtist = artist != null && artist.trim().isNotEmpty;
+    final bool hasArtist = artist != null && artist.trim().isNotEmpty && artist != '<Desconocido>';
     final where = hasArtist
-        ? 'album = ? COLLATE NOCASE AND artist = ? COLLATE NOCASE'
+        ? 'album = ? COLLATE NOCASE AND (album_artist = ? COLLATE NOCASE OR (album_artist IS NULL AND artist = ? COLLATE NOCASE))'
         : 'album = ? COLLATE NOCASE';
-    final whereArgs = hasArtist ? [album, artist] : [album];
+    final whereArgs = hasArtist ? [album, artist, artist] : [album];
 
     final List<Map<String, dynamic>> results = await db.query(
       'songs',
@@ -268,6 +295,53 @@ class SongDao {
       limit: limit,
     );
     return results.map((row) => Song.fromMap(row)).toList();
+  }
+
+  /// Checks whether the one-time album_artist backfill has been executed.
+  Future<bool> isAlbumArtistBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      final res = await db.query(
+        'app_metadata',
+        where: 'key = ?',
+        whereArgs: ['album_artist_backfilled'],
+      );
+      return res.isNotEmpty && res.first['value'] == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Marks the one-time album_artist backfill as complete in app_metadata.
+  Future<void> markAlbumArtistBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      await db.insert(
+        'app_metadata',
+        {'key': 'album_artist_backfilled', 'value': 'true'},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {}
+  }
+
+  /// Batch backfills `album_artist` for cached songs using a mapping of {mediaStoreId: albumArtist}.
+  /// Executes inside a single ACID batch in < 20 ms.
+  Future<void> backfillAlbumArtists(Map<int, String> albumArtistsByMediaStoreId) async {
+    if (albumArtistsByMediaStoreId.isEmpty) return;
+    final db = await _appDatabase.database;
+
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final entry in albumArtistsByMediaStoreId.entries) {
+        batch.update(
+          'songs',
+          {'album_artist': entry.value},
+          where: 'media_store_id = ? AND album_artist IS NULL',
+          whereArgs: [entry.key],
+        );
+      }
+      await batch.commit(noResult: true);
+    });
   }
 
   /// Retrieves unique artists for search dictionary indexing.

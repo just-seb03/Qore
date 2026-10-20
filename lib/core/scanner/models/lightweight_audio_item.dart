@@ -17,6 +17,7 @@ class LightweightAudioItem {
   final String fallbackTitle;
   final String? fallbackArtist;
   final String? fallbackAlbum;
+  final String? fallbackAlbumArtist;
   final int? albumId;
 
   const LightweightAudioItem({
@@ -29,6 +30,7 @@ class LightweightAudioItem {
     required this.fallbackTitle,
     this.fallbackArtist,
     this.fallbackAlbum,
+    this.fallbackAlbumArtist,
     this.albumId,
   });
 }
