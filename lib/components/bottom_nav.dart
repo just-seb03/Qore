@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/components/film_grain.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/player/components/mini_player.dart';
 
 /// Navigation destinations supported by [AppBottomNav].
 enum BottomNavTab {
@@ -38,30 +39,38 @@ class AppBottomNav extends StatelessWidget {
   /// Optional grain intensity override for custom visual styling.
   final double grainIntensity;
 
+  /// Whether to display the global floating [MiniPlayer] above the navigation bar.
+  final bool showMiniPlayer;
+
   const AppBottomNav({
     super.key,
     this.currentIndex = 0,
     this.onDestinationSelected,
     this.grainIntensity = 0.035,
+    this.showMiniPlayer = true,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppColors.bottomNavBackground,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.outlineVariant,
-            width: 0.8,
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (showMiniPlayer) const MiniPlayer(),
+        Container(
+          decoration: const BoxDecoration(
+            color: AppColors.bottomNavBackground,
+            border: Border(
+              top: BorderSide(
+                color: AppColors.outlineVariant,
+                width: 0.8,
+              ),
+            ),
           ),
-        ),
-      ),
-      child: SafeArea(
-        top: false,
-        child: FilmGrain(
-          intensity: grainIntensity,
-          child: NavigationBar(
+          child: SafeArea(
+            top: false,
+            child: FilmGrain(
+              intensity: grainIntensity,
+              child: NavigationBar(
             selectedIndex: currentIndex,
             onDestinationSelected: (index) {
               if (onDestinationSelected != null) {
@@ -96,6 +105,8 @@ class AppBottomNav extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ),
+  ],
+);
+}
 }
