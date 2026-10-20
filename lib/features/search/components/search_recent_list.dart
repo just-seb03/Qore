@@ -13,7 +13,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
-import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 
 /// Renders the list of recently clicked search entities.
 class SearchRecentList extends StatelessWidget {
@@ -180,24 +180,8 @@ class _RecentSearchTile extends StatelessWidget {
   Widget _buildLeadingWidget() {
     switch (item.type) {
       case RecentSearchType.artist:
-        return Container(
-          width: 52.0,
-          height: 52.0,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            color: const Color(0xFF282828),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 1.0,
-            ),
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.person_rounded,
-              color: AppColors.futuristicWhite,
-              size: 28.0,
-            ),
-          ),
+        return const MaterialArtistAvatar(
+          radius: 26.0,
         );
       case RecentSearchType.album:
         return AnimaArtworkImage(
