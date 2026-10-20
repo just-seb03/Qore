@@ -69,49 +69,32 @@ class PlayerArtworkView extends StatelessWidget {
               ),
             ),
 
-          // 2. Subtle top vignette gradient for back button contrast
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            height: 110.0,
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.65),
-                    Colors.transparent,
-                  ],
-                ),
-              ),
-            ),
-          ),
-
-          // 3. Dismiss Chevron Button at top-left
+          // 2. Dismiss Chevron Button at top-left with localized frosted chip
           Positioned(
             top: 0,
             left: 0,
             child: SafeArea(
               bottom: false,
               child: Padding(
-                padding: const EdgeInsets.only(left: 8.0, top: 4.0),
-                child: IconButton(
-                  icon: const Icon(
-                    Icons.keyboard_arrow_down_rounded,
-                    size: 38.0,
-                    color: Colors.white,
-                    shadows: [
-                      Shadow(
-                        color: Colors.black87,
-                        blurRadius: 10.0,
-                      ),
-                    ],
+                padding: const EdgeInsets.only(left: 12.0, top: 8.0),
+                child: Container(
+                  width: 40.0,
+                  height: 40.0,
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.38),
+                    shape: BoxShape.circle,
                   ),
-                  splashRadius: 24.0,
-                  tooltip: 'Cerrar reproductor',
-                  onPressed: onDismiss ?? () => Navigator.of(context).pop(),
+                  child: IconButton(
+                    padding: EdgeInsets.zero,
+                    icon: const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      size: 30.0,
+                      color: Colors.white,
+                    ),
+                    splashRadius: 20.0,
+                    tooltip: 'Cerrar reproductor',
+                    onPressed: onDismiss ?? () => Navigator.of(context).pop(),
+                  ),
                 ),
               ),
             ),
