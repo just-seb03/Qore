@@ -1,76 +1,122 @@
 /// File: player_artwork_view.dart
-/// Description: Sony Music-styled prominent album artwork presentation component
-/// with elevation shadows, rounded corners, and high-resolution Frame 0 decoding.
+/// Description: Full-width giant square album artwork component covering the entire
+/// upper portion of the screen, featuring high-resolution decoding, top vignette scrim,
+/// and overlaid dismiss chevron.
 ///
 /// Components / Classes / Functions:
-/// - PlayerArtworkView: High-resolution artwork container for the maximized player.
+/// - PlayerArtworkView: Edge-to-edge square artwork container for the maximized player.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/song.dart';
 
-/// Prominent album artwork card for the maximized player view.
+/// Full-width edge-to-edge square artwork view occupying the upper screen.
 class PlayerArtworkView extends StatelessWidget {
   /// The song whose artwork is to be displayed.
   final Song? song;
 
-  /// Explicit size constraint. If null, sizes responsively to viewport width.
-  final double? size;
+  /// Optional custom dismiss callback. Defaults to Navigator.pop.
+  final VoidCallback? onDismiss;
+
+  /// Target height for the artwork container.
+  final double? height;
+
+  /// Target width for the artwork container.
+  final double? width;
 
   const PlayerArtworkView({
     super.key,
     required this.song,
-    this.size,
+    this.onDismiss,
+    this.height,
+    this.width,
   });
 
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final screenHeight = MediaQuery.sizeOf(context).height;
+    final double effectiveWidth = width ?? screenWidth;
+    final double effectiveHeight = height ?? screenWidth;
 
-    // Responsive sizing: ensure artwork fits harmoniously on compact screens
-    final double computedSize = size ??
-        (screenWidth * 0.82).clamp(240.0, (screenHeight * 0.42).clamp(240.0, 360.0));
-
-    return Center(
-      child: Container(
-        width: computedSize,
-        height: computedSize,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16.0),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.55),
-              blurRadius: 28.0,
-              spreadRadius: 2.0,
-              offset: const Offset(0, 12),
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16.0),
-          child: song != null
-              ? AnimaArtworkImage(
-                  mediaStoreId: song!.mediaStoreId,
-                  albumId: song!.albumId,
-                  width: computedSize,
-                  height: computedSize,
-                  borderRadius: 16.0,
-                  isThumbnail: false,
-                  fallbackIcon: Icons.music_note_rounded,
-                )
-              : Container(
-                  color: const Color(0xFF181818),
-                  child: const Center(
-                    child: Icon(
-                      Icons.music_note_rounded,
-                      size: 64.0,
-                      color: Color(0xFF4A4A52),
-                    ),
-                  ),
+    return SizedBox(
+      width: effectiveWidth,
+      height: effectiveHeight, // Edge-to-edge giant square covering full width
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // 1. Giant Cover Art (Full bleed, BoxFit.cover)
+          if (song != null)
+            AnimaArtworkImage(
+              mediaStoreId: song!.mediaStoreId,
+              albumId: song!.albumId,
+              width: effectiveWidth,
+              height: effectiveHeight,
+              borderRadius: 0.0,
+              isThumbnail: false,
+              fit: BoxFit.cover,
+              fallbackIcon: Icons.music_note_rounded,
+            )
+          else
+            Container(
+              color: const Color(0xFF141417),
+              child: const Center(
+                child: Icon(
+                  Icons.music_note_rounded,
+                  size: 96.0,
+                  color: Color(0xFF4A4A52),
                 ),
-        ),
+              ),
+            ),
+
+          // 2. Subtle top vignette gradient for back button contrast
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 110.0,
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.65),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // 3. Dismiss Chevron Button at top-left
+          Positioned(
+            top: 0,
+            left: 0,
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.only(left: 8.0, top: 4.0),
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    size: 38.0,
+                    color: Colors.white,
+                    shadows: [
+                      Shadow(
+                        color: Colors.black87,
+                        blurRadius: 10.0,
+                      ),
+                    ],
+                  ),
+                  splashRadius: 24.0,
+                  tooltip: 'Cerrar reproductor',
+                  onPressed: onDismiss ?? () => Navigator.of(context).pop(),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

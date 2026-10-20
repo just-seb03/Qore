@@ -27,7 +27,6 @@ class PlayerControls extends StatelessWidget {
       listenable: controller,
       builder: (context, _) {
         final isPlaying = controller.isPlaying;
-        final isBuffering = controller.isBuffering;
         final isShuffle = controller.isShuffleEnabled;
         final loopMode = controller.loopMode;
         final isLoopActive = loopMode != LoopMode.off;
@@ -76,7 +75,6 @@ class PlayerControls extends StatelessWidget {
               // 3. Play / Pause (Prominent Center Button)
               _PlayPauseCenterButton(
                 isPlaying: isPlaying,
-                isBuffering: isBuffering,
                 onTap: () => controller.togglePlayPause(),
               ),
 
@@ -176,12 +174,10 @@ class _PlayPauseCenterButton extends StatelessWidget {
   static const double _size = 68.0;
 
   final bool isPlaying;
-  final bool isBuffering;
   final VoidCallback onTap;
 
   const _PlayPauseCenterButton({
     required this.isPlaying,
-    required this.isBuffering,
     required this.onTap,
   });
 
@@ -209,20 +205,11 @@ class _PlayPauseCenterButton extends StatelessWidget {
           splashColor: Colors.black.withValues(alpha: 0.2),
           highlightColor: Colors.black.withValues(alpha: 0.1),
           child: Center(
-            child: isBuffering
-                ? const SizedBox(
-                    width: 28.0,
-                    height: 28.0,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: AppColors.background,
-                    ),
-                  )
-                : Icon(
-                    isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                    size: 38.0,
-                    color: AppColors.background,
-                  ),
+            child: Icon(
+              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+              size: 38.0,
+              color: AppColors.background,
+            ),
           ),
         ),
       ),

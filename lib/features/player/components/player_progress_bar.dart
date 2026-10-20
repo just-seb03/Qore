@@ -1,18 +1,19 @@
 /// File: player_progress_bar.dart
-/// Description: Isolated seek bar component for the maximized music player.
-/// Efficiently subscribes to playback position and duration streams without
-/// triggering parent widget rebuilds.
+/// Description: Material 3 Expressive squiggly/wavy seek bar component with animated
+/// active wave track, touch & drag-to-seek interaction, and Inconsolata timestamps.
 ///
 /// Components / Classes / Functions:
-/// - PlayerProgressBar: Reactive scrubber bar with timestamps and drag-to-seek support.
+/// - PlayerProgressBar: Reactive M3 Expressive wavy progress bar.
+/// - _WavyTrackPainter: CustomPainter drawing the animated sinusoidal wave and track.
 library;
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
-/// Scrubber bar with elapsed and remaining timestamps.
+/// Material 3 Expressive wavy/squiggly progress bar for the maximized player.
 class PlayerProgressBar extends StatefulWidget {
   final PlaybackController controller;
 
@@ -25,9 +26,12 @@ class PlayerProgressBar extends StatefulWidget {
   State<PlayerProgressBar> createState() => _PlayerProgressBarState();
 }
 
-class _PlayerProgressBarState extends State<PlayerProgressBar> {
+class _PlayerProgressBarState extends State<PlayerProgressBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _waveAnimationController;
+
   bool _isDragging = false;
-  double _dragValue = 0.0;
+  double _dragProgress = 0.0;
 
   static final TextStyle _timestampStyle = GoogleFonts.inconsolata(
     fontSize: 12.5,
@@ -36,11 +40,50 @@ class _PlayerProgressBarState extends State<PlayerProgressBar> {
     letterSpacing: 0.5,
   );
 
+  @override
+  void initState() {
+    super.initState();
+    _waveAnimationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    );
+
+    if (widget.controller.isPlaying) {
+      _waveAnimationController.repeat();
+    }
+
+    widget.controller.addListener(_onPlaybackStateChanged);
+  }
+
+  void _onPlaybackStateChanged() {
+    if (widget.controller.isPlaying) {
+      if (!_waveAnimationController.isAnimating) {
+        _waveAnimationController.repeat();
+      }
+    } else {
+      if (_waveAnimationController.isAnimating) {
+        _waveAnimationController.stop();
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    widget.controller.removeListener(_onPlaybackStateChanged);
+    _waveAnimationController.dispose();
+    super.dispose();
+  }
+
   String _formatDuration(Duration duration) {
     final int totalSeconds = duration.inSeconds;
     final int minutes = totalSeconds ~/ 60;
     final int seconds = totalSeconds % 60;
     return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  void _handleSeek(double progress, Duration totalDuration) {
+    final int targetMs = (progress * totalDuration.inMilliseconds).round();
+    widget.controller.seek(Duration(milliseconds: targetMs));
   }
 
   @override
@@ -52,77 +95,197 @@ class _PlayerProgressBarState extends State<PlayerProgressBar> {
         final duration = widget.controller.duration;
 
         final double totalMs = duration.inMilliseconds.toDouble();
-        final double currentMs = _isDragging
-            ? _dragValue
-            : position.inMilliseconds.toDouble().clamp(0.0, totalMs > 0 ? totalMs : 0.0);
+        final double currentMs = position.inMilliseconds.toDouble();
 
-        final double sliderMax = totalMs > 0 ? totalMs : 1.0;
-        final double sliderValue = currentMs.clamp(0.0, sliderMax);
+        final double naturalProgress = totalMs > 0 ? (currentMs / totalMs).clamp(0.0, 1.0) : 0.0;
+        final double displayProgress = _isDragging ? _dragProgress : naturalProgress;
 
-        final currentPositionDuration = Duration(milliseconds: sliderValue.toInt());
+        final currentTimestamp = Duration(
+          milliseconds: (displayProgress * totalMs).round(),
+        );
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Custom Monochromatic Sony-styled Slider
-            SliderTheme(
-              data: SliderTheme.of(context).copyWith(
-                trackHeight: 2.5,
-                thumbShape: const RoundSliderThumbShape(
-                  enabledThumbRadius: 6.0,
-                  elevation: 2.0,
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // 1. Material 3 Expressive Wavy Seek Bar Area
+              SizedBox(
+                height: 38.0,
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final width = constraints.maxWidth;
+
+                    void updateFromLocalDx(double dx) {
+                      final progress = (dx / width).clamp(0.0, 1.0);
+                      setState(() {
+                        _dragProgress = progress;
+                      });
+                    }
+
+                    return GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onHorizontalDragStart: (details) {
+                        setState(() {
+                          _isDragging = true;
+                        });
+                        updateFromLocalDx(details.localPosition.dx);
+                      },
+                      onHorizontalDragUpdate: (details) {
+                        updateFromLocalDx(details.localPosition.dx);
+                      },
+                      onHorizontalDragEnd: (_) {
+                        setState(() {
+                          _isDragging = false;
+                        });
+                        _handleSeek(_dragProgress, duration);
+                      },
+                      onTapDown: (details) {
+                        final progress = (details.localPosition.dx / width).clamp(0.0, 1.0);
+                        setState(() {
+                          _dragProgress = progress;
+                        });
+                        _handleSeek(progress, duration);
+                      },
+                      child: AnimatedBuilder(
+                        animation: _waveAnimationController,
+                        builder: (context, _) {
+                          return CustomPaint(
+                            size: Size(width, 38.0),
+                            painter: _WavyTrackPainter(
+                              progress: displayProgress,
+                              phase: _waveAnimationController.value * 2 * math.pi,
+                              isPlaying: widget.controller.isPlaying,
+                            ),
+                          );
+                        },
+                      ),
+                    );
+                  },
                 ),
-                overlayShape: const RoundSliderOverlayShape(
-                  overlayRadius: 14.0,
+              ),
+
+              // 2. Timestamps Row (Elapsed on Left, Total on Right)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 2.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      _formatDuration(currentTimestamp),
+                      style: _timestampStyle,
+                    ),
+                    Text(
+                      _formatDuration(duration),
+                      style: _timestampStyle,
+                    ),
+                  ],
                 ),
-                activeTrackColor: AppColors.futuristicWhite,
-                inactiveTrackColor: AppColors.surfaceContainerHighest,
-                thumbColor: AppColors.futuristicWhite,
-                overlayColor: Colors.white.withValues(alpha: 0.12),
-                trackShape: const RectangularSliderTrackShape(),
               ),
-              child: Slider(
-                min: 0.0,
-                max: sliderMax,
-                value: sliderValue,
-                onChangeStart: (val) {
-                  setState(() {
-                    _isDragging = true;
-                    _dragValue = val;
-                  });
-                },
-                onChanged: (val) {
-                  setState(() {
-                    _dragValue = val;
-                  });
-                },
-                onChangeEnd: (val) {
-                  widget.controller.seek(Duration(milliseconds: val.toInt()));
-                  setState(() {
-                    _isDragging = false;
-                  });
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    _formatDuration(currentPositionDuration),
-                    style: _timestampStyle,
-                  ),
-                  Text(
-                    _formatDuration(duration),
-                    style: _timestampStyle,
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         );
       },
     );
+  }
+}
+
+/// Custom painter rendering the Material 3 Expressive squiggly/wavy active track,
+/// clean straight inactive track, and circular thumb.
+class _WavyTrackPainter extends CustomPainter {
+  final double progress;
+  final double phase;
+  final bool isPlaying;
+
+  static const double trackHeight = 3.5;
+  static const double thumbRadius = 6.5;
+  static const double wavelength = 24.0;
+  static const double waveAmplitude = 3.5;
+
+  const _WavyTrackPainter({
+    required this.progress,
+    required this.phase,
+    required this.isPlaying,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double cy = size.height / 2;
+    final double trackWidth = size.width;
+    final double thumbX = (trackWidth * progress).clamp(0.0, trackWidth);
+
+    // 1. Inactive straight track (from thumb to end)
+    if (thumbX < trackWidth) {
+      final inactivePaint = Paint()
+        ..color = const Color(0xFF2E2E34)
+        ..strokeWidth = trackHeight
+        ..strokeCap = StrokeCap.round
+        ..style = PaintingStyle.stroke;
+
+      canvas.drawLine(
+        Offset(thumbX, cy),
+        Offset(trackWidth, cy),
+        inactivePaint,
+      );
+    }
+
+    // 2. Active sinusoidal wavy track (from 0 to thumb)
+    if (thumbX > 0) {
+      final activePaint = Paint()
+        ..color = AppColors.futuristicWhite
+        ..strokeWidth = trackHeight
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round
+        ..style = PaintingStyle.stroke;
+
+      final Path wavePath = Path();
+      wavePath.moveTo(0, cy);
+
+      const double step = 1.0;
+      final double activeLength = thumbX;
+      final double currentAmplitude = isPlaying ? waveAmplitude : (waveAmplitude * 0.4);
+
+      for (double x = 0; x <= activeLength; x += step) {
+        // Taper envelope so wave starts smoothly at (0, cy) and connects cleanly to thumb
+        double taper = 1.0;
+        if (x < 12.0) {
+          taper = x / 12.0;
+        } else if (activeLength - x < 12.0) {
+          taper = (activeLength - x) / 12.0;
+        }
+
+        final double y = cy +
+            currentAmplitude *
+                taper *
+                math.sin((x / wavelength) * 2 * math.pi - phase);
+
+        wavePath.lineTo(x, y);
+      }
+
+      // Ensure path anchors firmly at thumbX
+      wavePath.lineTo(thumbX, cy);
+
+      canvas.drawPath(wavePath, activePaint);
+    }
+
+    // 3. Circular Scrubber Thumb
+    final thumbShadowPaint = Paint()
+      ..color = Colors.black.withValues(alpha: 0.4)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+
+    canvas.drawCircle(Offset(thumbX, cy + 1.0), thumbRadius, thumbShadowPaint);
+
+    final thumbPaint = Paint()
+      ..color = AppColors.futuristicWhite
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(Offset(thumbX, cy), thumbRadius, thumbPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _WavyTrackPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.phase != phase ||
+        oldDelegate.isPlaying != isPlaying;
   }
 }

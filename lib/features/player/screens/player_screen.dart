@@ -7,6 +7,7 @@
 /// - PlayerScreen: Maximized player screen widget.
 library;
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -43,68 +44,71 @@ class PlayerScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: ListenableBuilder(
-          listenable: controller,
-          builder: (context, _) {
-            final song = controller.currentSong;
+      body: ListenableBuilder(
+        listenable: controller,
+        builder: (context, _) {
+          final song = controller.currentSong;
 
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                // 1. Top Minimalist Header: Single Back / Dismiss Chevron
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          size: 36.0,
-                          color: AppColors.futuristicWhite,
-                        ),
-                        splashRadius: 24.0,
-                        tooltip: 'Minimizar reproductor',
-                        onPressed: () => Navigator.of(context).pop(),
-                      ),
-                    ],
-                  ),
-                ),
+          return LayoutBuilder(
+            builder: (context, constraints) {
+              // Giant square cover at the top:
+              // On portrait phones (e.g. 390x844), maxWidth < maxHeight * 0.52,
+              // so coverHeight == maxWidth (an edge-to-edge 100% full-width giant square).
+              // On shorter viewports or landscape/tests (e.g. 800x600), it scales cleanly
+              // to maxHeight * 0.50 so that neither the cover nor the controls overflow.
+              final double coverHeight = math.min(
+                constraints.maxWidth,
+                constraints.maxHeight * 0.50,
+              );
 
-                // 2. Upper Section: Prominent Album Artwork
-                Expanded(
-                  flex: 5,
-                  child: PlayerArtworkView(
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // 1. Giant Square Cover covering entire upper width with overlaid back arrow
+                  PlayerArtworkView(
                     song: song,
+                    height: coverHeight,
+                    width: constraints.maxWidth,
+                    onDismiss: () => Navigator.of(context).pop(),
                   ),
-                ),
 
-                const SizedBox(height: 16.0),
-
-                // 3. Lower Section: Metadata Stack (Title, Artist, Album)
-                PlayerMetadataView(
-                  song: song,
-                ),
-
-                const SizedBox(height: 20.0),
-
-                // 4. Scrubber / Progress Bar with Timestamps
-                PlayerProgressBar(
-                  controller: controller,
-                ),
-
-                const SizedBox(height: 16.0),
-
-                // 5. Playback Controls Row (Shuffle, Prev, Play/Pause, Next, Repeat)
-                PlayerControls(
-                  controller: controller,
-                ),
-
-                const SizedBox(height: 28.0),
-              ],
-            );
-          },
-        ),
+                  // 2. Lower Section: Metadata, M3 Expressive Wavy Progress Bar, Controls
+                  Expanded(
+                    child: SafeArea(
+                      top: false,
+                      child: LayoutBuilder(
+                        builder: (context, lowerConstraints) {
+                          return SingleChildScrollView(
+                            physics: const ClampingScrollPhysics(),
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                minHeight: lowerConstraints.maxHeight,
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 20.0,
+                                  vertical: 8.0,
+                                ),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                  children: [
+                                    PlayerMetadataView(song: song),
+                                    PlayerProgressBar(controller: controller),
+                                    PlayerControls(controller: controller),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          );
+        },
       ),
     );
   }
