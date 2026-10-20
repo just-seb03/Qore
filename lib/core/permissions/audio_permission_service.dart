@@ -2,14 +2,22 @@
 /// Description: Centralized permission management service for accessing local
 /// audio and media files on the device. Encapsulates platform-specific permission
 /// workflows (Android 13+ READ_MEDIA_AUDIO vs legacy READ_EXTERNAL_STORAGE).
+/// Implements in-memory caching of OS version and target permissions to eliminate
+/// blocking the main UI thread with repetitive platform channel IPC queries.
 ///
 /// Components / Classes / Functions:
 /// - AudioPermissionState: Enum representing normalized permission states.
 /// - AudioPermissionService: Singleton service handling audio permission checks and requests.
+///   - hasPermission(): Queries if audio access is granted.
+///   - checkPermissionStatus(): Evaluates current normalized permission state.
+///   - requestPermission(): Initiates platform permission dialog.
+///   - openSettings(): Opens application system settings page.
+///   - resetCache(): Clears cached hardware/OS properties (visible for testing).
 library;
 
 import 'dart:io';
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 
 /// Normalized state for audio file access permissions.
@@ -34,23 +42,55 @@ class AudioPermissionService {
 
   final DeviceInfoPlugin _deviceInfo = DeviceInfoPlugin();
 
+  int? _cachedSdkInt;
+  Permission? _cachedPermissionTarget;
+
+  /// Cached Android SDK version if resolved.
+  int? get cachedSdkInt => _cachedSdkInt;
+
+  /// Cached Permission target if resolved.
+  Permission? get cachedPermissionTarget => _cachedPermissionTarget;
+
+  /// Resets in-memory cached hardware properties (primarily used for unit testing).
+  @visibleForTesting
+  void resetCache() {
+    _cachedSdkInt = null;
+    _cachedPermissionTarget = null;
+  }
+
   /// Determines the relevant permission target based on platform and OS version.
+  ///
+  /// Caches the evaluated target in memory to avoid repetitive asynchronous
+  /// platform channel IPC calls to [DeviceInfoPlugin] on every check or request.
   Future<Permission> _getAudioPermissionTarget() async {
+    if (_cachedPermissionTarget != null) {
+      return _cachedPermissionTarget!;
+    }
+
     if (Platform.isAndroid) {
-      final androidInfo = await _deviceInfo.androidInfo;
-      // Android 13 (API 33) and above uses granular READ_MEDIA_AUDIO (Permission.audio)
-      if (androidInfo.version.sdkInt >= 33) {
-        return Permission.audio;
+      if (_cachedSdkInt == null) {
+        final androidInfo = await _deviceInfo.androidInfo;
+        _cachedSdkInt = androidInfo.version.sdkInt;
       }
-      // Android 12 and below relies on legacy external storage
-      return Permission.storage;
+
+      // Android 13 (API 33) and above uses granular READ_MEDIA_AUDIO (Permission.audio)
+      if (_cachedSdkInt! >= 33) {
+        _cachedPermissionTarget = Permission.audio;
+      } else {
+        // Android 12 and below relies on legacy external storage
+        _cachedPermissionTarget = Permission.storage;
+      }
+
+      return _cachedPermissionTarget!;
     }
 
     if (Platform.isIOS) {
-      return Permission.mediaLibrary;
+      _cachedPermissionTarget = Permission.mediaLibrary;
+      return _cachedPermissionTarget!;
     }
 
-    return Permission.audio;
+    _cachedPermissionTarget = Permission.audio;
+    return _cachedPermissionTarget!;
   }
 
   /// Checks whether audio access permission has been granted.
