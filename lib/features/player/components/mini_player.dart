@@ -1,21 +1,25 @@
 /// File: mini_player.dart
-/// Description: Global floating mini-player component situated above the bottom navigation bar.
-/// Features rounded corners, subtle elevation, album cover art, song title and artist metadata,
-/// and responsive playback controls (Previous, Play/Pause, Next) with isolated rebuild boundaries.
-/// Tapping anywhere on the mini-player (except controls) opens the maximized player screen.
+/// Description: Global Material 3 Expressive floating mini-player component situated above
+/// the bottom navigation bar. Features an elevated tonal pill shape, rounded album artwork,
+/// typography hierarchy, high-contrast circular Play/Pause action button, and a mesmerizing
+/// animated liquid fill water effect that progressively fills the mini-player from the bottom up
+/// with dual-layer fluid waves as the song advances, with isolated GPU rebuild boundaries.
+/// Tapping anywhere on the card (except playback buttons) opens the maximized player screen.
 ///
 /// Components / Classes / Functions:
-/// - MiniPlayer: Floating mini-player widget.
-/// - _MiniPlayerProgressBar: Micro-height progress indicator at the base of the mini-player.
+/// - MiniPlayer: Floating M3 Expressive mini-player widget with animated liquid water fill.
+/// - _MiniPlayerLiquidProgress: Isolated liquid water progress layer observing song position.
+/// - _LiquidFillPainter: Custom painter rendering the dual-layer animated undulating water waves.
 library;
 
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/player/screens/player_screen.dart';
 
-/// Global floating mini-player bar positioned directly above the bottom navigation bar.
+/// Global Material 3 Expressive floating mini-player bar positioned directly above the bottom nav.
 class MiniPlayer extends StatelessWidget {
   /// Custom controller instance override. Defaults to [PlaybackController.instance].
   final PlaybackController? controller;
@@ -45,53 +49,60 @@ class MiniPlayer extends StatelessWidget {
           child: currentSong == null
               ? const SizedBox.shrink()
               : Padding(
-                  padding: const EdgeInsets.fromLTRB(10.0, 0.0, 10.0, 8.0),
+                  padding: const EdgeInsets.fromLTRB(12.0, 0.0, 12.0, 8.0),
                   child: Container(
-                    height: 58.0,
+                    height: 64.0,
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E24),
-                      borderRadius: BorderRadius.circular(14.0),
+                      color: AppColors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(20.0),
                       border: Border.all(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                        color: AppColors.outline.withValues(alpha: 0.55),
                         width: 1.0,
                       ),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.45),
-                          blurRadius: 14.0,
-                          offset: const Offset(0, 4),
+                          blurRadius: 16.0,
+                          offset: const Offset(0, 5),
                         ),
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(14.0),
+                      borderRadius: BorderRadius.circular(20.0),
                       child: Stack(
                         children: [
-                          // 1. Tappable Card Surface
+                          // 1. Animated Subtle Liquid Water Fill Layer (Rises from base as song plays)
+                          Positioned.fill(
+                            child: _MiniPlayerLiquidProgress(
+                              controller: activeController,
+                            ),
+                          ),
+
+                          // 2. Tappable M3 Expressive Card Surface
                           Material(
                             color: Colors.transparent,
                             child: InkWell(
-                              borderRadius: BorderRadius.circular(14.0),
+                              borderRadius: BorderRadius.circular(20.0),
                               onTap: onTap ??
                                   () {
                                     Navigator.of(context).push(PlayerScreen.route());
                                   },
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                                padding: const EdgeInsets.symmetric(horizontal: 10.0),
                                 child: Row(
                                   children: [
                                     // 1. Album Artwork Thumbnail (Dual-Tier fast cache)
                                     AnimaArtworkImage(
                                       mediaStoreId: currentSong.mediaStoreId,
                                       albumId: currentSong.albumId,
-                                      width: 44.0,
-                                      height: 44.0,
-                                      borderRadius: 8.0,
+                                      width: 46.0,
+                                      height: 46.0,
+                                      borderRadius: 12.0,
                                       isThumbnail: true,
                                       fit: BoxFit.cover,
                                       fallbackIcon: Icons.music_note_rounded,
                                     ),
-                                    const SizedBox(width: 10.0),
+                                    const SizedBox(width: 12.0),
 
                                     // 2. Song Metadata (Title + Artist)
                                     Expanded(
@@ -106,7 +117,7 @@ class MiniPlayer extends StatelessWidget {
                                             style: const TextStyle(
                                               fontFamily: 'Inconsolata',
                                               fontSize: 13.5,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w700,
                                               color: AppColors.futuristicWhite,
                                               letterSpacing: -0.2,
                                             ),
@@ -126,7 +137,7 @@ class MiniPlayer extends StatelessWidget {
                                       ),
                                     ),
 
-                                    // 3. Playback Controls Row (Prev, Play/Pause, Next)
+                                    // 3. Playback Controls Row (Prev, Filled M3 Play/Pause, Next)
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -147,25 +158,34 @@ class MiniPlayer extends StatelessWidget {
                                           onPressed: () => activeController.skipToPrevious(),
                                         ),
 
-                                        // Center Play / Pause Button
-                                        IconButton(
-                                          icon: Icon(
-                                            activeController.isPlaying
-                                                ? Icons.pause_rounded
-                                                : Icons.play_arrow_rounded,
-                                            size: 28.0,
-                                            color: AppColors.futuristicWhite,
+                                        // Material 3 Expressive Filled Circular Play / Pause Button
+                                        Padding(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                                          child: Material(
+                                            color: Colors.transparent,
+                                            shape: const CircleBorder(),
+                                            child: InkWell(
+                                              customBorder: const CircleBorder(),
+                                              onTap: () => activeController.togglePlayPause(),
+                                              child: Container(
+                                                width: 38.0,
+                                                height: 38.0,
+                                                decoration: const BoxDecoration(
+                                                  shape: BoxShape.circle,
+                                                  color: AppColors.futuristicWhite,
+                                                ),
+                                                child: Center(
+                                                  child: Icon(
+                                                    activeController.isPlaying
+                                                        ? Icons.pause_rounded
+                                                        : Icons.play_arrow_rounded,
+                                                    size: 24.0,
+                                                    color: AppColors.background,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
                                           ),
-                                          padding: EdgeInsets.zero,
-                                          constraints: const BoxConstraints(
-                                            minWidth: 38.0,
-                                            minHeight: 38.0,
-                                          ),
-                                          splashRadius: 20.0,
-                                          tooltip: activeController.isPlaying
-                                              ? 'Pausar'
-                                              : 'Reproducir',
-                                          onPressed: () => activeController.togglePlayPause(),
                                         ),
 
                                         // Next Track Button
@@ -191,16 +211,6 @@ class MiniPlayer extends StatelessWidget {
                               ),
                             ),
                           ),
-
-                          // 2. Micro Progress Bar at base of card
-                          Positioned(
-                            left: 14.0,
-                            right: 14.0,
-                            bottom: 0.0,
-                            child: _MiniPlayerProgressBar(
-                              controller: activeController,
-                            ),
-                          ),
                         ],
                       ),
                     ),
@@ -212,38 +222,159 @@ class MiniPlayer extends StatelessWidget {
   }
 }
 
-/// Isolated micro-progress line at the bottom of the mini player card.
-class _MiniPlayerProgressBar extends StatelessWidget {
+/// Standalone animated widget rendering the dual-layer fluid water waves rising
+/// with song progress, completely isolated with [RepaintBoundary].
+class _MiniPlayerLiquidProgress extends StatefulWidget {
   final PlaybackController controller;
 
-  const _MiniPlayerProgressBar({required this.controller});
+  const _MiniPlayerLiquidProgress({required this.controller});
+
+  @override
+  State<_MiniPlayerLiquidProgress> createState() => _MiniPlayerLiquidProgressState();
+}
+
+class _MiniPlayerLiquidProgressState extends State<_MiniPlayerLiquidProgress>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _waveController;
+
+  @override
+  void initState() {
+    super.initState();
+    _waveController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    );
+    if (widget.controller.isPlaying) {
+      _waveController.repeat();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant _MiniPlayerLiquidProgress oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller.isPlaying && !_waveController.isAnimating) {
+      _waveController.repeat();
+    } else if (!widget.controller.isPlaying && _waveController.isAnimating) {
+      _waveController.stop();
+    }
+  }
+
+  @override
+  void dispose() {
+    _waveController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<Duration>(
-      stream: controller.positionStream,
+      stream: widget.controller.positionStream,
       builder: (context, snapshot) {
         final position = snapshot.data ?? Duration.zero;
-        final total = controller.duration;
+        final total = widget.controller.duration;
         final double progress = total.inMilliseconds > 0
             ? (position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
             : 0.0;
 
-        return ClipRRect(
-          borderRadius: const BorderRadius.only(
-            bottomLeft: Radius.circular(14.0),
-            bottomRight: Radius.circular(14.0),
-          ),
-          child: LinearProgressIndicator(
-            value: progress,
-            minHeight: 2.0,
-            backgroundColor: Colors.transparent,
-            valueColor: AlwaysStoppedAnimation<Color>(
-              AppColors.futuristicWhite.withValues(alpha: 0.8),
-            ),
+        return RepaintBoundary(
+          child: AnimatedBuilder(
+            animation: _waveController,
+            builder: (context, _) {
+              return CustomPaint(
+                size: Size.infinite,
+                painter: _LiquidFillPainter(
+                  progress: progress,
+                  wavePhase: _waveController.value * 2 * math.pi,
+                  isPlaying: widget.controller.isPlaying,
+                ),
+              );
+            },
           ),
         );
       },
     );
+  }
+}
+
+/// CustomPainter rendering two layers of fluid sinusoidal water waves
+/// filling the mini-player card with subtle monochromatic transparency.
+class _LiquidFillPainter extends CustomPainter {
+  final double progress;
+  final double wavePhase;
+  final bool isPlaying;
+
+  const _LiquidFillPainter({
+    required this.progress,
+    required this.wavePhase,
+    required this.isPlaying,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width <= 0 || size.height <= 0 || progress <= 0.0) return;
+
+    final double w = size.width;
+    final double h = size.height;
+
+    // Water level rises from bottom (h) to top (0)
+    final double waterHeight = (progress * h).clamp(0.0, h);
+    final double baseWaterY = h - waterHeight;
+
+    // Taper wave amplitude near 0% and 100% so liquid starts and finishes cleanly
+    final double amplitudeTaper = math.min(1.0, math.min(progress, 1.0 - progress) * 6.0);
+    final double amp1 = 2.4 * amplitudeTaper;
+    final double amp2 = 1.8 * amplitudeTaper;
+    const double wavelength1 = 160.0;
+    const double wavelength2 = 120.0;
+
+    // 1. Back Wave (deeper, shifted phase, slower flow)
+    final Path backWavePath = Path();
+    backWavePath.moveTo(0, h);
+    backWavePath.lineTo(0, (baseWaterY + amp1 * math.sin(wavePhase * 0.8)).clamp(0.0, h));
+
+    for (double x = 0; x <= w; x += 3.0) {
+      final double y = baseWaterY + amp1 * math.sin((x / wavelength1) * 2 * math.pi + wavePhase * 0.8);
+      backWavePath.lineTo(x, y.clamp(0.0, h));
+    }
+    backWavePath.lineTo(w, h);
+    backWavePath.close();
+
+    final Paint backWavePaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.05)
+      ..style = PaintingStyle.fill;
+    canvas.drawPath(backWavePath, backWavePaint);
+
+    // 2. Front Wave (crisper crest, faster flow, subtle luminous gradient)
+    final Path frontWavePath = Path();
+    frontWavePath.moveTo(0, h);
+    frontWavePath.lineTo(0, (baseWaterY + amp2 * math.sin(wavePhase + math.pi / 2)).clamp(0.0, h));
+
+    for (double x = 0; x <= w; x += 3.0) {
+      final double y = baseWaterY + amp2 * math.sin((x / wavelength2) * 2 * math.pi + wavePhase + math.pi / 2);
+      frontWavePath.lineTo(x, y.clamp(0.0, h));
+    }
+    frontWavePath.lineTo(w, h);
+    frontWavePath.close();
+
+    final Rect liquidRect = Rect.fromLTWH(0, math.max(0.0, baseWaterY - amp2), w, waterHeight + amp2);
+    final Paint frontWavePaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withValues(alpha: 0.14),
+          const Color(0xFF323242).withValues(alpha: 0.18),
+        ],
+      ).createShader(liquidRect)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(frontWavePath, frontWavePaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _LiquidFillPainter oldDelegate) {
+    return oldDelegate.progress != progress ||
+        oldDelegate.wavePhase != wavePhase ||
+        oldDelegate.isPlaying != isPlaying;
   }
 }
