@@ -16,21 +16,25 @@ class PlayerArtworkView extends StatelessWidget {
   /// The song whose artwork is to be displayed.
   final Song? song;
 
-  /// Optional custom dismiss callback. Defaults to Navigator.pop.
-  final VoidCallback? onDismiss;
-
   /// Target height for the artwork container.
   final double? height;
 
   /// Target width for the artwork container.
   final double? width;
 
+  /// Optional callback to notify parent during an interactive vertical pull down.
+  final ValueChanged<double>? onDragUpdate;
+
+  /// Optional callback when an interactive drag completes.
+  final ValueChanged<DragEndDetails>? onDragEnd;
+
   const PlayerArtworkView({
     super.key,
     required this.song,
-    this.onDismiss,
     this.height,
     this.width,
+    this.onDragUpdate,
+    this.onDragEnd,
   });
 
   @override
@@ -39,67 +43,36 @@ class PlayerArtworkView extends StatelessWidget {
     final double effectiveWidth = width ?? screenWidth;
     final double effectiveHeight = height ?? screenWidth;
 
-    return SizedBox(
-      width: effectiveWidth,
-      height: effectiveHeight, // Edge-to-edge giant square covering full width
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. Giant Cover Art (Full bleed, BoxFit.cover)
-          if (song != null)
-            AnimaArtworkImage(
-              mediaStoreId: song!.mediaStoreId,
-              albumId: song!.albumId,
-              width: effectiveWidth,
-              height: effectiveHeight,
-              borderRadius: 0.0,
-              isThumbnail: false,
-              fit: BoxFit.cover,
-              fallbackIcon: Icons.music_note_rounded,
-            )
-          else
-            Container(
-              color: const Color(0xFF141417),
-              child: const Center(
-                child: Icon(
-                  Icons.music_note_rounded,
-                  size: 96.0,
-                  color: Color(0xFF4A4A52),
-                ),
-              ),
-            ),
-
-          // 2. Dismiss Chevron Button at top-left with localized frosted chip
-          Positioned(
-            top: 0,
-            left: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 12.0, top: 8.0),
-                child: Container(
-                  width: 40.0,
-                  height: 40.0,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.38),
-                    shape: BoxShape.circle,
-                  ),
-                  child: IconButton(
-                    padding: EdgeInsets.zero,
-                    icon: const Icon(
-                      Icons.keyboard_arrow_down_rounded,
-                      size: 30.0,
-                      color: Colors.white,
-                    ),
-                    splashRadius: 20.0,
-                    tooltip: 'Cerrar reproductor',
-                    onPressed: onDismiss ?? () => Navigator.of(context).pop(),
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onVerticalDragUpdate: onDragUpdate != null
+          ? (details) => onDragUpdate!(details.primaryDelta ?? 0.0)
+          : null,
+      onVerticalDragEnd: onDragEnd,
+      child: SizedBox(
+        width: effectiveWidth,
+        height: effectiveHeight, // Edge-to-edge giant square covering full width
+        child: song != null
+            ? AnimaArtworkImage(
+                mediaStoreId: song!.mediaStoreId,
+                albumId: song!.albumId,
+                width: effectiveWidth,
+                height: effectiveHeight,
+                borderRadius: 0.0,
+                isThumbnail: false,
+                fit: BoxFit.cover,
+                fallbackIcon: Icons.music_note_rounded,
+              )
+            : Container(
+                color: const Color(0xFF141417),
+                child: const Center(
+                  child: Icon(
+                    Icons.music_note_rounded,
+                    size: 96.0,
+                    color: Color(0xFF4A4A52),
                   ),
                 ),
               ),
-            ),
-          ),
-        ],
       ),
     );
   }
