@@ -19,7 +19,13 @@ typedef Library = LibraryScreen;
 
 /// Primary Library screen for the application.
 class LibraryScreen extends StatefulWidget {
-  const LibraryScreen({super.key});
+  /// Whether to display the bottom navigation bar. Defaults to true.
+  final bool showBottomNav;
+
+  const LibraryScreen({
+    super.key,
+    this.showBottomNav = true,
+  });
 
   @override
   State<LibraryScreen> createState() => _LibraryScreenState();
@@ -47,9 +53,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(
-        currentIndex: 2,
-      ),
+      bottomNavigationBar: widget.showBottomNav
+          ? const AppBottomNav(
+              currentIndex: 2,
+            )
+          : null,
     );
   }
 }

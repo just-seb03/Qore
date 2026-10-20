@@ -8,9 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:project_anima/features/home/screens/home.dart';
-import 'package:project_anima/features/library/screens/library.dart';
-import 'package:project_anima/features/search/screens/search.dart';
+import 'package:project_anima/controls/menu_transition_controller.dart';
 
 /// Enumeration of root application navigation tabs.
 enum NavigationTab {
@@ -48,27 +46,14 @@ class NavigationController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Changes the active tab and switches to the destination screen.
+  /// Changes the active tab and triggers the animated menu transition.
   void navigateToTab(BuildContext context, int newIndex) {
     if (_currentIndex == newIndex) return;
 
     _currentIndex = newIndex;
     notifyListeners();
 
-    final destinationWidget = switch (newIndex) {
-      0 => const HomeScreen(),
-      1 => const SearchScreen(),
-      2 => const LibraryScreen(),
-      _ => const HomeScreen(),
-    };
-
-    Navigator.pushReplacement(
-      context,
-      PageRouteBuilder(
-        pageBuilder: (context, animation, secondaryAnimation) => destinationWidget,
-        transitionDuration: Duration.zero,
-        reverseTransitionDuration: Duration.zero,
-      ),
-    );
+    // Delegate visual directional slide animation to MenuTransitionController
+    MenuTransitionController.instance.animateTo(newIndex);
   }
 }

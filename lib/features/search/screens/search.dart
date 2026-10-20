@@ -19,7 +19,13 @@ typedef Search = SearchScreen;
 
 /// Primary Search screen for the application.
 class SearchScreen extends StatefulWidget {
-  const SearchScreen({super.key});
+  /// Whether to display the bottom navigation bar. Defaults to true.
+  final bool showBottomNav;
+
+  const SearchScreen({
+    super.key,
+    this.showBottomNav = true,
+  });
 
   @override
   State<SearchScreen> createState() => _SearchScreenState();
@@ -51,9 +57,11 @@ class _SearchScreenState extends State<SearchScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(
-        currentIndex: 1,
-      ),
+      bottomNavigationBar: widget.showBottomNav
+          ? const AppBottomNav(
+              currentIndex: 1,
+            )
+          : null,
     );
   }
 }

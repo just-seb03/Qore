@@ -9,8 +9,8 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:project_anima/controls/menu_transition_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
-import 'package:project_anima/features/home/screens/home.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -27,7 +27,7 @@ class AnimaApp extends StatelessWidget {
       title: 'Project Anima',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
-      home: const HomeScreen(),
+      home: const MenuTransitionControl(),
     );
   }
 }

@@ -20,7 +20,13 @@ typedef Home = HomeScreen;
 
 /// Home screen with the futuristic header and bottom navigation bar.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  /// Whether to display the bottom navigation bar. Defaults to true.
+  final bool showBottomNav;
+
+  const HomeScreen({
+    super.key,
+    this.showBottomNav = true,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -54,9 +60,11 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: const AppBottomNav(
-        currentIndex: 0,
-      ),
+      bottomNavigationBar: widget.showBottomNav
+          ? const AppBottomNav(
+              currentIndex: 0,
+            )
+          : null,
     );
   }
 }
