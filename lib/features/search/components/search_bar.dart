@@ -2,12 +2,14 @@
 /// Description: Material Design 3 Expressive SearchBar component leveraging the
 /// material_3_expressive package and material_symbols_icons. Features M3ESearchBar,
 /// morphing M3ELoadingIndicator, and M3EIconButton matching the project's monochromatic design.
-/// Implements static caching of Inconsolata TextStyles to prevent font-map lookups on keystroke rebuilds.
+/// Implements static caching of Inconsolata TextStyles and internal ValueListenableBuilder
+/// to isolate clear button visibility without triggering parent widget rebuilds on keystrokes.
 ///
 /// Components / Classes / Functions:
 /// - AppSearchBar: Primary M3 Expressive search bar widget with dynamic loading and clear actions.
 ///   - _baseHintTextStyle: Static cached TextStyle for hint text.
 ///   - _baseTextStyle: Static cached TextStyle for input text.
+/// - _AppSearchBarState: State class managing effective controller and isolated reactive trailing actions.
 /// - ExpressiveSearchBar: Type alias pointing to AppSearchBar.
 library;
 
@@ -21,7 +23,7 @@ import 'package:project_anima/core/theme/theme.dart';
 typedef ExpressiveSearchBar = AppSearchBar;
 
 /// Native Material 3 Expressive SearchBar using M3ESearchBar and M3ELoadingIndicator.
-class AppSearchBar extends StatelessWidget {
+class AppSearchBar extends StatefulWidget {
   /// Controller managing the text input state.
   final TextEditingController? controller;
 
@@ -76,31 +78,58 @@ class AppSearchBar extends StatelessWidget {
   });
 
   @override
+  State<AppSearchBar> createState() => _AppSearchBarState();
+}
+
+class _AppSearchBarState extends State<AppSearchBar> {
+  TextEditingController? _internalController;
+
+  TextEditingController get _effectiveController =>
+      widget.controller ?? (_internalController ??= TextEditingController());
+
+  @override
+  void didUpdateWidget(AppSearchBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller == null && oldWidget.controller != null) {
+      _internalController = TextEditingController();
+    } else if (widget.controller != null && oldWidget.controller == null) {
+      _internalController?.dispose();
+      _internalController = null;
+    }
+  }
+
+  @override
+  void dispose() {
+    _internalController?.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final hasText = (controller?.text.isNotEmpty ?? false);
+    final effectiveController = _effectiveController;
 
     return Padding(
-      padding: padding,
+      padding: widget.padding,
       child: M3ESearchBar(
-        controller: controller,
-        focusNode: focusNode,
-        autoFocus: autoFocus,
-        onChanged: onChanged,
+        controller: effectiveController,
+        focusNode: widget.focusNode,
+        autoFocus: widget.autoFocus,
+        onChanged: widget.onChanged,
         contextMenuBuilder: (context, editableTextState) {
           return AdaptiveTextSelectionToolbar.editableText(
             editableTextState: editableTextState,
           );
         },
-        hintText: hintText,
+        hintText: widget.hintText,
         hintStyle: WidgetStatePropertyAll(
-          _baseHintTextStyle.copyWith(
+          AppSearchBar._baseHintTextStyle.copyWith(
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
           ),
         ),
         textStyle: WidgetStatePropertyAll(
-          _baseTextStyle.copyWith(
+          AppSearchBar._baseTextStyle.copyWith(
             color: colorScheme.onSurface,
           ),
         ),
@@ -113,7 +142,7 @@ class AppSearchBar extends StatelessWidget {
           ),
         ),
         trailing: [
-          if (isLoading)
+          if (widget.isLoading)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: M3ELoadingIndicator(
@@ -121,18 +150,26 @@ class AppSearchBar extends StatelessWidget {
                 color: AppColors.futuristicWhite,
               ),
             )
-          else if (hasText)
-            M3EIconButton(
-              icon: Icon(
-                Symbols.close_rounded,
-                color: colorScheme.onSurfaceVariant,
-                size: 20.0,
-              ),
-              variant: M3EIconButtonVariant.standard,
-              size: M3EIconButtonSize.xs,
-              onPressed: () {
-                controller?.clear();
-                onClear?.call();
+          else
+            ValueListenableBuilder<TextEditingValue>(
+              valueListenable: effectiveController,
+              builder: (context, value, _) {
+                if (value.text.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+                return M3EIconButton(
+                  icon: Icon(
+                    Symbols.close_rounded,
+                    color: colorScheme.onSurfaceVariant,
+                    size: 20.0,
+                  ),
+                  variant: M3EIconButtonVariant.standard,
+                  size: M3EIconButtonSize.xs,
+                  onPressed: () {
+                    effectiveController.clear();
+                    widget.onClear?.call();
+                  },
+                );
               },
             ),
         ],

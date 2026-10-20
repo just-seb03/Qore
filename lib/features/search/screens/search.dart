@@ -1,6 +1,8 @@
 /// File: search.dart
 /// Description: Search screen displaying the centered Zen Dots SearchHeader and
 /// the Material Design 3 Expressive AppSearchBar with the global AppBottomNav below.
+/// Optimized to eliminate global setState rebuilds on keystrokes by delegating
+/// clear-action state reactively to AppSearchBar.
 ///
 /// Components / Classes / Functions:
 /// - Search: Type alias for SearchScreen.
@@ -51,8 +53,6 @@ class _SearchScreenState extends State<SearchScreen> {
             const SearchHeader(),
             AppSearchBar(
               controller: _searchController,
-              onChanged: (_) => setState(() {}),
-              onClear: () => setState(() {}),
             ),
           ],
         ),
