@@ -62,12 +62,26 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
     _playlistDao = widget.playlistDao ?? PlaylistDao();
     _songDao = widget.songDao ?? SongDao();
 
+    PlaylistDao.playlistRevision.addListener(_onPlaylistRevisionChanged);
+
     if (widget.playlists != null) {
       _playlists = List.of(widget.playlists!);
       _isLoading = false;
     } else {
       _loadPlaylists();
     }
+  }
+
+  void _onPlaylistRevisionChanged() {
+    if (mounted) {
+      _loadPlaylists();
+    }
+  }
+
+  @override
+  void dispose() {
+    PlaylistDao.playlistRevision.removeListener(_onPlaylistRevisionChanged);
+    super.dispose();
   }
 
   @override
@@ -112,7 +126,7 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
       return;
     }
 
-    final updated = await Navigator.of(context).push<Playlist?>(
+    await Navigator.of(context).push<Playlist?>(
       PlaylistDetailScreen.route(
         playlist: playlist,
         playlistDao: _playlistDao,
@@ -120,17 +134,29 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
       ),
     );
 
-    if (updated != null && mounted) {
+    if (mounted) {
       await reloadPlaylists();
     }
   }
 
   Future<void> _handlePlayTap(Playlist playlist) async {
     if (playlist.id == null) return;
+    final controller = PlaybackController.instance;
+
+    // If this playlist is currently active: toggle play/pause!
+    if (controller.activePlaylistId == playlist.id) {
+      await controller.togglePlayPause();
+      return;
+    }
+
     try {
       final songs = await _playlistDao.getPlaylistSongs(playlist.id!);
       if (songs.isNotEmpty) {
-        PlaybackController.instance.playSong(songs.first, queue: songs);
+        await controller.playSong(
+          songs.first,
+          queue: songs,
+          playlistId: playlist.id,
+        );
       }
     } catch (e) {
       debugPrint('⚠️ [LibraryPlaylistsView] Play error: $e');

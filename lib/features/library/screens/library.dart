@@ -123,14 +123,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
   }
 
   Future<void> _openCreatePlaylistScreen() async {
-    final created = await Navigator.of(context).push<Playlist?>(
+    await Navigator.of(context).push<Playlist?>(
       PlaylistEditScreen.route(
         playlistDao: widget.playlistDao,
         songDao: widget.songDao,
       ),
     );
 
-    if (created != null && mounted) {
+    if (mounted) {
       await _playlistsViewKey.currentState?.reloadPlaylists();
     }
   }

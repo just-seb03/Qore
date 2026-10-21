@@ -115,6 +115,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
         }
       });
 
+    PlaylistDao.playlistRevision.addListener(_onPlaylistRevisionChanged);
+
     if (widget.initialSongs != null) {
       _songs = List.of(widget.initialSongs!);
       _isLoading = false;
@@ -125,8 +127,15 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
     }
   }
 
+  void _onPlaylistRevisionChanged() {
+    if (mounted && _playlist.id != null) {
+      _loadPlaylistSongs();
+    }
+  }
+
   @override
   void dispose() {
+    PlaylistDao.playlistRevision.removeListener(_onPlaylistRevisionChanged);
     _springController.dispose();
     super.dispose();
   }
@@ -183,7 +192,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
 
   void _playFromStart() {
     if (_songs.isEmpty) return;
-    PlaybackController.instance.playSong(_songs.first, queue: _songs);
+    final controller = PlaybackController.instance;
+    if (controller.activePlaylistId == _playlist.id) {
+      controller.togglePlayPause();
+      return;
+    }
+    controller.playSong(_songs.first, queue: _songs, playlistId: _playlist.id);
   }
 
   void _toggleShuffle() {
@@ -214,9 +228,16 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   Widget build(BuildContext context) {
     final totalMs = _songs.fold<int>(0, (sum, s) => sum + s.duration);
 
-    return ListenableBuilder(
-      listenable: PlaybackController.instance,
-      builder: (context, _) {
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          Navigator.of(context).pop(_playlist);
+        }
+      },
+      child: ListenableBuilder(
+        listenable: PlaybackController.instance,
+        builder: (context, _) {
         return Scaffold(
           backgroundColor: AppColors.background,
           bottomNavigationBar: const SafeArea(
@@ -278,6 +299,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
           ),
         );
       },
+      ),
     );
   }
 
@@ -377,6 +399,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
               song: song,
               trackIndex: index + 1,
               allPlaylistSongs: _songs,
+              playlistId: _playlist.id,
             );
           },
         ),

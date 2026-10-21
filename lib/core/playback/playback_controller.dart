@@ -32,6 +32,7 @@ class PlaybackController extends ChangeNotifier {
   Song? _currentSong;
   List<Song> _queue = [];
   int _currentIndex = -1;
+  int? _activePlaylistId;
   bool _isBuffering = false;
   bool _isInitialized = false;
 
@@ -67,6 +68,9 @@ class PlaybackController extends ChangeNotifier {
 
   /// Active track currently playing or paused.
   Song? get currentSong => _currentSong;
+
+  /// Database ID of the playlist currently playing, if any.
+  int? get activePlaylistId => _activePlaylistId;
 
   /// Current playback queue.
   List<Song> get queue => List.unmodifiable(_queue);
@@ -173,6 +177,7 @@ class PlaybackController extends ChangeNotifier {
       await _player.stop();
       await _audioHandler?.stop();
       _currentSong = null;
+      _activePlaylistId = null;
       notifyListeners();
     } catch (e) {
       debugPrint('PlaybackController Error stopping playback: $e');
@@ -346,8 +351,11 @@ class PlaybackController extends ChangeNotifier {
   }
 
   /// Plays a specific [Song] and optionally initializes or replaces the active [queue].
-  Future<void> playSong(Song song, {List<Song>? queue}) async {
+  /// Optionally tracks the originating [playlistId] for active playlist state highlighting.
+  Future<void> playSong(Song song, {List<Song>? queue, int? playlistId}) async {
     unawaited(_checkNotificationPermission());
+
+    _activePlaylistId = playlistId;
 
     // 1. Update queue
     if (queue != null && queue.isNotEmpty) {

@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 6;
+  static const int databaseVersion = 7;
 
   Database? _db;
 
@@ -149,6 +149,7 @@ class AppDatabase {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
             cover_path TEXT,
+            font_family TEXT,
             created_at INTEGER NOT NULL,
             updated_at INTEGER NOT NULL
           )
@@ -171,6 +172,16 @@ class AppDatabase {
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_playlists_updated ON playlists (updated_at DESC)',
         );
+      } catch (_) {}
+    }
+
+    if (oldVersion < 7) {
+      try {
+        final playlistCols = await db.rawQuery('PRAGMA table_info(playlists)');
+        final hasFontFamily = playlistCols.any((col) => col['name'] == 'font_family');
+        if (!hasFontFamily) {
+          await db.execute('ALTER TABLE playlists ADD COLUMN font_family TEXT');
+        }
       } catch (_) {}
     }
   }

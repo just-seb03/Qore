@@ -23,11 +23,15 @@ class PlaylistTrackTile extends StatelessWidget {
   /// Full playlist queue for seamless sequential playback upon selection.
   final List<Song> allPlaylistSongs;
 
+  /// Optional playlist ID for active playlist state tracking.
+  final int? playlistId;
+
   const PlaylistTrackTile({
     super.key,
     required this.song,
     required this.trackIndex,
     required this.allPlaylistSongs,
+    this.playlistId,
   });
 
   String _formatDuration(int? ms) {
@@ -65,7 +69,11 @@ class PlaylistTrackTile extends StatelessWidget {
               if (isCurrentTrack) {
                 activeController.togglePlayPause();
               } else {
-                activeController.playSong(song, queue: allPlaylistSongs);
+                activeController.playSong(
+                  song,
+                  queue: allPlaylistSongs,
+                  playlistId: playlistId,
+                );
               }
             },
             child: Padding(

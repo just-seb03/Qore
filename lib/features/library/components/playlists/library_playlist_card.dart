@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 
@@ -93,22 +94,26 @@ class LibraryPlaylistCard extends StatelessWidget {
       aspectRatio: 1920 / 620,
       child: Container(
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16.0),
+          color: const Color(0xFF141416),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.12),
             width: 1.0,
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.60),
-              blurRadius: 16.0,
+              color: Colors.black.withValues(alpha: 0.70),
+              blurRadius: 14.0,
               spreadRadius: 1.0,
               offset: const Offset(0, 6),
             ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.35),
+              blurRadius: 4.0,
+              offset: const Offset(0, 2),
+            ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(16.0),
+        child: ClipRect(
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -180,7 +185,7 @@ class LibraryPlaylistCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 14.0),
 
-                        // Right: Floating Play Trigger Button
+                        // Right: Floating Play / Pause Trigger Button
                         _buildPlayButton(),
                       ],
                     ),
@@ -195,40 +200,56 @@ class LibraryPlaylistCard extends StatelessWidget {
   }
 
   Widget _buildPlayButton() {
-    return Material(
-      color: Colors.white.withValues(alpha: 0.18),
-      shape: const CircleBorder(),
-      child: InkWell(
-        key: ValueKey('library_playlist_play_${playlist.id ?? 0}'),
-        customBorder: const CircleBorder(),
-        onTap: onPlayTap ?? onTap,
-        splashColor: AppColors.navIndicator.withValues(alpha: 0.4),
-        child: Container(
-          width: 44.0,
-          height: 44.0,
-          decoration: BoxDecoration(
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
-              width: 1.2,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.45),
-                blurRadius: 10.0,
-                offset: const Offset(0, 4),
+    return ListenableBuilder(
+      listenable: PlaybackController.instance,
+      builder: (context, _) {
+        final controller = PlaybackController.instance;
+        final isThisPlaylistPlaying = playlist.id != null &&
+            controller.activePlaylistId == playlist.id &&
+            controller.isPlaying;
+
+        return Material(
+          color: isThisPlaylistPlaying
+              ? AppColors.navIndicator.withValues(alpha: 0.85)
+              : Colors.white.withValues(alpha: 0.18),
+          shape: const CircleBorder(),
+          child: InkWell(
+            key: ValueKey('library_playlist_play_${playlist.id ?? 0}'),
+            customBorder: const CircleBorder(),
+            onTap: onPlayTap ?? onTap,
+            splashColor: AppColors.navIndicator.withValues(alpha: 0.4),
+            child: Container(
+              width: 44.0,
+              height: 44.0,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: isThisPlaylistPlaying
+                      ? AppColors.futuristicWhite
+                      : Colors.white.withValues(alpha: 0.35),
+                  width: 1.2,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    blurRadius: 10.0,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-            ],
-          ),
-          child: const Center(
-            child: Icon(
-              Icons.play_arrow_rounded,
-              size: 26.0,
-              color: AppColors.futuristicWhite,
+              child: Center(
+                child: Icon(
+                  isThisPlaylistPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
+                  size: 26.0,
+                  color: AppColors.futuristicWhite,
+                ),
+              ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 

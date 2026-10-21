@@ -6,12 +6,22 @@
 /// - PlaylistDao: Data access class executing queries and transactions for Playlists.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 
 /// Data Access Object for persisting and retrieving user Playlists and their songs.
 class PlaylistDao {
+  /// Global change notifier incremented whenever playlists are created, updated, or deleted.
+  /// Allows all playlist presentation widgets to reactively reload without app restarts.
+  static final ValueNotifier<int> playlistRevision = ValueNotifier<int>(0);
+
+  /// Dispatches a reactive update notification to all playlist listeners.
+  static void notifyPlaylistsChanged() {
+    playlistRevision.value++;
+  }
+
   final AppDatabase _appDatabase;
 
   PlaylistDao({AppDatabase? appDatabase})
@@ -114,7 +124,7 @@ class PlaylistDao {
     final db = await _appDatabase.database;
     final now = DateTime.now().millisecondsSinceEpoch;
 
-    return await db.transaction((txn) async {
+    final result = await db.transaction((txn) async {
       // 1. Insert playlist record
       final playlistId = await txn.insert('playlists', {
         'name': name.trim().isEmpty ? 'Untitled Playlist' : name.trim(),
@@ -157,6 +167,9 @@ class PlaylistDao {
         firstMediaStoreId: songs?.isNotEmpty == true ? songs!.first.mediaStoreId : null,
       );
     });
+
+    notifyPlaylistsChanged();
+    return result;
   }
 
   /// Updates playlist metadata and rewrites its ordered track sequence.
@@ -206,6 +219,8 @@ class PlaylistDao {
         }
       }
     });
+
+    notifyPlaylistsChanged();
   }
 
   /// Deletes a playlist and its track associations.
@@ -216,5 +231,7 @@ class PlaylistDao {
       where: 'id = ?',
       whereArgs: [playlistId],
     );
+
+    notifyPlaylistsChanged();
   }
 }

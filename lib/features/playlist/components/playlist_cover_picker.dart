@@ -83,7 +83,6 @@ class PlaylistCoverPicker extends StatelessWidget {
                   width: width ?? double.infinity,
                   decoration: BoxDecoration(
                     color: AppColors.surfaceContainerHighest,
-                    borderRadius: BorderRadius.circular(14.0),
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.65),
@@ -102,8 +101,7 @@ class PlaylistCoverPicker extends StatelessWidget {
                       width: 1.0,
                     ),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(14.0),
+                  child: ClipRect(
                     child: _buildArtworkContent(),
                   ),
                 ),

@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 
@@ -85,7 +86,6 @@ class PlaylistDetailHeader extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 color: AppColors.surface,
-                borderRadius: BorderRadius.circular(16.0),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: 0.12),
                   width: 1.0,
@@ -104,8 +104,7 @@ class PlaylistDetailHeader extends StatelessWidget {
                   ),
                 ],
               ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16.0),
+              child: ClipRect(
                 child: _buildCoverWidget(),
               ),
             ),
@@ -164,16 +163,24 @@ class PlaylistDetailHeader extends StatelessWidget {
               ),
               const SizedBox(width: 8.0),
 
-              // Right: Play Action Icon
+              // Right: Play / Pause Action Icon
               IconButton(
                 key: const ValueKey('playlist_detail_play_button'),
                 onPressed: songCount > 0 ? onPlay : null,
-                icon: const Icon(
-                  Icons.play_arrow_rounded,
+                icon: Icon(
+                  playlist.id != null &&
+                          PlaybackController.instance.activePlaylistId == playlist.id &&
+                          PlaybackController.instance.isPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
                   size: 38.0,
                   color: AppColors.futuristicWhite,
                 ),
-                tooltip: 'Play playlist',
+                tooltip: playlist.id != null &&
+                        PlaybackController.instance.activePlaylistId == playlist.id &&
+                        PlaybackController.instance.isPlaying
+                    ? 'Pause playlist'
+                    : 'Play playlist',
                 splashRadius: 24.0,
               ),
             ],
