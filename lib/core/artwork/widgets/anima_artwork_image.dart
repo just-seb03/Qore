@@ -102,17 +102,26 @@ class AnimaArtworkImage extends StatelessWidget {
 
         if (path != null) {
           final file = File(path);
-          final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
-          final int cacheSize = preferCover
-              ? (hasFiniteWidth ? (width! * dpr).round().clamp(200, 500) : 450)
-              : (hasFiniteWidth ? (width! * dpr).round().clamp(100, 200) : 150);
+          final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 3.0;
+          final int cacheSize;
+          if (preferCover) {
+            if (hasFiniteWidth) {
+              cacheSize = (width! * dpr).round().clamp(512, 1600);
+            } else {
+              final screenWidth = MediaQuery.maybeSizeOf(context)?.width ?? 400.0;
+              cacheSize = (screenWidth * dpr).round().clamp(800, 1600);
+            }
+          } else {
+            final double baseWidth = hasFiniteWidth ? width! : 60.0;
+            cacheSize = (baseWidth * dpr).round().clamp(160, 480);
+          }
 
           final imageWidget = Image.file(
             file,
             width: width,
             height: height,
             fit: fit,
-            filterQuality: FilterQuality.medium,
+            filterQuality: FilterQuality.high,
             cacheWidth: cacheSize,
             cacheHeight: cacheSize,
             errorBuilder: (ctx, err, stack) => _buildFallback(context),

@@ -37,9 +37,9 @@ class PlaylistCoverPicker extends StatelessWidget {
       final picker = ImagePicker();
       final XFile? file = await picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 88,
-        maxWidth: 1920,
-        maxHeight: 1080,
+        imageQuality: 98,
+        maxWidth: 2560,
+        maxHeight: 1440,
       );
       if (file != null) {
         onCoverPicked(file.path);
@@ -163,6 +163,7 @@ class PlaylistCoverPicker extends StatelessWidget {
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
+        filterQuality: FilterQuality.high,
       );
     }
 

@@ -23,6 +23,7 @@ class ArtworkService extends ChangeNotifier {
 
   static const int _batchSize = 4;
   static const Duration _batchPause = Duration(milliseconds: 30);
+  static const int _kArtworkCacheVersion = 2;
 
   bool _initialized = false;
   late String _thumbnailsDir;
@@ -79,9 +80,42 @@ class ArtworkService extends ChangeNotifier {
     final thumbDirFile = Directory(_thumbnailsDir);
     final coverDirFile = Directory(_coversDir);
     final artistDirFile = Directory(_artistsDir);
+    final versionFile = File(p.join(rootPath, '.artwork_cache_version'));
 
-    if (!thumbDirFile.existsSync()) thumbDirFile.createSync(recursive: true);
-    if (!coverDirFile.existsSync()) coverDirFile.createSync(recursive: true);
+    int currentVersion = 0;
+    if (versionFile.existsSync()) {
+      try {
+        currentVersion = int.tryParse(versionFile.readAsStringSync().trim()) ?? 0;
+      } catch (_) {}
+    }
+
+    final bool isExistingCache = thumbDirFile.existsSync() || coverDirFile.existsSync();
+    if (isExistingCache && currentVersion < _kArtworkCacheVersion) {
+      // Automatic migration to HD Artwork engine: Purge old low-res degraded cache once
+      if (thumbDirFile.existsSync()) {
+        try {
+          thumbDirFile.deleteSync(recursive: true);
+        } catch (_) {}
+      }
+      if (coverDirFile.existsSync()) {
+        try {
+          coverDirFile.deleteSync(recursive: true);
+        } catch (_) {}
+      }
+      thumbDirFile.createSync(recursive: true);
+      coverDirFile.createSync(recursive: true);
+      try {
+        versionFile.writeAsStringSync('$_kArtworkCacheVersion', flush: true);
+      } catch (_) {}
+    } else {
+      if (!thumbDirFile.existsSync()) thumbDirFile.createSync(recursive: true);
+      if (!coverDirFile.existsSync()) coverDirFile.createSync(recursive: true);
+      if (!versionFile.existsSync()) {
+        try {
+          versionFile.writeAsStringSync('$_kArtworkCacheVersion', flush: true);
+        } catch (_) {}
+      }
+    }
     if (!artistDirFile.existsSync()) artistDirFile.createSync(recursive: true);
 
     // Frame 0: Quick directory listing to populate in-memory maps in O(1)
@@ -140,6 +174,19 @@ class ArtworkService extends ChangeNotifier {
 
       if (hasChanges) {
         notifyListeners();
+      }
+
+      // 4. Automatically enqueue any songs or albums that do not have cached artworks yet
+      final missingArtworkSongs = songs.where((s) {
+        final key = _songAlbumKeyCache[s.mediaStoreId] ?? _albumKey(s);
+        final repId = _albumRepresentativeCache[key];
+        return repId == null ||
+            !_coverCache.containsKey(repId) ||
+            !_thumbnailCache.containsKey(repId);
+      }).toList();
+
+      if (missingArtworkSongs.isNotEmpty) {
+        enqueueSongs(missingArtworkSongs);
       }
     } catch (e) {
       debugPrint('⚠️ [ArtworkService] preloadAlbumMappings error: $e');

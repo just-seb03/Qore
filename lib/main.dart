@@ -17,6 +17,11 @@ import 'package:project_anima/core/theme/theme.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Configure high-performance RAM ImageCache for HD album artwork (250MB buffer)
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 250 * 1024 * 1024;
+  PaintingBinding.instance.imageCache.maximumSize = 600;
+
   ArtworkService.instance.initialize();
 
   try {

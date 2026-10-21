@@ -59,6 +59,7 @@ class ArtistAvatarCropView extends StatelessWidget {
                     child: Image.file(
                       imageFile,
                       fit: BoxFit.cover,
+                      filterQuality: FilterQuality.high,
                     ),
                   ),
                 ),

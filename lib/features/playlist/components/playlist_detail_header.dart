@@ -197,6 +197,7 @@ class PlaylistDetailHeader extends StatelessWidget {
         width: double.infinity,
         height: double.infinity,
         fit: BoxFit.cover,
+        filterQuality: FilterQuality.high,
       );
     }
 

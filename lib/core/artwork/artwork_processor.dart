@@ -1,6 +1,6 @@
 /// File: artwork_processor.dart
 /// Description: Top-level background Isolate worker for extracting, decoding, resizing,
-/// and saving dual-tier album artworks (100x100 thumbnails and 800x800 quality 85% covers).
+/// and saving dual-tier album artworks (400x400 thumbnails and HD pristine master covers).
 ///
 /// Components / Classes / Functions:
 /// - processArtworkBatchInIsolate: Top-level worker function executing inside a Dart isolate.
@@ -113,30 +113,45 @@ List<ArtworkBatchResultItem> processArtworkBatchInIsolate(List<ArtworkBatchItem>
         continue;
       }
 
-      // 4. Generate 200x200 Thumbnail (JPEG quality 85% for 10x faster encoding than PNG)
+      // 4. Generate 400x400 high-DPI Thumbnail (cubic interpolation, quality 92%)
       final thumbnailImg = img.copyResize(
         decoded,
-        width: 200,
-        height: 200,
-        interpolation: img.Interpolation.linear,
+        width: 400,
+        height: 400,
+        interpolation: img.Interpolation.cubic,
       );
-      final thumbBytes = img.encodeJpg(thumbnailImg, quality: 85);
+      final thumbBytes = img.encodeJpg(thumbnailImg, quality: 92);
       thumbJpg.writeAsBytesSync(thumbBytes, flush: true);
 
-      // 5. Generate high-fidelity Cover (JPEG quality 85% at max 600x600)
-      final img.Image coverImg;
-      if (decoded.width > 600 || decoded.height > 600) {
-        coverImg = img.copyResize(
-          decoded,
-          width: 600,
-          height: 600,
-          interpolation: img.Interpolation.linear,
-        );
+      // 5. Generate pristine High-Definition Cover
+      // If the original image is already a high-res JPEG (<= 1600px and <= 4MB),
+      // preserve the exact untouched master bytes for 100% publisher fidelity and 0 recompression loss.
+      final bool isRawJpeg = rawPictureBytes.length > 3 &&
+          rawPictureBytes[0] == 0xFF &&
+          rawPictureBytes[1] == 0xD8 &&
+          rawPictureBytes[2] == 0xFF;
+
+      if (isRawJpeg &&
+          decoded.width <= 1600 &&
+          decoded.height <= 1600 &&
+          rawPictureBytes.length <= 4 * 1024 * 1024) {
+        coverFile.writeAsBytesSync(rawPictureBytes, flush: true);
       } else {
-        coverImg = decoded;
+        final img.Image coverImg;
+        if (decoded.width > 1440 || decoded.height > 1440) {
+          final bool isWider = decoded.width >= decoded.height;
+          coverImg = img.copyResize(
+            decoded,
+            width: isWider ? 1440 : (decoded.width * 1440 / decoded.height).round(),
+            height: isWider ? (decoded.height * 1440 / decoded.width).round() : 1440,
+            interpolation: img.Interpolation.cubic,
+          );
+        } else {
+          coverImg = decoded;
+        }
+        final coverBytes = img.encodeJpg(coverImg, quality: 95);
+        coverFile.writeAsBytesSync(coverBytes, flush: true);
       }
-      final coverBytes = img.encodeJpg(coverImg, quality: 85);
-      coverFile.writeAsBytesSync(coverBytes, flush: true);
 
       results.add(ArtworkBatchResultItem(
         mediaStoreId: item.mediaStoreId,
