@@ -271,6 +271,86 @@ class SongDao {
     return results.map((row) => AlbumDiscoveryItem.fromMap(row)).toList();
   }
 
+  /// Retrieves all aggregated distinct albums in the user's library,
+  /// strictly filtered and grouped by album and unified album artist to prevent duplicate album entries.
+  Future<List<AlbumDiscoveryItem>> getLibraryAlbums() async {
+    final db = await _appDatabase.database;
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      WITH album_tracks AS (
+        SELECT
+          s.id,
+          s.album,
+          s.album_id,
+          s.media_store_id,
+          s.duration,
+          COALESCE(
+            NULLIF(NULLIF(TRIM(s.album_artist), ''), '<Desconocido>'),
+            (
+              SELECT NULLIF(NULLIF(TRIM(s2.album_artist), ''), '<Desconocido>')
+              FROM songs s2
+              WHERE s2.album = s.album COLLATE NOCASE
+                AND s2.album_artist IS NOT NULL
+                AND TRIM(s2.album_artist) != ''
+                AND s2.album_artist != '<Desconocido>'
+                AND s2.album_artist != 'Unknown Artist'
+              LIMIT 1
+            ),
+            (
+              SELECT NULLIF(NULLIF(TRIM(s3.artist), ''), '<Desconocido>')
+              FROM songs s3
+              WHERE s3.album = s.album COLLATE NOCASE
+                AND s3.artist IS NOT NULL
+                AND TRIM(s3.artist) != ''
+                AND s3.artist != '<Desconocido>'
+                AND s3.artist != 'Unknown Artist'
+              LIMIT 1
+            ),
+            NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>'),
+            'Unknown Artist'
+          ) AS effective_artist
+        FROM songs s
+        WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+      )
+      SELECT
+        album AS name,
+        effective_artist AS artist,
+        MIN(album_id) AS album_id,
+        MIN(media_store_id) AS representative_song_id,
+        COUNT(id) AS song_count,
+        SUM(duration) AS total_duration
+      FROM album_tracks
+      GROUP BY album COLLATE NOCASE, effective_artist COLLATE NOCASE
+      ORDER BY album COLLATE NOCASE ASC;
+      ''',
+    );
+
+    return results.map((row) => AlbumDiscoveryItem.fromMap(row)).toList();
+  }
+
+  /// Retrieves all distinct artists in the user's library, ordered alphabetically.
+  Future<List<ArtistDiscoveryItem>> getLibraryArtists() async {
+    final db = await _appDatabase.database;
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT 
+        s.artist AS name,
+        COUNT(s.id) AS song_count,
+        COUNT(DISTINCT s.album) AS album_count,
+        MIN(s.media_store_id) AS representative_song_id,
+        MIN(s.album_id) AS representative_album_id
+      FROM songs s
+      WHERE s.artist IS NOT NULL AND s.artist != '' AND s.artist != '<Desconocido>'
+      GROUP BY s.artist COLLATE NOCASE
+      ORDER BY s.artist COLLATE NOCASE ASC;
+      ''',
+    );
+
+    return results.map((row) => ArtistDiscoveryItem.fromMap(row)).toList();
+  }
+
   /// Records a playback event in `playback_history` backed by B-Tree indices.
   Future<void> recordPlayback({
     required int songId,

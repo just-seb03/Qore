@@ -1,12 +1,13 @@
 /// File: library_filter_pills.dart
 /// Description: High-performance, native Material Design 3 Expressive connected
-/// button group for the Library screen. Features identical button widths,
-/// independent multi-selection (zero, some, or all), strict adherence to
+/// button group for the Library screen. Enforces single-selection among Albums,
+/// Artists, and Playlists (Albums selected by default), strict adherence to
 /// AppColors, and top-centered positioning matching the search bar layout.
-/// Implements static caching of Inconsolata TextStyles to prevent font overhead during selection toggles.
+/// Implements static caching of Inconsolata TextStyles to prevent font overhead during selection changes.
 ///
 /// Components / Classes / Functions:
-/// - LibraryFilterPills: Stateful widget displaying the top-centered, equal-width connected filter pills.
+/// - LibraryFilter: Enumeration representing selectable library views.
+/// - LibraryFilterPills: Stateless widget displaying top-centered, equal-width connected filter pills.
 /// - _ConnectedPillButton: Internal optimized button item rendering M3 Expressive connected corner radii.
 ///   - _selectedTextStyle: Pre-cached TextStyle for selected pill item.
 ///   - _unselectedTextStyle: Pre-cached TextStyle for unselected pill item.
@@ -17,12 +18,21 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
+/// Filter categories for the Library screen.
+enum LibraryFilter {
+  albums,
+  artists,
+  playlists,
+}
+
 /// Data model representing an action item in the connected filter pill group.
 class _PillItem {
+  final LibraryFilter filter;
   final IconData icon;
   final String label;
 
   const _PillItem({
+    required this.filter,
     required this.icon,
     required this.label,
   });
@@ -30,16 +40,16 @@ class _PillItem {
 
 /// Native Material Design 3 Expressive connected pill group.
 ///
-/// Formatted with equal-width buttons, horizontal top-centering, multi-selection toggles,
-/// and smooth instant response matching the vertical position of the search bar.
-class LibraryFilterPills extends StatefulWidget {
-  /// Initial set of selected filter indices. Defaults to empty (none selected).
-  final Set<int> initialSelectedIndices;
+/// Enforces single-selection (only one option active at a time),
+/// with Albums positioned first and active by default.
+class LibraryFilterPills extends StatelessWidget {
+  /// Currently selected filter category. Defaults to [LibraryFilter.albums].
+  final LibraryFilter selectedFilter;
 
-  /// Optional callback triggered when the set of active filters changes.
-  final ValueChanged<Set<int>>? onFiltersChanged;
+  /// Optional callback triggered when the active filter changes.
+  final ValueChanged<LibraryFilter>? onFilterChanged;
 
-  /// Padding surrounding the pill group container. Defaults to vertical 8.0 to match the search bar.
+  /// Padding surrounding the pill group container. Defaults to vertical 8.0.
   final EdgeInsetsGeometry padding;
 
   /// Maximum container width constraint to keep buttons neatly sized and centered.
@@ -47,46 +57,22 @@ class LibraryFilterPills extends StatefulWidget {
 
   const LibraryFilterPills({
     super.key,
-    this.initialSelectedIndices = const <int>{},
-    this.onFiltersChanged,
+    this.selectedFilter = LibraryFilter.albums,
+    this.onFilterChanged,
     this.padding = const EdgeInsets.only(
       left: 16.0,
       top: 0.0,
       right: 16.0,
-      bottom: 8.0,
+      bottom: 12.0,
     ),
     this.maxWidth = 360.0,
   });
 
-  @override
-  State<LibraryFilterPills> createState() => _LibraryFilterPillsState();
-}
-
-class _LibraryFilterPillsState extends State<LibraryFilterPills> {
-  late Set<int> _selectedIndices;
-
   static const List<_PillItem> _items = [
-    _PillItem(icon: Symbols.person_rounded, label: 'Artists'),
-    _PillItem(icon: Symbols.album_rounded, label: 'Albums'),
-    _PillItem(icon: Symbols.queue_music_rounded, label: 'Playlists'),
+    _PillItem(filter: LibraryFilter.albums, icon: Symbols.album_rounded, label: 'Albums'),
+    _PillItem(filter: LibraryFilter.artists, icon: Symbols.person_rounded, label: 'Artists'),
+    _PillItem(filter: LibraryFilter.playlists, icon: Symbols.queue_music_rounded, label: 'Playlists'),
   ];
-
-  @override
-  void initState() {
-    super.initState();
-    _selectedIndices = Set<int>.from(widget.initialSelectedIndices);
-  }
-
-  void _toggleIndex(int index) {
-    setState(() {
-      if (_selectedIndices.contains(index)) {
-        _selectedIndices.remove(index);
-      } else {
-        _selectedIndices.add(index);
-      }
-    });
-    widget.onFiltersChanged?.call(Set<int>.unmodifiable(_selectedIndices));
-  }
 
   BorderRadius _getShapeForIndex(int index, int total) {
     const outerRadius = Radius.circular(20.0);
@@ -96,7 +82,7 @@ class _LibraryFilterPillsState extends State<LibraryFilterPills> {
       return const BorderRadius.all(outerRadius);
     }
     if (index == 0) {
-      // Leading connected pill
+      // Leading connected pill (Albums)
       return const BorderRadius.only(
         topLeft: outerRadius,
         bottomLeft: outerRadius,
@@ -104,7 +90,7 @@ class _LibraryFilterPillsState extends State<LibraryFilterPills> {
         bottomRight: innerRadius,
       );
     } else if (index == total - 1) {
-      // Trailing connected pill
+      // Trailing connected pill (Playlists)
       return const BorderRadius.only(
         topLeft: innerRadius,
         bottomLeft: innerRadius,
@@ -112,7 +98,7 @@ class _LibraryFilterPillsState extends State<LibraryFilterPills> {
         bottomRight: outerRadius,
       );
     } else {
-      // Middle connected pill
+      // Middle connected pill (Artists)
       return const BorderRadius.all(innerRadius);
     }
   }
@@ -120,11 +106,11 @@ class _LibraryFilterPillsState extends State<LibraryFilterPills> {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: widget.padding,
+      padding: padding,
       child: Center(
         heightFactor: 1.0,
         child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: widget.maxWidth),
+          constraints: BoxConstraints(maxWidth: maxWidth),
           child: Row(
             mainAxisSize: MainAxisSize.max,
             children: [
@@ -133,9 +119,13 @@ class _LibraryFilterPillsState extends State<LibraryFilterPills> {
                 Expanded(
                   child: _ConnectedPillButton(
                     item: _items[i],
-                    isSelected: _selectedIndices.contains(i),
+                    isSelected: _items[i].filter == selectedFilter,
                     shape: _getShapeForIndex(i, _items.length),
-                    onTap: () => _toggleIndex(i),
+                    onTap: () {
+                      if (_items[i].filter != selectedFilter) {
+                        onFilterChanged?.call(_items[i].filter);
+                      }
+                    },
                   ),
                 ),
               ],

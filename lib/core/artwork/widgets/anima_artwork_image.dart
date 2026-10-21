@@ -67,7 +67,9 @@ class AnimaArtworkImage extends StatelessWidget {
 
         // Prioritize full high-resolution cover when not in thumbnail mode
         // or whenever widget dimensions exceed compact list tiles (> 64dp).
-        final bool preferCover = !isThumbnail || ((width ?? 48.0) > 64.0);
+        final bool hasFiniteWidth = width != null && width!.isFinite;
+        final bool preferCover =
+            !isThumbnail || (hasFiniteWidth ? (width! > 64.0) : true);
         final String? path = preferCover
             ? (coverPath ?? thumbPath)
             : (thumbPath ?? coverPath);
@@ -76,8 +78,8 @@ class AnimaArtworkImage extends StatelessWidget {
           final file = File(path);
           final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
           final int cacheSize = preferCover
-              ? (width != null ? (width! * dpr).round().clamp(240, 800) : 800)
-              : (width != null ? (width! * dpr).round().clamp(100, 240) : 150);
+              ? (hasFiniteWidth ? (width! * dpr).round().clamp(240, 800) : 800)
+              : (hasFiniteWidth ? (width! * dpr).round().clamp(100, 240) : 150);
 
           final imageWidget = Image.file(
             file,
@@ -94,10 +96,14 @@ class AnimaArtworkImage extends StatelessWidget {
             return ClipOval(child: imageWidget);
           }
 
-          return ClipRRect(
-            borderRadius: BorderRadius.circular(borderRadius),
-            child: imageWidget,
-          );
+          if (borderRadius > 0.0) {
+            return ClipRRect(
+              borderRadius: BorderRadius.circular(borderRadius),
+              child: imageWidget,
+            );
+          }
+
+          return imageWidget;
         }
 
         return _buildFallback(context);
@@ -109,7 +115,9 @@ class AnimaArtworkImage extends StatelessWidget {
     if (fallback != null) return fallback!;
 
     final theme = Theme.of(context);
-    final iconSize = ((width ?? 48.0) * 0.45).clamp(16.0, 64.0);
+    final double effectiveWidth =
+        (width != null && width!.isFinite) ? width! : 48.0;
+    final iconSize = (effectiveWidth * 0.45).clamp(16.0, 64.0);
     final icon = fallbackIcon ?? Icons.music_note_rounded;
 
     final containerChild = Center(
@@ -136,21 +144,33 @@ class AnimaArtworkImage extends StatelessWidget {
       );
     }
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(borderRadius),
-      child: Container(
-        width: width,
-        height: height,
-        decoration: BoxDecoration(
-          color: theme.colorScheme.surfaceContainerHighest,
-          borderRadius: BorderRadius.circular(borderRadius),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-            width: 0.5,
-          ),
-        ),
-        child: containerChild,
+    final decoration = BoxDecoration(
+      color: theme.colorScheme.surfaceContainerHighest,
+      borderRadius:
+          borderRadius > 0.0 ? BorderRadius.circular(borderRadius) : null,
+      border: Border.all(
+        color: Colors.white.withValues(alpha: 0.05),
+        width: 0.5,
       ),
+    );
+
+    if (borderRadius > 0.0) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Container(
+          width: width,
+          height: height,
+          decoration: decoration,
+          child: containerChild,
+        ),
+      );
+    }
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: decoration,
+      child: containerChild,
     );
   }
 }
