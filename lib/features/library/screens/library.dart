@@ -1,8 +1,8 @@
 /// File: library.dart
 /// Description: Library screen displaying the centered Zen Dots LibraryHeader,
 /// the Material Design 3 Expressive single-selection connected pill filter component,
-/// active entity view (Albums 2-per-row grid, Artists list, or Playlists placeholder),
-/// and the global AppBottomNav.
+/// active entity view (Albums 2-per-row grid, Artists list, or Playlists view),
+/// and the global AppBottomNav, coordinated by LibraryTransitionControl.
 ///
 /// Components / Classes / Functions:
 /// - Library: Type alias for LibraryScreen.
@@ -24,6 +24,7 @@ import 'package:project_anima/features/library/components/artists/library_artist
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_view.dart';
+import 'package:project_anima/features/library/controls/library_transition_controller.dart';
 import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
 
 /// Type alias allowing both `Library` and `LibraryScreen` across the codebase.
@@ -52,6 +53,9 @@ class LibraryScreen extends StatefulWidget {
   /// Optional SongDao for dependency injection.
   final SongDao? songDao;
 
+  /// Optional transition controller for dependency injection and testing.
+  final LibraryTransitionController? transitionController;
+
   const LibraryScreen({
     super.key,
     this.showBottomNav = true,
@@ -61,6 +65,7 @@ class LibraryScreen extends StatefulWidget {
     this.initialPlaylists,
     this.playlistDao,
     this.songDao,
+    this.transitionController,
   });
 
   @override
@@ -68,14 +73,53 @@ class LibraryScreen extends StatefulWidget {
 }
 
 class _LibraryScreenState extends State<LibraryScreen> {
-  late LibraryFilter _selectedFilter;
+  late LibraryTransitionController _transitionController;
+  bool _internalControllerCreated = false;
   final GlobalKey<LibraryPlaylistsViewState> _playlistsViewKey =
       GlobalKey<LibraryPlaylistsViewState>();
 
   @override
   void initState() {
     super.initState();
-    _selectedFilter = widget.initialFilter;
+    if (widget.transitionController != null) {
+      _transitionController = widget.transitionController!;
+      _internalControllerCreated = false;
+    } else {
+      _transitionController = LibraryTransitionController(
+        initialFilter: widget.initialFilter,
+      );
+      _internalControllerCreated = true;
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant LibraryScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.transitionController != oldWidget.transitionController) {
+      if (_internalControllerCreated) {
+        _transitionController.dispose();
+      }
+      if (widget.transitionController != null) {
+        _transitionController = widget.transitionController!;
+        _internalControllerCreated = false;
+      } else {
+        _transitionController = LibraryTransitionController(
+          initialFilter: widget.initialFilter,
+        );
+        _internalControllerCreated = true;
+      }
+    } else if (widget.initialFilter != oldWidget.initialFilter &&
+        widget.initialFilter != _transitionController.currentFilter) {
+      _transitionController.animateTo(widget.initialFilter);
+    }
+  }
+
+  @override
+  void dispose() {
+    if (_internalControllerCreated) {
+      _transitionController.dispose();
+    }
+    super.dispose();
   }
 
   Future<void> _openCreatePlaylistScreen() async {
@@ -94,8 +138,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: PlaybackController.instance,
+      listenable: Listenable.merge([
+        PlaybackController.instance,
+        _transitionController,
+      ]),
       builder: (context, _) {
+        final currentFilter = _transitionController.currentFilter;
         return Scaffold(
           backgroundColor: AppColors.bottomNavBackground,
           body: SafeArea(
@@ -103,20 +151,38 @@ class _LibraryScreenState extends State<LibraryScreen> {
               children: [
                 const LibraryHeader(),
                 LibraryFilterPills(
-                  selectedFilter: _selectedFilter,
+                  selectedFilter: currentFilter,
                   onFilterChanged: (filter) {
-                    setState(() {
-                      _selectedFilter = filter;
-                    });
+                    _transitionController.animateTo(filter);
                   },
                 ),
                 Expanded(
-                  child: _buildActiveView(),
+                  child: LibraryTransitionControl(
+                    controller: _transitionController,
+                    children: [
+                      LibraryAlbumsGrid(
+                        key: const ValueKey('library_albums_view'),
+                        albums: widget.initialAlbums,
+                        songDao: widget.songDao,
+                      ),
+                      LibraryArtistsList(
+                        key: const ValueKey('library_artists_view'),
+                        artists: widget.initialArtists,
+                        songDao: widget.songDao,
+                      ),
+                      LibraryPlaylistsView(
+                        key: _playlistsViewKey,
+                        playlists: widget.initialPlaylists,
+                        playlistDao: widget.playlistDao,
+                        songDao: widget.songDao,
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          floatingActionButton: _selectedFilter == LibraryFilter.playlists
+          floatingActionButton: currentFilter == LibraryFilter.playlists
               ? FloatingActionButton(
                   key: const ValueKey('library_create_playlist_fab'),
                   onPressed: _openCreatePlaylistScreen,
@@ -143,28 +209,5 @@ class _LibraryScreenState extends State<LibraryScreen> {
       },
     );
   }
-
-  Widget _buildActiveView() {
-    switch (_selectedFilter) {
-      case LibraryFilter.albums:
-        return LibraryAlbumsGrid(
-          key: const ValueKey('library_albums_view'),
-          albums: widget.initialAlbums,
-          songDao: widget.songDao,
-        );
-      case LibraryFilter.artists:
-        return LibraryArtistsList(
-          key: const ValueKey('library_artists_view'),
-          artists: widget.initialArtists,
-          songDao: widget.songDao,
-        );
-      case LibraryFilter.playlists:
-        return LibraryPlaylistsView(
-          key: _playlistsViewKey,
-          playlists: widget.initialPlaylists,
-          playlistDao: widget.playlistDao,
-          songDao: widget.songDao,
-        );
-    }
-  }
 }
+
