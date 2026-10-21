@@ -73,7 +73,7 @@ class SearchArtistCard extends StatelessWidget {
               const SizedBox(height: 2.0),
               // Subtitle Badge
               Text(
-                'Artista',
+                'Artist',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,

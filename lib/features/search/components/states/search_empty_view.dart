@@ -22,10 +22,14 @@ class SearchEmptyView extends StatelessWidget {
   /// Optional scroll controller.
   final ScrollController? scrollController;
 
+  /// Optional RecentSearchController for dependency injection.
+  final RecentSearchController? controller;
+
   const SearchEmptyView({
     super.key,
     this.onRecentItemTap,
     this.scrollController,
+    this.controller,
   });
 
   static final TextStyle _emptyHeaderStyle = GoogleFonts.zenDots(
@@ -41,14 +45,17 @@ class SearchEmptyView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveController = controller ?? RecentSearchController.instance;
+
     return ListenableBuilder(
-      listenable: RecentSearchController.instance,
+      listenable: effectiveController,
       builder: (context, _) {
-        final recentItems = RecentSearchController.instance.items;
+        final recentItems = effectiveController.items;
         if (recentItems.isNotEmpty) {
           return SearchRecentList(
             scrollController: scrollController,
             onItemTap: onRecentItemTap,
+            controller: effectiveController,
           );
         }
 
@@ -63,12 +70,12 @@ class SearchEmptyView extends StatelessWidget {
               ),
               const SizedBox(height: 12.0),
               Text(
-                'BUSCAR EN LA BIBLIOTECA',
+                'SEARCH YOUR LIBRARY',
                 style: _emptyHeaderStyle,
               ),
               const SizedBox(height: 4.0),
               Text(
-                'Títulos, artistas o álbumes indexados',
+                'Indexed titles, artists, or albums',
                 style: _emptySubtitleStyle,
               ),
             ],

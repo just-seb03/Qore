@@ -17,7 +17,7 @@ class RecentSearchDao {
       : _appDatabase = appDatabase ?? AppDatabase.instance;
 
   /// Retrieves up to [limit] most recently clicked search items, ordered chronologically.
-  Future<List<RecentSearchItem>> getRecentSearches({int limit = 20}) async {
+  Future<List<RecentSearchItem>> getRecentSearches({int limit = 10}) async {
     final db = await _appDatabase.database;
     final List<Map<String, dynamic>> results = await db.query(
       'recent_searches',
@@ -28,7 +28,7 @@ class RecentSearchDao {
   }
 
   /// Atomically inserts or updates a search entity, bumping its timestamp to the top
-  /// and pruning any entries beyond the 20 most recent.
+  /// and pruning any entries beyond the 10 most recent.
   Future<void> saveRecentSearch(RecentSearchItem item) async {
     final db = await _appDatabase.database;
 
@@ -63,11 +63,11 @@ class RecentSearchDao {
         ],
       );
 
-      // 2. Prune records beyond the 20 most recent
+      // 2. Prune records beyond the 10 most recent
       await txn.execute('''
         DELETE FROM recent_searches 
         WHERE id NOT IN (
-          SELECT id FROM recent_searches ORDER BY searched_at DESC, id DESC LIMIT 20
+          SELECT id FROM recent_searches ORDER BY searched_at DESC, id DESC LIMIT 10
         );
       ''');
     });

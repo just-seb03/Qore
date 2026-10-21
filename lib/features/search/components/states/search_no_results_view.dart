@@ -46,12 +46,12 @@ class SearchNoResultsView extends StatelessWidget {
             ),
             const SizedBox(height: 12.0),
             Text(
-              'SIN RESULTADOS',
+              'NO RESULTS FOUND',
               style: _noResultsHeaderStyle,
             ),
             const SizedBox(height: 6.0),
             Text(
-              'No encontramos coincidencias para "$query"',
+              'No matches found for "$query"',
               textAlign: TextAlign.center,
               style: _noResultsSubtitleStyle,
             ),

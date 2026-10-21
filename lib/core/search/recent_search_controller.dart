@@ -30,7 +30,7 @@ class RecentSearchController extends ChangeNotifier {
   List<RecentSearchItem> _items = [];
   bool _isInitialized = false;
 
-  /// Current list of recent searches (up to 20 items, most recent first).
+  /// Current list of recent searches (up to 10 items, most recent first).
   List<RecentSearchItem> get items => List.unmodifiable(_items);
 
   /// Whether the database has been read into memory.
@@ -40,7 +40,7 @@ class RecentSearchController extends ChangeNotifier {
   Future<void> init() async {
     if (_isInitialized) return;
     try {
-      _items = await _dao.getRecentSearches(limit: 20);
+      _items = await _dao.getRecentSearches(limit: 10);
       _isInitialized = true;
       notifyListeners();
     } catch (e) {
@@ -79,8 +79,8 @@ class RecentSearchController extends ChangeNotifier {
     // 1. Instantaneous in-memory update for zero jank
     _items.removeWhere((i) => i.entityKey == item.entityKey);
     _items.insert(0, item);
-    if (_items.length > 20) {
-      _items = _items.sublist(0, 20);
+    if (_items.length > 10) {
+      _items = _items.sublist(0, 10);
     }
     notifyListeners();
 

@@ -70,15 +70,18 @@ class RecentSearchItem {
 
   /// Creates a [RecentSearchItem] from a clicked [Song].
   factory RecentSearchItem.fromSong(Song song) {
-    final artistStr = (song.artist != null && song.artist!.trim().isNotEmpty && song.artist != '<Desconocido>')
+    final artistStr = (song.artist != null &&
+            song.artist!.trim().isNotEmpty &&
+            song.artist != '<Desconocido>' &&
+            song.artist != 'Unknown Artist')
         ? song.artist!.trim()
-        : 'Artista desconocido';
+        : 'Unknown Artist';
 
     return RecentSearchItem(
       type: RecentSearchType.song,
       entityKey: 'song:${song.mediaStoreId}',
       title: song.title,
-      subtitle: 'Canción • $artistStr',
+      subtitle: 'Song • $artistStr',
       representativeSongId: song.mediaStoreId,
       albumId: song.albumId,
       timestampSeconds: DateTime.now().millisecondsSinceEpoch,
@@ -89,12 +92,15 @@ class RecentSearchItem {
   factory RecentSearchItem.fromAlbum(AlbumDiscoveryItem album) {
     final cleanAlbum = album.name.trim().toLowerCase();
     final cleanArtist = album.artist.trim().toLowerCase();
+    final artistStr = album.artist.isEmpty || album.artist == '<Desconocido>'
+        ? 'Unknown Artist'
+        : album.artist;
 
     return RecentSearchItem(
       type: RecentSearchType.album,
       entityKey: 'album:$cleanAlbum:$cleanArtist',
       title: album.name,
-      subtitle: 'Álbum • ${album.artist}',
+      subtitle: 'Album • $artistStr',
       representativeSongId: album.representativeSongId,
       albumId: album.albumId,
       timestampSeconds: DateTime.now().millisecondsSinceEpoch,
@@ -107,7 +113,7 @@ class RecentSearchItem {
       type: RecentSearchType.artist,
       entityKey: 'artist:${artist.name.trim().toLowerCase()}',
       title: artist.name,
-      subtitle: 'Artista',
+      subtitle: 'Artist',
       representativeSongId: artist.representativeSongId,
       albumId: artist.representativeAlbumId,
       timestampSeconds: DateTime.now().millisecondsSinceEpoch,
@@ -130,12 +136,21 @@ class RecentSearchItem {
 
   /// Reconstitutes a [RecentSearchItem] from an SQLite record.
   factory RecentSearchItem.fromMap(Map<String, dynamic> map) {
+    String subtitle = (map['subtitle'] as String?) ?? '';
+    if (subtitle.startsWith('Canción • ')) {
+      subtitle = 'Song • ${subtitle.substring(10)}';
+    } else if (subtitle.startsWith('Álbum • ')) {
+      subtitle = 'Album • ${subtitle.substring(8)}';
+    } else if (subtitle == 'Artista') {
+      subtitle = 'Artist';
+    }
+
     return RecentSearchItem(
       id: (map['id'] as num?)?.toInt(),
       type: RecentSearchType.fromString((map['entity_type'] as String?) ?? 'song'),
       entityKey: (map['entity_key'] as String?) ?? '',
-      title: (map['title'] as String?) ?? '<Desconocido>',
-      subtitle: (map['subtitle'] as String?) ?? '',
+      title: (map['title'] as String?) ?? 'Unknown Title',
+      subtitle: subtitle,
       representativeSongId: (map['representative_song_id'] as num?)?.toInt() ?? 0,
       albumId: (map['album_id'] as num?)?.toInt(),
       timestampSeconds: (map['searched_at'] as num?)?.toInt() ?? 0,

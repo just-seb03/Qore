@@ -90,7 +90,7 @@ class SearchSongTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 4.0),
                     Text(
-                      '${song.artist ?? '<Desconocido>'} • ${song.album ?? '<Desconocido>'}',
+                      '${song.artist != null && song.artist!.isNotEmpty && song.artist != "<Desconocido>" ? song.artist : "Unknown Artist"} • ${song.album != null && song.album!.isNotEmpty && song.album != "<Desconocido>" ? song.album : "Unknown Album"}',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: _artistAlbumStyle,

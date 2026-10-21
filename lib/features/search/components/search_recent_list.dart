@@ -19,11 +19,13 @@ import 'package:project_anima/features/search/components/common/material_artist_
 class SearchRecentList extends StatelessWidget {
   final ValueChanged<RecentSearchItem>? onItemTap;
   final ScrollController? scrollController;
+  final RecentSearchController? controller;
 
   const SearchRecentList({
     super.key,
     this.onItemTap,
     this.scrollController,
+    this.controller,
   });
 
   static final TextStyle _headerStyle = GoogleFonts.zenDots(
@@ -40,10 +42,12 @@ class SearchRecentList extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveController = controller ?? RecentSearchController.instance;
+
     return ListenableBuilder(
-      listenable: RecentSearchController.instance,
+      listenable: effectiveController,
       builder: (context, _) {
-        final items = RecentSearchController.instance.items;
+        final items = effectiveController.items.take(10).toList();
         if (items.isEmpty) {
           return const SizedBox.shrink();
         }
@@ -60,18 +64,18 @@ class SearchRecentList extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'BÚSQUEDAS RECIENTES',
+                      'RECENT SEARCHES',
                       style: _headerStyle,
                     ),
                     TextButton(
-                      onPressed: () => RecentSearchController.instance.clearAll(),
+                      onPressed: () => effectiveController.clearAll(),
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        'Borrar todo',
+                        'Clear all',
                         style: _clearAllStyle,
                       ),
                     ),
@@ -84,10 +88,10 @@ class SearchRecentList extends StatelessWidget {
             return _RecentSearchTile(
               item: item,
               onTap: () {
-                RecentSearchController.instance.touchItem(item);
+                effectiveController.touchItem(item);
                 onItemTap?.call(item);
               },
-              onRemove: () => RecentSearchController.instance.removeItem(item),
+              onRemove: () => effectiveController.removeItem(item),
             );
           },
         );
@@ -168,7 +172,7 @@ class _RecentSearchTile extends StatelessWidget {
                   color: Color(0xFF8E8E8E),
                 ),
                 splashRadius: 18.0,
-                tooltip: 'Eliminar de recientes',
+                tooltip: 'Remove from recents',
               ),
             ],
           ),

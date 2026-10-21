@@ -14,7 +14,6 @@ import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
-import 'package:project_anima/features/search/components/common/search_badge.dart';
 import 'package:project_anima/features/search/components/common/search_play_button.dart';
 import 'package:project_anima/features/search/components/common/search_section_header.dart';
 
@@ -26,13 +25,10 @@ class SearchTopResultCard extends StatelessWidget {
   /// Primary title (song title, album name, or artist name).
   final String title;
 
-  /// Badge text (e.g. 'SONG', 'ALBUM', 'ARTIST').
-  final String badgeLabel;
+  /// Primary subtitle (e.g. artist name). Null for artist results.
+  final String? subtitle;
 
-  /// Primary subtitle next to badge (e.g. artist name).
-  final String subtitle;
-
-  /// Optional secondary subtitle line (e.g. 'Album • 3:45' or '12 canciones').
+  /// Optional secondary subtitle line (e.g. song count for albums).
   final String? secondarySubtitle;
 
   /// Tap callback when card is activated.
@@ -45,8 +41,7 @@ class SearchTopResultCard extends StatelessWidget {
     super.key,
     required this.leading,
     required this.title,
-    required this.badgeLabel,
-    required this.subtitle,
+    this.subtitle,
     this.secondarySubtitle,
     this.onTap,
     this.showHeader = true,
@@ -59,10 +54,12 @@ class SearchTopResultCard extends StatelessWidget {
     VoidCallback? onTap,
     bool showHeader = true,
   }) {
-    final int totalSeconds = song.duration ~/ 1000;
-    final int minutes = totalSeconds ~/ 60;
-    final int seconds = totalSeconds % 60;
-    final durationStr = '$minutes:${seconds.toString().padLeft(2, '0')}';
+    final artistStr = (song.artist != null &&
+            song.artist!.trim().isNotEmpty &&
+            song.artist != '<Desconocido>' &&
+            song.artist != 'Unknown Artist')
+        ? song.artist!.trim()
+        : 'Unknown Artist';
 
     return SearchTopResultCard(
       key: key,
@@ -76,9 +73,8 @@ class SearchTopResultCard extends StatelessWidget {
         isThumbnail: false,
       ),
       title: song.title,
-      badgeLabel: 'SONG',
-      subtitle: song.artist ?? '<Desconocido>',
-      secondarySubtitle: '${song.album ?? "<Desconocido>"} • $durationStr',
+      subtitle: artistStr,
+      secondarySubtitle: null,
       onTap: onTap,
       showHeader: showHeader,
     );
@@ -92,7 +88,12 @@ class SearchTopResultCard extends StatelessWidget {
     bool showHeader = true,
   }) {
     final songCountStr =
-        '${album.songCount} ${album.songCount == 1 ? "canción" : "canciones"}';
+        '${album.songCount} ${album.songCount == 1 ? "song" : "songs"}';
+    final artistStr = album.artist.isEmpty ||
+            album.artist == '<Desconocido>' ||
+            album.artist == 'Unknown Artist'
+        ? 'Unknown Artist'
+        : album.artist;
 
     return SearchTopResultCard(
       key: key,
@@ -106,8 +107,7 @@ class SearchTopResultCard extends StatelessWidget {
         isThumbnail: false,
       ),
       title: album.name,
-      badgeLabel: 'ALBUM',
-      subtitle: album.artist,
+      subtitle: artistStr,
       secondarySubtitle: songCountStr,
       onTap: onTap,
       showHeader: showHeader,
@@ -128,8 +128,7 @@ class SearchTopResultCard extends StatelessWidget {
         artistName: artist.name,
       ),
       title: artist.name,
-      badgeLabel: 'ARTIST',
-      subtitle: 'Artista',
+      subtitle: null,
       secondarySubtitle: null,
       onTap: onTap,
       showHeader: showHeader,
@@ -183,10 +182,11 @@ class SearchTopResultCard extends StatelessWidget {
                       leading,
                       const SizedBox(width: 20.0),
 
-                      // 2. Metadata & Badge
+                      // 2. Metadata (No badges!)
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
@@ -195,23 +195,18 @@ class SearchTopResultCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: _titleStyle,
                             ),
-                            const SizedBox(height: 10.0),
-                            Row(
-                              children: [
-                                SearchBadge(label: badgeLabel),
-                                const SizedBox(width: 10.0),
-                                Flexible(
-                                  child: Text(
-                                    subtitle,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: _subtitleStyle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (secondarySubtitle != null) ...[
-                              const SizedBox(height: 6.0),
+                            if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 4.0),
+                              Text(
+                                subtitle!,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: _subtitleStyle,
+                              ),
+                            ],
+                            if (secondarySubtitle != null &&
+                                secondarySubtitle!.trim().isNotEmpty) ...[
+                              const SizedBox(height: 3.0),
                               Text(
                                 secondarySubtitle!,
                                 maxLines: 1,

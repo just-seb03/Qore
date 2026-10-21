@@ -66,7 +66,7 @@ class AppSearchBar extends StatefulWidget {
     this.onChanged,
     this.onClear,
     this.isLoading = false,
-    this.hintText = 'Search titles, genres, creators...',
+    this.hintText = 'What do you want to listen to?',
     this.focusNode,
     this.autoFocus = false,
     this.padding = const EdgeInsets.only(
