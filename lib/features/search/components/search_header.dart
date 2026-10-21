@@ -1,18 +1,18 @@
 /// File: search_header.dart
 /// Description: Top header component for the Search screen displaying a centered
-/// title in the 'Zen Dots' typeface without background or separator lines.
-/// Implements static caching of the Zen Dots TextStyle to prevent font parsing overhead.
+/// title in the 'Inconsolata' typeface without background or separator lines.
+/// Implements static caching of the Inconsolata TextStyle to prevent font parsing overhead.
 ///
 /// Components / Classes / Functions:
-/// - SearchHeader: Stateless widget rendering the centered Zen Dots section title.
-///   - _titleTextStyle: Pre-cached TextStyle for GoogleFonts.zenDots.
+/// - SearchHeader: Stateless widget rendering the centered Inconsolata section title.
+///   - _titleTextStyle: Pre-cached TextStyle for GoogleFonts.inconsolata.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
-/// Top header for the Search screen with centered Zen Dots typography.
+/// Top header for the Search screen with centered Inconsolata typography.
 class SearchHeader extends StatelessWidget {
   /// The header text to display. Defaults to 'Search'.
   final String title;
@@ -20,11 +20,11 @@ class SearchHeader extends StatelessWidget {
   /// Custom padding around the header text.
   final EdgeInsetsGeometry padding;
 
-  /// Cached text style for the Zen Dots title to avoid resolving font map on rebuilds.
-  static final TextStyle _titleTextStyle = GoogleFonts.zenDots(
-    fontSize: 22.0,
-    fontWeight: FontWeight.w400,
-    letterSpacing: 1.2,
+  /// Cached text style for the Inconsolata title to avoid resolving font map on rebuilds.
+  static final TextStyle _titleTextStyle = GoogleFonts.inconsolata(
+    fontSize: 24.0,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.5,
     color: AppColors.futuristicWhite,
   );
 

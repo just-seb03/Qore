@@ -46,8 +46,9 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
   List<AlbumDiscoveryItem>? _albums;
   bool _isLoading = true;
 
-  static final TextStyle _emptyHeaderStyle = GoogleFonts.zenDots(
-    fontSize: 13.0,
+  static final TextStyle _emptyHeaderStyle = GoogleFonts.inconsolata(
+    fontSize: 14.0,
+    fontWeight: FontWeight.w700,
     letterSpacing: 1.5,
     color: AppColors.futuristicWhite.withValues(alpha: 0.35),
   );

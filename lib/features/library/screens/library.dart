@@ -1,5 +1,5 @@
 /// File: library.dart
-/// Description: Library screen displaying the centered Zen Dots LibraryHeader,
+/// Description: Library screen displaying the centered Inconsolata LibraryHeader,
 /// the Material Design 3 Expressive single-selection connected pill filter component,
 /// active entity view (Albums 2-per-row grid, Artists list, or Playlists view),
 /// and the global AppBottomNav, coordinated by LibraryTransitionControl.

@@ -1,5 +1,5 @@
 /// File: search.dart
-/// Description: Search screen displaying the centered Zen Dots SearchHeader and
+/// Description: Search screen displaying the centered Inconsolata SearchHeader and
 /// the Material Design 3 Expressive AppSearchBar with the global AppBottomNav below.
 /// Optimized to eliminate global setState rebuilds on keystrokes by delegating
 /// clear-action state reactively to AppSearchBar.

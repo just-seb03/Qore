@@ -1,5 +1,5 @@
 /// File: search_section_header.dart
-/// Description: Spotify-styled section header with Zen Dots typography used
+/// Description: Spotify-styled section header with Inconsolata typography used
 /// to delineate search categories (TOP RESULT, SONGS, ALBUMS, ARTISTS).
 ///
 /// Components / Classes / Functions:
@@ -9,7 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Section header displaying title in Zen Dots styling with optional trailing widget.
+/// Section header displaying title in Inconsolata styling with optional trailing widget.
 class SearchSectionHeader extends StatelessWidget {
   /// Section title text.
   final String title;
@@ -31,9 +31,10 @@ class SearchSectionHeader extends StatelessWidget {
     this.verticalPadding = 8.0,
   });
 
-  static final TextStyle _headerStyle = GoogleFonts.zenDots(
+  static final TextStyle _headerStyle = GoogleFonts.inconsolata(
     fontSize: 13.5,
-    letterSpacing: 1.2,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.4,
     color: Colors.white,
   );
 

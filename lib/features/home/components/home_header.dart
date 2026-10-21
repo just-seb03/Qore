@@ -1,12 +1,12 @@
 /// File: home_header.dart
 /// Description: Header component for the Home screen displaying a prominent,
-/// futuristic title in the 'Zen Dots' typeface, aligned to the left margin
+/// futuristic title in the 'Inconsolata' typeface, aligned to the left margin
 /// with stacked words and clean styling without glow effects.
 /// Implements static caching of typography to avoid frame-by-frame font re-parsing.
 ///
 /// Components / Classes / Functions:
 /// - HomeHeader: Stateless widget rendering the futuristic multi-line section header.
-///   - _titleTextStyle: Pre-cached TextStyle for GoogleFonts.zenDots.
+///   - _titleTextStyle: Pre-cached TextStyle for GoogleFonts.inconsolata.
 library;
 
 import 'package:flutter/material.dart';
@@ -16,7 +16,7 @@ import 'package:project_anima/core/theme/theme.dart';
 /// Header widget for the Home screen with high-impact typography.
 ///
 /// Renders stacked words aligned to the left margin using Google Fonts'
-/// 'Zen Dots' in a refined futuristic off-white hue.
+/// 'Inconsolata' in a refined futuristic off-white hue.
 class HomeHeader extends StatelessWidget {
   /// The header text to display. Defaults to stacked 'YOUR\nSELECTION'.
   final String title;
@@ -25,11 +25,11 @@ class HomeHeader extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   // Cached TextStyle to eliminate runtime font parsing on build
-  static final TextStyle _titleTextStyle = GoogleFonts.zenDots(
+  static final TextStyle _titleTextStyle = GoogleFonts.inconsolata(
     fontSize: 34.0,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w800,
     height: 1.15,
-    letterSpacing: 1.0,
+    letterSpacing: 1.2,
     color: AppColors.futuristicWhite,
   );
 

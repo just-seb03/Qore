@@ -28,9 +28,10 @@ class SearchRecentList extends StatelessWidget {
     this.controller,
   });
 
-  static final TextStyle _headerStyle = GoogleFonts.zenDots(
-    fontSize: 13.5,
-    letterSpacing: 1.2,
+  static final TextStyle _headerStyle = GoogleFonts.inconsolata(
+    fontSize: 14.0,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.4,
     color: Colors.white,
   );
 

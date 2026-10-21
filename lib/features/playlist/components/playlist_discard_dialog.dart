@@ -24,9 +24,10 @@ class PlaylistDiscardDialog extends StatelessWidget {
     return result ?? false;
   }
 
-  static final TextStyle _titleStyle = GoogleFonts.zenDots(
-    fontSize: 16.0,
-    letterSpacing: 1.0,
+  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+    fontSize: 18.0,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.2,
     color: AppColors.futuristicWhite,
   );
 

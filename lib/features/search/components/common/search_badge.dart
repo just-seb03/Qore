@@ -3,7 +3,7 @@
 /// ('SONG', 'ALBUM', 'ARTIST') in Top Result cards.
 ///
 /// Components / Classes / Functions:
-/// - SearchBadge: Pill container with dark background and Zen Dots label.
+/// - SearchBadge: Pill container with dark background and Inconsolata label.
 library;
 
 import 'package:flutter/material.dart';
@@ -27,10 +27,10 @@ class SearchBadge extends StatelessWidget {
     this.textColor = Colors.white,
   });
 
-  static final TextStyle _badgeTextStyle = GoogleFonts.zenDots(
-    fontSize: 10.0,
-    letterSpacing: 1.0,
-    fontWeight: FontWeight.w600,
+  static final TextStyle _badgeTextStyle = GoogleFonts.inconsolata(
+    fontSize: 11.5,
+    letterSpacing: 1.2,
+    fontWeight: FontWeight.w700,
     color: Colors.white,
   );
 

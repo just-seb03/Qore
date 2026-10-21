@@ -20,9 +20,10 @@ class SearchNoResultsView extends StatelessWidget {
     required this.query,
   });
 
-  static final TextStyle _noResultsHeaderStyle = GoogleFonts.zenDots(
-    fontSize: 13.0,
-    letterSpacing: 1.2,
+  static final TextStyle _noResultsHeaderStyle = GoogleFonts.inconsolata(
+    fontSize: 14.0,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.4,
     color: AppColors.futuristicWhite.withValues(alpha: 0.4),
   );
 

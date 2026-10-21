@@ -124,10 +124,10 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     color: AppColors.onSurfaceVariant,
   );
 
-  static final TextStyle _saveButtonStyle = GoogleFonts.zenDots(
-    fontSize: 14.0,
-    fontWeight: FontWeight.w500,
-    letterSpacing: 1.2,
+  static final TextStyle _saveButtonStyle = GoogleFonts.inconsolata(
+    fontSize: 15.0,
+    fontWeight: FontWeight.w700,
+    letterSpacing: 1.4,
     color: AppColors.futuristicWhite,
   );
 

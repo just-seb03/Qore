@@ -1,7 +1,7 @@
 /// File: home.dart
 /// Description: Home screen hosting the global AppBottomNav component, requesting
 /// audio permissions on initial launch, triggering background music indexing,
-/// and featuring the futuristic Zen Dots HomeHeader.
+/// and featuring the futuristic Inconsolata HomeHeader.
 /// Maintains low coupling and shares the monochromatic theme palette.
 ///
 /// Components / Classes / Functions:

@@ -292,9 +292,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
               Text(
                 'NO TRACKS IN THIS PLAYLIST',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.zenDots(
-                  fontSize: 12.0,
-                  letterSpacing: 1.2,
+                style: GoogleFonts.inconsolata(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.4,
                   color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
                 ),
               ),
