@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 7;
+  static const int databaseVersion = 8;
 
   Database? _db;
 
@@ -184,6 +184,29 @@ class AppDatabase {
         }
       } catch (_) {}
     }
+
+    if (oldVersion < 8) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS pinned_favorites (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            item_type TEXT NOT NULL,
+            item_key TEXT UNIQUE NOT NULL,
+            title TEXT NOT NULL,
+            subtitle TEXT,
+            representative_song_id INTEGER,
+            album_id INTEGER,
+            playlist_id INTEGER,
+            cover_path TEXT,
+            font_family TEXT,
+            pinned_at INTEGER NOT NULL
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_pinned_favorites_pinned_at ON pinned_favorites (pinned_at DESC)',
+        );
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
@@ -271,6 +294,24 @@ class AppDatabase {
       );
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_playlists_updated ON playlists (updated_at DESC)',
+      );
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS pinned_favorites (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          item_type TEXT NOT NULL,
+          item_key TEXT UNIQUE NOT NULL,
+          title TEXT NOT NULL,
+          subtitle TEXT,
+          representative_song_id INTEGER,
+          album_id INTEGER,
+          playlist_id INTEGER,
+          cover_path TEXT,
+          font_family TEXT,
+          pinned_at INTEGER NOT NULL
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_pinned_favorites_pinned_at ON pinned_favorites (pinned_at DESC)',
       );
     } catch (_) {}
   }
@@ -406,6 +447,24 @@ class AppDatabase {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_playlists_updated ON playlists (updated_at DESC)',
+    );
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS pinned_favorites (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        item_type TEXT NOT NULL,
+        item_key TEXT UNIQUE NOT NULL,
+        title TEXT NOT NULL,
+        subtitle TEXT,
+        representative_song_id INTEGER,
+        album_id INTEGER,
+        playlist_id INTEGER,
+        cover_path TEXT,
+        font_family TEXT,
+        pinned_at INTEGER NOT NULL
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_pinned_favorites_pinned_at ON pinned_favorites (pinned_at DESC)',
     );
   }
 

@@ -10,8 +10,11 @@ library;
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
+import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
+import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
@@ -99,6 +102,12 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
   List<Song> _songs = [];
   int? _resolvedRepresentativeId;
   String? _resolvedArtist;
+  bool _isPinned = false;
+
+  String get _albumKey => PinnedFavoritesDao.albumKey(
+        widget.albumName,
+        _resolvedArtist ?? widget.artistName,
+      );
 
   @override
   void initState() {
@@ -119,6 +128,42 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
       });
 
     _loadAlbumSongs();
+    _checkPinnedStatus();
+  }
+
+  Future<void> _checkPinnedStatus() async {
+    try {
+      final pinned = await PinnedFavoritesDao.instance.isPinned(_albumKey);
+      if (mounted) {
+        setState(() {
+          _isPinned = pinned;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _togglePinned() async {
+    try {
+      final newStatus = await PinnedFavoritesDao.instance.togglePin(
+        PinnedFavorite(
+          itemType: PinnedItemType.album,
+          itemKey: _albumKey,
+          title: widget.albumName,
+          subtitle: _resolvedArtist ?? widget.artistName,
+          albumId: widget.albumId,
+          representativeSongId: _resolvedRepresentativeId,
+          pinnedAt: DateTime.now(),
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          _isPinned = newStatus;
+        });
+        HapticFeedback.mediumImpact();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [AlbumDetailScreen] Error toggling pin: $e');
+    }
   }
 
   @override
@@ -234,53 +279,58 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
   Widget build(BuildContext context) {
     final totalMs = _songs.fold<int>(0, (sum, s) => sum + s.duration);
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      bottomNavigationBar: const SafeArea(
-        top: false,
-        child: MiniPlayer(),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Transform.translate(
-          offset: Offset(0.0, _dragOffset),
-          child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Colors.white,
-                  ),
-                )
-              : SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // 1. Universal Animated Dismiss Chevron (identical to player and artist)
-                      const SizedBox(height: 10.0),
-                      ModalDismissIndicator(
-                        onDismiss: _handleDismiss,
-                        onDragUpdate: _handleDragUpdate,
-                        onDragEnd: _handleDragEnd,
-                        size: 34.0,
-                        color: AppColors.onSurfaceVariant,
-                        animate: widget.animateBounce,
-                        padding: const EdgeInsets.symmetric(
-                          vertical: 6.0,
-                          horizontal: 36.0,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      color: _isPinned ? AppColors.pinnedRedBackground : AppColors.background,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        bottomNavigationBar: const SafeArea(
+          top: false,
+          child: MiniPlayer(),
+        ),
+        body: SafeArea(
+          bottom: false,
+          child: Transform.translate(
+            offset: Offset(0.0, _dragOffset),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // 1. Universal Animated Dismiss Chevron (identical to player and artist)
+                        const SizedBox(height: 10.0),
+                        ModalDismissIndicator(
+                          onDismiss: _handleDismiss,
+                          onDragUpdate: _handleDragUpdate,
+                          onDragEnd: _handleDragEnd,
+                          size: 34.0,
+                          color: AppColors.onSurfaceVariant,
+                          animate: widget.animateBounce,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 6.0,
+                            horizontal: 36.0,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 14.0),
+                        const SizedBox(height: 14.0),
 
-                      // 2. Cohesive Album Header: Large Sharp Cover + Title + Artist + Duration
-                      AlbumHeaderView(
-                        albumName: widget.albumName,
-                        artistName: _resolvedArtist,
-                        albumId: widget.albumId,
-                        representativeSongId: _resolvedRepresentativeId,
-                        songCount: _songs.length,
-                        totalDurationMs: totalMs,
-                      ),
+                        // 2. Cohesive Album Header: Large Sharp Cover + Title + Artist + Duration
+                        AlbumHeaderView(
+                          albumName: widget.albumName,
+                          artistName: _resolvedArtist,
+                          albumId: widget.albumId,
+                          representativeSongId: _resolvedRepresentativeId,
+                          songCount: _songs.length,
+                          totalDurationMs: totalMs,
+                          isPinned: _isPinned,
+                          onDoubleTap: _togglePinned,
+                        ),
                       const SizedBox(height: 24.0),
 
                       // 3. Cohesive Tracks Section: 'TRACKS' header + ordered track tiles
@@ -293,6 +343,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
                 ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

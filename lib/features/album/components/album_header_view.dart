@@ -34,6 +34,12 @@ class AlbumHeaderView extends StatelessWidget {
   /// Combined duration in milliseconds across all album tracks.
   final int totalDurationMs;
 
+  /// Whether the album is pinned to favorites.
+  final bool isPinned;
+
+  /// Callback when album cover is double tapped.
+  final VoidCallback? onDoubleTap;
+
   const AlbumHeaderView({
     super.key,
     required this.albumName,
@@ -42,6 +48,8 @@ class AlbumHeaderView extends StatelessWidget {
     this.representativeSongId,
     required this.songCount,
     required this.totalDurationMs,
+    this.isPinned = false,
+    this.onDoubleTap,
   });
 
   String _formatTotalDuration(int totalMs) {
@@ -80,35 +88,46 @@ class AlbumHeaderView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // 1. Large Sharp Square Album Artwork with Deep Shadow (Not rounded)
-        Container(
-          width: coverSize,
-          height: coverSize,
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.65),
-                blurRadius: 36.0,
-                spreadRadius: 2.0,
-                offset: const Offset(0, 18),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 10.0,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: AnimaArtworkImage(
-            mediaStoreId: representativeSongId ?? 0,
-            albumId: albumId,
-            albumName: albumName,
-            artistName: artistName,
+        GestureDetector(
+          onDoubleTap: onDoubleTap,
+          child: Container(
             width: coverSize,
             height: coverSize,
-            borderRadius: 0.0,
-            isThumbnail: false,
-            fallbackIcon: Icons.album_rounded,
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              border: isPinned
+                  ? Border.all(
+                      color: AppColors.pinnedRedBorder,
+                      width: 1.5,
+                    )
+                  : null,
+              boxShadow: [
+                BoxShadow(
+                  color: isPinned
+                      ? const Color(0xFFE50914).withValues(alpha: 0.35)
+                      : Colors.black.withValues(alpha: 0.65),
+                  blurRadius: 36.0,
+                  spreadRadius: 2.0,
+                  offset: const Offset(0, 18),
+                ),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  blurRadius: 10.0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: AnimaArtworkImage(
+              mediaStoreId: representativeSongId ?? 0,
+              albumId: albumId,
+              albumName: albumName,
+              artistName: artistName,
+              width: coverSize,
+              height: coverSize,
+              borderRadius: 0.0,
+              isThumbnail: false,
+              fallbackIcon: Icons.album_rounded,
+            ),
           ),
         ),
         const SizedBox(height: 24.0),

@@ -28,6 +28,12 @@ class PlaylistDetailHeader extends StatelessWidget {
   final VoidCallback onPlay;
   final VoidCallback onToggleShuffle;
 
+  /// Whether the playlist is pinned to favorites.
+  final bool isPinned;
+
+  /// Callback when the hero banner is double tapped.
+  final VoidCallback? onDoubleTap;
+
   const PlaylistDetailHeader({
     super.key,
     required this.playlist,
@@ -36,6 +42,8 @@ class PlaylistDetailHeader extends StatelessWidget {
     required this.isShuffleEnabled,
     required this.onPlay,
     required this.onToggleShuffle,
+    this.isPinned = false,
+    this.onDoubleTap,
   });
 
   String _formatTotalDuration(int totalMs) {
@@ -81,31 +89,38 @@ class PlaylistDetailHeader extends StatelessWidget {
         // 1. Large 1920x620 Widescreen Hero Banner with Cinematic Shadow
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: AspectRatio(
-            aspectRatio: 1920 / 620,
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  width: 1.0,
+          child: GestureDetector(
+            onDoubleTap: onDoubleTap,
+            child: AspectRatio(
+              aspectRatio: 1920 / 620,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  border: Border.all(
+                    color: isPinned
+                        ? AppColors.pinnedRedBorder
+                        : Colors.white.withValues(alpha: 0.12),
+                    width: 1.0,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: isPinned
+                          ? const Color(0xFFE50914).withValues(alpha: 0.35)
+                          : Colors.black.withValues(alpha: 0.65),
+                      blurRadius: 32.0,
+                      spreadRadius: 2.0,
+                      offset: const Offset(0, 14),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      blurRadius: 10.0,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.65),
-                    blurRadius: 32.0,
-                    spreadRadius: 2.0,
-                    offset: const Offset(0, 14),
-                  ),
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.35),
-                    blurRadius: 10.0,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: ClipRect(
-                child: _buildCoverWidget(),
+                child: ClipRect(
+                  child: _buildCoverWidget(),
+                ),
               ),
             ),
           ),

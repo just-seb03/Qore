@@ -53,6 +53,11 @@ abstract final class AppColors {
   static const Color navInactiveIcon = Color(0xFF7E7E88);
   static const Color navActiveLabel = Color(0xFFFFFFFF);
   static const Color navInactiveLabel = Color(0xFF7E7E88);
+
+  /// Subtle dark crimson tinted background and accents for pinned/favorite states.
+  static const Color pinnedRedBackground = Color(0xFF1E0E10);
+  static const Color pinnedRedSurface = Color(0xFF281215);
+  static const Color pinnedRedBorder = Color(0x66E53935);
 }
 
 /// Material Design 3 Expressive Theme Provider.

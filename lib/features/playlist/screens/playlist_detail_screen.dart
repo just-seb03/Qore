@@ -11,10 +11,13 @@ library;
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
+import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
+import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
@@ -92,6 +95,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   late Playlist _playlist;
   List<Song> _songs = [];
   bool _isLoading = true;
+  bool _isPinned = false;
+
+  String get _playlistKey => PinnedFavoritesDao.playlistKey(_playlist.id ?? -1);
 
   double _dragOffset = 0.0;
   late final AnimationController _springController;
@@ -124,6 +130,48 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
       _loadPlaylistSongs();
     } else {
       _isLoading = false;
+    }
+
+    _checkPinnedStatus();
+  }
+
+  Future<void> _checkPinnedStatus() async {
+    try {
+      if (_playlist.id != null && _playlist.id! > 0) {
+        final pinned = await PinnedFavoritesDao.instance.isPinned(_playlistKey);
+        if (mounted) {
+          setState(() {
+            _isPinned = pinned;
+          });
+        }
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _togglePinned() async {
+    if (_playlist.id == null || _playlist.id! <= 0) return;
+    try {
+      final newStatus = await PinnedFavoritesDao.instance.togglePin(
+        PinnedFavorite(
+          itemType: PinnedItemType.playlist,
+          itemKey: _playlistKey,
+          title: _playlist.name,
+          subtitle: '${_songs.length} ${_songs.length == 1 ? "track" : "tracks"}',
+          playlistId: _playlist.id,
+          coverPath: _playlist.coverPath,
+          fontFamily: _playlist.fontFamily,
+          representativeSongId: _playlist.firstMediaStoreId,
+          pinnedAt: DateTime.now(),
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          _isPinned = newStatus;
+        });
+        HapticFeedback.mediumImpact();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [PlaylistDetailScreen] Error toggling pin: $e');
     }
   }
 
@@ -238,63 +286,69 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
       child: ListenableBuilder(
         listenable: PlaybackController.instance,
         builder: (context, _) {
-        return Scaffold(
-          backgroundColor: AppColors.background,
-          bottomNavigationBar: const SafeArea(
-            top: false,
-            child: MiniPlayer(),
-          ),
-          body: SafeArea(
-            bottom: false,
-            child: Transform.translate(
-              offset: Offset(0.0, _dragOffset),
-              child: _isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
-                        color: Colors.white,
-                      ),
-                    )
-                  : SingleChildScrollView(
-                      physics: const BouncingScrollPhysics(),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // 1. Universal Animated Dismiss Chevron
-                          const SizedBox(height: 10.0),
-                          ModalDismissIndicator(
-                            onDismiss: _handleDismiss,
-                            onDragUpdate: _handleDragUpdate,
-                            onDragEnd: _handleDragEnd,
-                            size: 34.0,
-                            color: AppColors.onSurfaceVariant,
-                            animate: widget.animateBounce,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 6.0,
-                              horizontal: 36.0,
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          color: _isPinned ? AppColors.pinnedRedBackground : AppColors.background,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            bottomNavigationBar: const SafeArea(
+              top: false,
+              child: MiniPlayer(),
+            ),
+            body: SafeArea(
+              bottom: false,
+              child: Transform.translate(
+                offset: Offset(0.0, _dragOffset),
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: Colors.white,
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // 1. Universal Animated Dismiss Chevron
+                            const SizedBox(height: 10.0),
+                            ModalDismissIndicator(
+                              onDismiss: _handleDismiss,
+                              onDragUpdate: _handleDragUpdate,
+                              onDragEnd: _handleDragEnd,
+                              size: 34.0,
+                              color: AppColors.onSurfaceVariant,
+                              animate: widget.animateBounce,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 6.0,
+                                horizontal: 36.0,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 14.0),
+                            const SizedBox(height: 14.0),
 
-                          // 2. Cohesive Playlist Header: Artwork + Controls (Shuffle | Info | Play)
-                          PlaylistDetailHeader(
-                            playlist: _playlist,
-                            songCount: _songs.length,
-                            totalDurationMs: totalMs,
-                            isShuffleEnabled: PlaybackController.instance.isShuffleEnabled,
-                            onPlay: _playFromStart,
-                            onToggleShuffle: _toggleShuffle,
-                          ),
-                          const SizedBox(height: 24.0),
+                            // 2. Cohesive Playlist Header: Artwork + Controls (Shuffle | Info | Play)
+                            PlaylistDetailHeader(
+                              playlist: _playlist,
+                              songCount: _songs.length,
+                              totalDurationMs: totalMs,
+                              isShuffleEnabled: PlaybackController.instance.isShuffleEnabled,
+                              onPlay: _playFromStart,
+                              onToggleShuffle: _toggleShuffle,
+                              isPinned: _isPinned,
+                              onDoubleTap: _togglePinned,
+                            ),
+                            const SizedBox(height: 24.0),
 
-                          // 3. Tracks Section
-                          _buildTracksSection(),
+                            // 3. Tracks Section
+                            _buildTracksSection(),
 
-                          // Spacing above bottom MiniPlayer
-                          const SizedBox(height: 28.0),
-                        ],
+                            // Spacing above bottom MiniPlayer
+                            const SizedBox(height: 28.0),
+                          ],
+                        ),
                       ),
-                    ),
+              ),
             ),
           ),
         );

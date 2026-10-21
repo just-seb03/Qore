@@ -20,10 +20,18 @@ class ArtistHeaderView extends StatelessWidget {
   /// Callback invoked when the user taps the edit photo badge.
   final VoidCallback onEditTap;
 
+  /// Whether the artist is pinned to favorites.
+  final bool isPinned;
+
+  /// Callback when the circular artist avatar is double tapped.
+  final VoidCallback? onDoubleTap;
+
   const ArtistHeaderView({
     super.key,
     required this.artistName,
     required this.onEditTap,
+    this.isPinned = false,
+    this.onDoubleTap,
   });
 
   @override
@@ -36,7 +44,7 @@ class ArtistHeaderView extends StatelessWidget {
           Stack(
             alignment: Alignment.center,
             children: [
-              // Ambient soft halo
+              // Ambient soft halo (tinted crimson when pinned)
               Container(
                 width: 200.0,
                 height: 200.0,
@@ -44,8 +52,12 @@ class ArtistHeaderView extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      Colors.white.withValues(alpha: 0.07),
-                      Colors.white.withValues(alpha: 0.02),
+                      isPinned
+                          ? const Color(0xFFE50914).withValues(alpha: 0.14)
+                          : Colors.white.withValues(alpha: 0.07),
+                      isPinned
+                          ? const Color(0xFFE50914).withValues(alpha: 0.04)
+                          : Colors.white.withValues(alpha: 0.02),
                       Colors.transparent,
                     ],
                     stops: const [0.0, 0.5, 1.0],
@@ -56,26 +68,33 @@ class ArtistHeaderView extends StatelessWidget {
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                        width: 1.8,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          blurRadius: 22.0,
-                          offset: const Offset(0, 8),
+                  GestureDetector(
+                    onDoubleTap: onDoubleTap,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: isPinned
+                              ? AppColors.pinnedRedBorder
+                              : AppColors.outlineVariant.withValues(alpha: 0.5),
+                          width: 1.8,
                         ),
-                      ],
-                    ),
-                    child: MaterialArtistAvatar(
-                      radius: 66.0,
-                      artistName: artistName,
-                      backgroundColor: AppColors.surfaceContainerHigh,
-                      iconColor: AppColors.onSurfaceVariant,
+                        boxShadow: [
+                          BoxShadow(
+                            color: isPinned
+                                ? const Color(0xFFE50914).withValues(alpha: 0.35)
+                                : Colors.black.withValues(alpha: 0.55),
+                            blurRadius: 22.0,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: MaterialArtistAvatar(
+                        radius: 66.0,
+                        artistName: artistName,
+                        backgroundColor: AppColors.surfaceContainerHigh,
+                        iconColor: AppColors.onSurfaceVariant,
+                      ),
                     ),
                   ),
 

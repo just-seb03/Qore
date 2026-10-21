@@ -18,7 +18,7 @@ import 'package:project_anima/core/theme/theme.dart';
 /// Renders stacked words aligned to the left margin using Google Fonts'
 /// 'Inconsolata' in a refined futuristic off-white hue.
 class HomeHeader extends StatelessWidget {
-  /// The header text to display. Defaults to stacked 'YOUR\nSELECTION'.
+  /// The header text to display. Defaults to 'WELCOME'.
   final String title;
 
   /// Custom padding around the header.
@@ -35,7 +35,7 @@ class HomeHeader extends StatelessWidget {
 
   const HomeHeader({
     super.key,
-    this.title = 'YOUR\nSELECTION',
+    this.title = 'WELCOME',
     this.padding = const EdgeInsets.only(
       left: 24.0,
       top: 32.0,

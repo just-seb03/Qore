@@ -15,8 +15,10 @@ import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -77,6 +79,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
   List<Song> _topSongs = [];
   List<AlbumDiscoveryItem> _albums = [];
   List<Song> _assortedSongs = [];
+  bool _isPinned = false;
+
+  String get _artistKey => PinnedFavoritesDao.artistKey(_resolvedArtistName);
 
   @override
   void initState() {
@@ -94,6 +99,40 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
         }
       });
     _loadArtistData();
+    _checkPinnedStatus();
+  }
+
+  Future<void> _checkPinnedStatus() async {
+    try {
+      final pinned = await PinnedFavoritesDao.instance.isPinned(_artistKey);
+      if (mounted) {
+        setState(() {
+          _isPinned = pinned;
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _togglePinned() async {
+    try {
+      final newStatus = await PinnedFavoritesDao.instance.togglePin(
+        PinnedFavorite(
+          itemType: PinnedItemType.artist,
+          itemKey: _artistKey,
+          title: _resolvedArtistName,
+          subtitle: 'Artist',
+          pinnedAt: DateTime.now(),
+        ),
+      );
+      if (mounted) {
+        setState(() {
+          _isPinned = newStatus;
+        });
+        HapticFeedback.mediumImpact();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [ArtistDetailScreen] Error toggling pin: $e');
+    }
   }
 
   @override
@@ -218,82 +257,88 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      bottomNavigationBar: const SafeArea(
-        top: false,
-        child: MiniPlayer(),
-      ),
-      body: SafeArea(
-        bottom: false,
-        child: Transform.translate(
-          offset: Offset(0.0, _dragOffset),
-          child: _isLoading
-              ? const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    color: Colors.white,
-                  ),
-                )
-              : SingleChildScrollView(
-                  physics: const BouncingScrollPhysics(),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Downward Animated Dismiss Chevron
-                      const SizedBox(height: 14.0),
-                      Center(
-                        child: ModalDismissIndicator(
-                          onDismiss: _handleDismiss,
-                          onDragUpdate: _handleDragUpdate,
-                          onDragEnd: _handleDragEnd,
-                          size: 34.0,
-                          color: AppColors.onSurfaceVariant,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 4.0,
-                            horizontal: 36.0,
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      color: _isPinned ? AppColors.pinnedRedBackground : AppColors.background,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        bottomNavigationBar: const SafeArea(
+          top: false,
+          child: MiniPlayer(),
+        ),
+        body: SafeArea(
+          bottom: false,
+          child: Transform.translate(
+            offset: Offset(0.0, _dragOffset),
+            child: _isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.5,
+                      color: Colors.white,
+                    ),
+                  )
+                : SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Downward Animated Dismiss Chevron
+                        const SizedBox(height: 14.0),
+                        Center(
+                          child: ModalDismissIndicator(
+                            onDismiss: _handleDismiss,
+                            onDragUpdate: _handleDragUpdate,
+                            onDragEnd: _handleDragEnd,
+                            size: 34.0,
+                            color: AppColors.onSurfaceVariant,
+                            padding: const EdgeInsets.symmetric(
+                              vertical: 4.0,
+                              horizontal: 36.0,
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(height: 12.0),
+                        const SizedBox(height: 12.0),
 
-                      // 1. Top Avatar with Glow, Pencil Badge & Artist Name
-                      ArtistHeaderView(
-                        artistName: _resolvedArtistName,
-                        onEditTap: _handleEditPhoto,
-                      ),
-                      const SizedBox(height: 30.0),
-
-                      // 2. User Top 3 Most Listened Tracks
-                      if (_topSongs.isNotEmpty) ...[
-                        ArtistTopTracksSection(
-                          topSongs: _topSongs,
-                          allArtistSongs: _assortedSongs.isNotEmpty
-                              ? _assortedSongs
-                              : _topSongs,
+                        // 1. Top Avatar with Glow, Pencil Badge & Artist Name
+                        ArtistHeaderView(
+                          artistName: _resolvedArtistName,
+                          onEditTap: _handleEditPhoto,
+                          isPinned: _isPinned,
+                          onDoubleTap: _togglePinned,
                         ),
                         const SizedBox(height: 30.0),
-                      ],
 
-                      // 3. Discography Horizontal Carousel
-                      if (_albums.isNotEmpty) ...[
-                        ArtistDiscographySection(albums: _albums),
-                        const SizedBox(height: 30.0),
-                      ],
+                        // 2. User Top 3 Most Listened Tracks
+                        if (_topSongs.isNotEmpty) ...[
+                          ArtistTopTracksSection(
+                            topSongs: _topSongs,
+                            allArtistSongs: _assortedSongs.isNotEmpty
+                                ? _assortedSongs
+                                : _topSongs,
+                          ),
+                          const SizedBox(height: 30.0),
+                        ],
 
-                      // 4. Assorted Tracks
-                      if (_assortedSongs.isNotEmpty) ...[
-                        ArtistAssortedSongsSection(
-                          songs: _assortedSongs,
-                          allArtistSongs: _assortedSongs,
-                        ),
-                      ],
+                        // 3. Discography Horizontal Carousel
+                        if (_albums.isNotEmpty) ...[
+                          ArtistDiscographySection(albums: _albums),
+                          const SizedBox(height: 30.0),
+                        ],
 
-                      // Spacing above bottom MiniPlayer
-                      const SizedBox(height: 24.0),
-                    ],
+                        // 4. Assorted Tracks
+                        if (_assortedSongs.isNotEmpty) ...[
+                          ArtistAssortedSongsSection(
+                            songs: _assortedSongs,
+                            allArtistSongs: _assortedSongs,
+                          ),
+                        ],
+
+                        // Spacing above bottom MiniPlayer
+                        const SizedBox(height: 24.0),
+                      ],
+                    ),
                   ),
-                ),
+          ),
         ),
       ),
     );
