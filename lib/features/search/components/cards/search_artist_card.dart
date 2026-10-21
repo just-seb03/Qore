@@ -57,8 +57,9 @@ class SearchArtistCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Circular Material Design Avatar
-              const MaterialArtistAvatar(
+              MaterialArtistAvatar(
                 radius: 48.0,
+                artistName: artist.name,
               ),
               const SizedBox(height: 8.0),
               // Artist Name

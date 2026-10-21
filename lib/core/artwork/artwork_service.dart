@@ -26,12 +26,14 @@ class ArtworkService extends ChangeNotifier {
   bool _initialized = false;
   late String _thumbnailsDir;
   late String _coversDir;
+  late String _artistsDir;
 
   // In-Memory O(1) Frame 0 caches
   final Map<int, String> _thumbnailCache = {};
   final Map<int, String> _coverCache = {};
   final Map<int, String> _albumThumbnailCache = {};
   final Map<int, String> _albumCoverCache = {};
+  final Map<String, String> _customArtistAvatarCache = {};
 
   // Tracks IDs known to have no artwork to prevent redundant re-queuing
   final Set<int> _noArtworkCache = {};
@@ -70,16 +72,20 @@ class ArtworkService extends ChangeNotifier {
 
     _thumbnailsDir = p.join(rootPath, 'thumbnails');
     _coversDir = p.join(rootPath, 'covers');
+    _artistsDir = p.join(rootPath, 'artists');
 
     final thumbDirFile = Directory(_thumbnailsDir);
     final coverDirFile = Directory(_coversDir);
+    final artistDirFile = Directory(_artistsDir);
 
     if (!thumbDirFile.existsSync()) thumbDirFile.createSync(recursive: true);
     if (!coverDirFile.existsSync()) coverDirFile.createSync(recursive: true);
+    if (!artistDirFile.existsSync()) artistDirFile.createSync(recursive: true);
 
     // Frame 0: Quick directory listing to populate in-memory maps in O(1)
     _populateCacheFromDisk(thumbDirFile, _thumbnailCache, _albumThumbnailCache, '.png');
     _populateCacheFromDisk(coverDirFile, _coverCache, _albumCoverCache, '.jpg');
+    _populateArtistCacheFromDisk(artistDirFile);
 
     _initialized = true;
     notifyListeners();
@@ -127,6 +133,64 @@ class ArtworkService extends ChangeNotifier {
     if (direct != null) return direct;
     if (albumId != null) return _albumCoverCache[albumId];
     return null;
+  }
+
+  /// Normalizes an artist name into a safe, deterministic filename key.
+  String _normalizeArtistKey(String artist) {
+    return artist.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_\-]'), '_');
+  }
+
+  /// Scans the artists directory and populates the in-memory custom artist avatar cache.
+  void _populateArtistCacheFromDisk(Directory dir) {
+    try {
+      final entities = dir.listSync(followLinks: false);
+      for (final entity in entities) {
+        if (entity is! File) continue;
+        final filename = p.basename(entity.path);
+        if (!filename.endsWith('.png') && !filename.endsWith('.jpg')) continue;
+        final rawKey = p.withoutExtension(filename);
+        _customArtistAvatarCache[rawKey] = entity.path;
+      }
+    } catch (e) {
+      debugPrint('⚠️ [ArtworkService] Error reading artist avatars: $e');
+    }
+  }
+
+  /// Returns the local path to a custom artist avatar in O(1) time if available.
+  String? getCustomArtistAvatar(String? artist) {
+    if (artist == null || artist.trim().isEmpty) return null;
+    final key = _normalizeArtistKey(artist);
+    final direct = _customArtistAvatarCache[key];
+    if (direct != null && File(direct).existsSync()) {
+      return direct;
+    }
+    return null;
+  }
+
+  /// Saves a custom artist avatar to persistent disk storage and updates in-memory cache.
+  Future<String> setCustomArtistAvatar(String artist, Uint8List imageBytes) async {
+    final key = _normalizeArtistKey(artist);
+    final targetPath = p.join(_artistsDir, '$key.png');
+    final targetFile = File(targetPath);
+    await targetFile.writeAsBytes(imageBytes, flush: true);
+    _customArtistAvatarCache[key] = targetPath;
+    notifyListeners();
+    return targetPath;
+  }
+
+  /// Removes custom artist avatar from disk and memory cache.
+  Future<void> removeCustomArtistAvatar(String artist) async {
+    final key = _normalizeArtistKey(artist);
+    final path = _customArtistAvatarCache.remove(key);
+    if (path != null) {
+      final file = File(path);
+      if (await file.exists()) {
+        try {
+          await file.delete();
+        } catch (_) {}
+      }
+    }
+    notifyListeners();
   }
 
   /// Checks whether an artwork exists for this song or album.
@@ -232,6 +296,7 @@ class ArtworkService extends ChangeNotifier {
     _coverCache.clear();
     _albumThumbnailCache.clear();
     _albumCoverCache.clear();
+    _customArtistAvatarCache.clear();
     _noArtworkCache.clear();
     _queue.clear();
     _pendingQueueSet.clear();

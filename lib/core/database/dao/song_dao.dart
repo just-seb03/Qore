@@ -319,6 +319,94 @@ class SongDao {
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
+  /// Retrieves the top [limit] most played songs for an artist.
+  /// Falls back to recent tracks by date if user playback history is sparse.
+  Future<List<Song>> getTopSongsByArtist(String artist, {int limit = 3}) async {
+    final db = await _appDatabase.database;
+
+    // 1. Fetch songs with playback history count
+    final List<Map<String, dynamic>> historyResults = await db.rawQuery(
+      '''
+      SELECT s.*, COUNT(ph.id) AS play_count
+      FROM songs s
+      JOIN playback_history ph ON s.id = ph.song_id
+      WHERE s.artist = ? COLLATE NOCASE
+      GROUP BY s.id
+      ORDER BY play_count DESC, s.title COLLATE NOCASE ASC
+      LIMIT ?;
+      ''',
+      [artist, limit],
+    );
+
+    final List<Song> topSongs =
+        historyResults.map((row) => Song.fromMap(row)).toList();
+
+    // 2. Fall back to artist songs if playback history has fewer than limit
+    if (topSongs.length < limit) {
+      final existingIds = topSongs.map((s) => s.id ?? s.mediaStoreId).toSet();
+
+      final List<Map<String, dynamic>> fallbackResults = await db.query(
+        'songs',
+        where: 'artist = ? COLLATE NOCASE',
+        whereArgs: [artist],
+        orderBy: 'date_modified DESC, title COLLATE NOCASE ASC',
+        limit: limit * 2,
+      );
+
+      for (final row in fallbackResults) {
+        final song = Song.fromMap(row);
+        final id = song.id ?? song.mediaStoreId;
+        if (!existingIds.contains(id)) {
+          topSongs.add(song);
+          existingIds.add(id);
+          if (topSongs.length >= limit) break;
+        }
+      }
+    }
+
+    return topSongs;
+  }
+
+  /// Retrieves distinct albums belonging to [artist] for discography horizontal carousel.
+  Future<List<AlbumDiscoveryItem>> getAlbumsByArtist(String artist) async {
+    final db = await _appDatabase.database;
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT 
+        s.album AS name,
+        COALESCE(NULLIF(TRIM(s.album_artist), ''), s.artist, ?) AS artist,
+        MIN(s.album_id) AS album_id,
+        MIN(s.media_store_id) AS representative_song_id,
+        COUNT(s.id) AS song_count,
+        SUM(s.duration) AS total_duration,
+        MAX(ph.played_at) AS last_played
+      FROM songs s
+      LEFT JOIN playback_history ph ON s.id = ph.song_id
+      WHERE (s.artist = ? COLLATE NOCASE OR s.album_artist = ? COLLATE NOCASE)
+        AND s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+      GROUP BY s.album COLLATE NOCASE
+      ORDER BY s.album COLLATE NOCASE ASC;
+      ''',
+      [artist, artist, artist],
+    );
+
+    return results.map((row) => AlbumDiscoveryItem.fromMap(row)).toList();
+  }
+
+  /// Retrieves up to [limit] assorted songs for [artist] ordered by modification/addition date.
+  Future<List<Song>> getAssortedSongsByArtist(String artist, {int limit = 10}) async {
+    final db = await _appDatabase.database;
+    final List<Map<String, dynamic>> results = await db.query(
+      'songs',
+      where: 'artist = ? COLLATE NOCASE',
+      whereArgs: [artist],
+      orderBy: 'date_modified DESC, date_added DESC, title COLLATE NOCASE ASC',
+      limit: limit,
+    );
+    return results.map((row) => Song.fromMap(row)).toList();
+  }
+
   /// Retrieves up to [limit] songs belonging to [album], optionally scoped to [artist].
   /// Matches against `album_artist` first, falling back to `artist` when `album_artist` is null.
   Future<List<Song>> getSongsByAlbum(String album, {String? artist, int limit = 5}) async {

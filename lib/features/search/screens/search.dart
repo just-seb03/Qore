@@ -14,12 +14,14 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
+import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/search/music_search_controller.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/player/screens/player_screen.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_header.dart';
@@ -67,9 +69,18 @@ class _SearchScreenState extends State<SearchScreen>
         _handleSongTap(song);
         return;
       }
+    } else if (item.type == RecentSearchType.artist) {
+      if (mounted) {
+        Navigator.of(context).push(ArtistDetailScreen.route(item.title));
+        return;
+      }
     }
     _searchController.text = item.title;
     _searchEngine.onQueryChanged(item.title);
+  }
+
+  void _handleArtistTap(ArtistDiscoveryItem artist) {
+    Navigator.of(context).push(ArtistDetailScreen.route(artist.name));
   }
 
   void _handleSongTap(Song song) {
@@ -137,6 +148,7 @@ class _SearchScreenState extends State<SearchScreen>
                 controller: _searchEngine,
                 scrollController: _scrollController,
                 onSongTap: _handleSongTap,
+                onArtistTap: _handleArtistTap,
                 onRecentItemTap: _handleRecentItemTap,
               ),
             ),

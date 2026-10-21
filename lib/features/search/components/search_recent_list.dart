@@ -180,8 +180,9 @@ class _RecentSearchTile extends StatelessWidget {
   Widget _buildLeadingWidget() {
     switch (item.type) {
       case RecentSearchType.artist:
-        return const MaterialArtistAvatar(
+        return MaterialArtistAvatar(
           radius: 26.0,
+          artistName: item.title,
         );
       case RecentSearchType.album:
         return AnimaArtworkImage(

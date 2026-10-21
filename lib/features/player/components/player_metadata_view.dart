@@ -10,14 +10,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 
 /// Centered track title, artist, and album presentation widget.
 class PlayerMetadataView extends StatelessWidget {
   final Song? song;
+  final VoidCallback? onArtistTap;
 
   const PlayerMetadataView({
     super.key,
     required this.song,
+    this.onArtistTap,
   });
 
   static final TextStyle _titleStyle = GoogleFonts.inconsolata(
@@ -43,10 +46,13 @@ class PlayerMetadataView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final title = song?.title ?? 'Sin reproducción';
-    final artist = (song?.artist != null && song!.artist!.trim().isNotEmpty && song!.artist != '<Desconocido>')
-        ? song!.artist!
-        : 'Artista desconocido';
-    final album = (song?.album != null && song!.album!.trim().isNotEmpty && song!.album != '<Desconocido>')
+    final hasArtist = song?.artist != null &&
+        song!.artist!.trim().isNotEmpty &&
+        song!.artist != '<Desconocido>';
+    final artist = hasArtist ? song!.artist! : 'Artista desconocido';
+    final album = (song?.album != null &&
+            song!.album!.trim().isNotEmpty &&
+            song!.album != '<Desconocido>')
         ? song!.album!
         : 'Álbum desconocido';
 
@@ -63,12 +69,30 @@ class PlayerMetadataView extends StatelessWidget {
             style: _titleStyle,
           ),
           const SizedBox(height: 6.0),
-          Text(
-            artist,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _artistStyle,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8.0),
+              onTap: hasArtist
+                  ? () {
+                      if (onArtistTap != null) {
+                        onArtistTap!();
+                      } else {
+                        Navigator.of(context).push(ArtistDetailScreen.route(artist));
+                      }
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                child: Text(
+                  artist,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _artistStyle,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 4.0),
           Text(

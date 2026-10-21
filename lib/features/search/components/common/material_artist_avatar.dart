@@ -7,9 +7,13 @@
 /// - MaterialArtistAvatar: Reusable circular avatar widget for artists.
 library;
 
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 
 /// Reusable circular Material Design avatar for artists.
+/// Dynamically renders custom artist photos persisted in [ArtworkService],
+/// falling back to the native Material silhouette icon.
 class MaterialArtistAvatar extends StatelessWidget {
   /// Radius of the avatar circle.
   final double radius;
@@ -23,24 +27,42 @@ class MaterialArtistAvatar extends StatelessWidget {
   /// Optional custom icon. Defaults to [Icons.person_rounded].
   final IconData icon;
 
+  /// Artist name used to query persistent custom artwork.
+  final String? artistName;
+
   const MaterialArtistAvatar({
     super.key,
     this.radius = 24.0,
     this.backgroundColor = const Color(0xFF282828),
     this.iconColor = const Color(0xFFB3B3B3),
     this.icon = Icons.person_rounded,
+    this.artistName,
   });
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: radius,
-      backgroundColor: backgroundColor,
-      child: Icon(
-        icon,
-        size: radius * 1.15,
-        color: iconColor,
-      ),
+    return ListenableBuilder(
+      listenable: ArtworkService.instance,
+      builder: (context, _) {
+        final customPath = ArtworkService.instance.getCustomArtistAvatar(artistName);
+        if (customPath != null) {
+          return CircleAvatar(
+            radius: radius,
+            backgroundColor: backgroundColor,
+            backgroundImage: FileImage(File(customPath)),
+          );
+        }
+
+        return CircleAvatar(
+          radius: radius,
+          backgroundColor: backgroundColor,
+          child: Icon(
+            icon,
+            size: radius * 1.15,
+            color: iconColor,
+          ),
+        );
+      },
     );
   }
 }

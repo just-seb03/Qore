@@ -123,8 +123,9 @@ class SearchTopResultCard extends StatelessWidget {
   }) {
     return SearchTopResultCard(
       key: key,
-      leading: const MaterialArtistAvatar(
+      leading: MaterialArtistAvatar(
         radius: 42.0,
+        artistName: artist.name,
       ),
       title: artist.name,
       badgeLabel: 'ARTIST',
