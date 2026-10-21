@@ -226,77 +226,43 @@ class SongDao {
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
-      WITH album_tracks AS (
+      WITH song_clean AS (
         SELECT
           s.id,
           s.album,
           s.album_id,
           s.media_store_id,
           s.duration,
-          COALESCE(
-            NULLIF(NULLIF(TRIM(s.album_artist), ''), '<Desconocido>'),
-            (
-              SELECT NULLIF(NULLIF(TRIM(s2.album_artist), ''), '<Desconocido>')
-              FROM songs s2
-              WHERE s2.album = s.album COLLATE NOCASE
-                AND s2.album_artist IS NOT NULL
-                AND TRIM(s2.album_artist) != ''
-                AND s2.album_artist != '<Desconocido>'
-                AND s2.album_artist != 'Unknown Artist'
-                AND (
-                  (s.album_id IS NOT NULL AND s2.album_id IS NOT NULL AND s2.album_id = s.album_id)
-                  OR s.artist = s2.album_artist COLLATE NOCASE
-                  OR s.artist = s2.artist COLLATE NOCASE
-                  OR s.artist LIKE s2.album_artist || '%'
-                  OR s2.album_artist LIKE s.artist || '%'
-                )
-              LIMIT 1
-            ),
-            (
-              SELECT NULLIF(NULLIF(TRIM(s3.artist), ''), '<Desconocido>')
-              FROM songs s3
-              WHERE s3.album = s.album COLLATE NOCASE
-                AND s3.artist IS NOT NULL
-                AND TRIM(s3.artist) != ''
-                AND s3.artist != '<Desconocido>'
-                AND s3.artist != 'Unknown Artist'
-                AND (
-                  s.artist LIKE s3.artist || '%'
-                  OR s3.artist LIKE s.artist || '%'
-                )
-              ORDER BY LENGTH(s3.artist) ASC
-              LIMIT 1
-            ),
-            CASE
-              WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
-              WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
-              ELSE s.artist
-            END,
-            NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>'),
-            '<Desconocido>'
-          ) AS effective_artist,
-          ph.played_at
+          ph.played_at,
+          NULLIF(NULLIF(TRIM(s.album_artist), ''), '<Desconocido>') AS raw_album_artist,
+          CASE
+            WHEN s.album_artist IS NOT NULL AND TRIM(s.album_artist) != '' AND s.album_artist != '<Desconocido>' AND s.album_artist != 'Unknown Artist'
+              THEN TRIM(s.album_artist)
+            WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
+            WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
+            ELSE NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>')
+          END AS clean_artist
         FROM songs s
         LEFT JOIN playback_history ph ON s.id = ph.song_id
         WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
       )
       SELECT
         album AS name,
-        effective_artist AS artist,
+        COALESCE(MAX(raw_album_artist), clean_artist, 'Unknown Artist') AS artist,
         MIN(album_id) AS album_id,
         MIN(media_store_id) AS representative_song_id,
         COUNT(id) AS song_count,
         SUM(duration) AS total_duration,
         MAX(played_at) AS last_played
-      FROM album_tracks
-      GROUP BY album COLLATE NOCASE, effective_artist COLLATE NOCASE
+      FROM song_clean
+      GROUP BY album COLLATE NOCASE, clean_artist COLLATE NOCASE
       ORDER BY last_played DESC, song_count DESC
       LIMIT ?;
       ''',
@@ -313,74 +279,40 @@ class SongDao {
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
-      WITH album_tracks AS (
+      WITH song_clean AS (
         SELECT
           s.id,
           s.album,
           s.album_id,
           s.media_store_id,
           s.duration,
-          COALESCE(
-            NULLIF(NULLIF(TRIM(s.album_artist), ''), '<Desconocido>'),
-            (
-              SELECT NULLIF(NULLIF(TRIM(s2.album_artist), ''), '<Desconocido>')
-              FROM songs s2
-              WHERE s2.album = s.album COLLATE NOCASE
-                AND s2.album_artist IS NOT NULL
-                AND TRIM(s2.album_artist) != ''
-                AND s2.album_artist != '<Desconocido>'
-                AND s2.album_artist != 'Unknown Artist'
-                AND (
-                  (s.album_id IS NOT NULL AND s2.album_id IS NOT NULL AND s2.album_id = s.album_id)
-                  OR s.artist = s2.album_artist COLLATE NOCASE
-                  OR s.artist = s2.artist COLLATE NOCASE
-                  OR s.artist LIKE s2.album_artist || '%'
-                  OR s2.album_artist LIKE s.artist || '%'
-                )
-              LIMIT 1
-            ),
-            (
-              SELECT NULLIF(NULLIF(TRIM(s3.artist), ''), '<Desconocido>')
-              FROM songs s3
-              WHERE s3.album = s.album COLLATE NOCASE
-                AND s3.artist IS NOT NULL
-                AND TRIM(s3.artist) != ''
-                AND s3.artist != '<Desconocido>'
-                AND s3.artist != 'Unknown Artist'
-                AND (
-                  s.artist LIKE s3.artist || '%'
-                  OR s3.artist LIKE s.artist || '%'
-                )
-              ORDER BY LENGTH(s3.artist) ASC
-              LIMIT 1
-            ),
-            CASE
-              WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
-              WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
-              WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
-              ELSE s.artist
-            END,
-            NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>'),
-            'Unknown Artist'
-          ) AS effective_artist
+          NULLIF(NULLIF(TRIM(s.album_artist), ''), '<Desconocido>') AS raw_album_artist,
+          CASE
+            WHEN s.album_artist IS NOT NULL AND TRIM(s.album_artist) != '' AND s.album_artist != '<Desconocido>' AND s.album_artist != 'Unknown Artist'
+              THEN TRIM(s.album_artist)
+            WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
+            WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
+            WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
+            ELSE NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>')
+          END AS clean_artist
         FROM songs s
         WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
       )
       SELECT
         album AS name,
-        effective_artist AS artist,
+        COALESCE(MAX(raw_album_artist), clean_artist, 'Unknown Artist') AS artist,
         MIN(album_id) AS album_id,
         MIN(media_store_id) AS representative_song_id,
         COUNT(id) AS song_count,
         SUM(duration) AS total_duration
-      FROM album_tracks
-      GROUP BY album COLLATE NOCASE, effective_artist COLLATE NOCASE
+      FROM song_clean
+      GROUP BY album COLLATE NOCASE, clean_artist COLLATE NOCASE
       ORDER BY album COLLATE NOCASE ASC;
       ''',
     );

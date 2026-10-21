@@ -56,6 +56,8 @@ class PlayerArtworkView extends StatelessWidget {
             ? AnimaArtworkImage(
                 mediaStoreId: song!.mediaStoreId,
                 albumId: song!.albumId,
+                albumName: song!.album,
+                artistName: song!.albumArtist ?? song!.artist,
                 width: effectiveWidth,
                 height: effectiveHeight,
                 borderRadius: 0.0,

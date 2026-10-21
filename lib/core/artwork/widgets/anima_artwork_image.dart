@@ -104,8 +104,8 @@ class AnimaArtworkImage extends StatelessWidget {
           final file = File(path);
           final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
           final int cacheSize = preferCover
-              ? (hasFiniteWidth ? (width! * dpr).round().clamp(240, 800) : 800)
-              : (hasFiniteWidth ? (width! * dpr).round().clamp(100, 240) : 150);
+              ? (hasFiniteWidth ? (width! * dpr).round().clamp(200, 500) : 450)
+              : (hasFiniteWidth ? (width! * dpr).round().clamp(100, 200) : 150);
 
           final imageWidget = Image.file(
             file,

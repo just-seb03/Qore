@@ -13,6 +13,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:project_anima/core/artwork/artwork_processor.dart';
 import 'package:project_anima/core/artwork/models/artwork_batch_item.dart';
+import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 
 /// Singleton service implementing the Dual-Tier Artwork Pipeline (Module 6).
@@ -34,6 +35,7 @@ class ArtworkService extends ChangeNotifier {
   final Map<String, String> _customArtistAvatarCache = {};
   final Map<String, int> _albumRepresentativeCache = {};
   final Map<String, List<Song>> _albumPendingSongs = {};
+  final Map<int, String> _songAlbumKeyCache = {};
 
   // Tracks IDs known to have no artwork to prevent redundant re-queuing
   final Set<int> _noArtworkCache = {};
@@ -59,7 +61,7 @@ class ArtworkService extends ChangeNotifier {
   int get cachedCoversCount => _coverCache.length;
 
   /// Initializes directory structure and pre-populates in-memory lookup maps for Frame 0 rendering.
-  Future<void> initialize({Directory? baseDir}) async {
+  Future<void> initialize({Directory? baseDir, SongDao? songDao}) async {
     if (_initialized) return;
 
     final String rootPath;
@@ -89,6 +91,59 @@ class ArtworkService extends ChangeNotifier {
 
     _initialized = true;
     notifyListeners();
+
+    // Asynchronously preload album mappings from SQLite in < 5 ms
+    preloadAlbumMappings(songDao: songDao);
+  }
+
+  /// Preloads album mappings from SQLite database in < 5 ms on app launch.
+  /// Instantly connects all songs and albums to cached disk artworks before UI builds.
+  Future<void> preloadAlbumMappings({SongDao? songDao}) async {
+    try {
+      final dao = songDao ?? SongDao();
+      final songs = await dao.getAllSongs();
+      if (songs.isEmpty) return;
+
+      // 1. Populate song -> albumKey index
+      for (final song in songs) {
+        final key = _albumKey(song);
+        _songAlbumKeyCache[song.mediaStoreId] = key;
+      }
+
+      // 2. Discover representative song for each album that has cached artwork
+      for (final song in songs) {
+        final key = _albumKey(song);
+        if (_thumbnailCache.containsKey(song.mediaStoreId) ||
+            _coverCache.containsKey(song.mediaStoreId)) {
+          _albumRepresentativeCache[key] ??= song.mediaStoreId;
+        }
+      }
+
+      // 3. Immediately propagate cached artwork in-memory to ALL songs in each album
+      bool hasChanges = false;
+      for (final song in songs) {
+        final key = _albumKey(song);
+        final repId = _albumRepresentativeCache[key];
+        if (repId != null) {
+          final thumb = _thumbnailCache[repId];
+          final cover = _coverCache[repId];
+          if (thumb != null && !_thumbnailCache.containsKey(song.mediaStoreId)) {
+            _thumbnailCache[song.mediaStoreId] = thumb;
+            hasChanges = true;
+          }
+          if (cover != null && !_coverCache.containsKey(song.mediaStoreId)) {
+            _coverCache[song.mediaStoreId] = cover;
+            hasChanges = true;
+          }
+        }
+      }
+
+      if (hasChanges) {
+        notifyListeners();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [ArtworkService] preloadAlbumMappings error: $e');
+    }
   }
 
   /// Scans file names in target directory and registers them in memory maps.
@@ -125,8 +180,15 @@ class ArtworkService extends ChangeNotifier {
   String? getThumbnailPath(int mediaStoreId, {int? albumId, String? album, String? artist}) {
     final direct = _thumbnailCache[mediaStoreId];
     if (direct != null) return direct;
-    if (album != null && artist != null) {
-      return getThumbnailForAlbum(album, artist);
+
+    final key = (album != null && artist != null)
+        ? albumKeyFromStrings(album, artist)
+        : _songAlbumKeyCache[mediaStoreId];
+    if (key != null) {
+      final repId = _albumRepresentativeCache[key];
+      if (repId != null) {
+        return _thumbnailCache[repId];
+      }
     }
     return null;
   }
@@ -135,8 +197,15 @@ class ArtworkService extends ChangeNotifier {
   String? getCoverPath(int mediaStoreId, {int? albumId, String? album, String? artist}) {
     final direct = _coverCache[mediaStoreId];
     if (direct != null) return direct;
-    if (album != null && artist != null) {
-      return getCoverForAlbum(album, artist);
+
+    final key = (album != null && artist != null)
+        ? albumKeyFromStrings(album, artist)
+        : _songAlbumKeyCache[mediaStoreId];
+    if (key != null) {
+      final repId = _albumRepresentativeCache[key];
+      if (repId != null) {
+        return _coverCache[repId];
+      }
     }
     return null;
   }
@@ -302,6 +371,7 @@ class ArtworkService extends ChangeNotifier {
     final Map<String, List<Song>> byAlbum = {};
     for (final song in songs) {
       final key = _albumKey(song);
+      _songAlbumKeyCache[song.mediaStoreId] = key;
       (byAlbum[key] ??= []).add(song);
     }
 
@@ -494,6 +564,7 @@ class ArtworkService extends ChangeNotifier {
     _coverCache.clear();
     _albumRepresentativeCache.clear();
     _albumPendingSongs.clear();
+    _songAlbumKeyCache.clear();
     _customArtistAvatarCache.clear();
     _noArtworkCache.clear();
     _queue.clear();

@@ -95,6 +95,8 @@ class MiniPlayer extends StatelessWidget {
                                     AnimaArtworkImage(
                                       mediaStoreId: currentSong.mediaStoreId,
                                       albumId: currentSong.albumId,
+                                      albumName: currentSong.album,
+                                      artistName: currentSong.albumArtist ?? currentSong.artist,
                                       width: 46.0,
                                       height: 46.0,
                                       borderRadius: 12.0,
