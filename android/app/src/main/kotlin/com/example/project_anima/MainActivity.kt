@@ -7,11 +7,11 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.MediaStore
 import android.view.WindowManager
-import io.flutter.embedding.android.FlutterActivity
+import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+class MainActivity : AudioServiceActivity() {
     private val CHANNEL = "project_anima/media_store"
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -28,6 +28,14 @@ class MainActivity : FlutterActivity() {
             window.isStatusBarContrastEnforced = false
             window.isNavigationBarContrastEnforced = false
         }
+    }
+
+    override fun onDestroy() {
+        if (isFinishing) {
+            val intent = android.content.Intent(this, com.ryanheise.audioservice.AudioService::class.java)
+            stopService(intent)
+        }
+        super.onDestroy()
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {

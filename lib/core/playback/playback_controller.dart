@@ -8,11 +8,16 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
+import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/playback/audio_handler.dart';
 
 /// Centralized audio playback coordinator.
 class PlaybackController extends ChangeNotifier {
@@ -20,6 +25,7 @@ class PlaybackController extends ChangeNotifier {
 
   final AudioPlayer _player;
   final SongDao _songDao;
+  AnimaAudioHandler? _audioHandler;
 
   Song? _currentSong;
   List<Song> _queue = [];
@@ -29,7 +35,6 @@ class PlaybackController extends ChangeNotifier {
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<ProcessingState>? _processingStateSubscription;
-  StreamSubscription<int?>? _currentIndexSubscription;
 
   PlaybackController({AudioPlayer? player, SongDao? songDao})
       : _player = player ?? AudioPlayer(),
@@ -44,6 +49,9 @@ class PlaybackController extends ChangeNotifier {
     _initAudioSession();
     _listenToStreams();
   }
+
+  /// Reference to active system notification handler.
+  AnimaAudioHandler? get audioHandler => _audioHandler;
 
   /// Active track currently playing or paused.
   Song? get currentSong => _currentSong;
@@ -118,6 +126,45 @@ class PlaybackController extends ChangeNotifier {
     }
   }
 
+  /// Initializes the system media notification service with strict 3-button layout
+  /// [Previous, Play/Pause, Next] and no stop button.
+  Future<void> initAudioService() async {
+    if (_audioHandler != null) return;
+    try {
+      _audioHandler = await AudioService.init(
+        builder: () => AnimaAudioHandler(
+          _player,
+          onSkipToNext: skipToNext,
+          onSkipToPrevious: skipToPrevious,
+        ),
+        config: const AudioServiceConfig(
+          androidNotificationChannelId: 'com.example.project_anima.channel.audio',
+          androidNotificationChannelName: 'Project Anima Reproductor',
+          androidNotificationChannelDescription:
+              'Control de reproducción y notificación en tiempo real de Project Anima',
+          androidNotificationIcon: 'mipmap/ic_launcher',
+          androidNotificationOngoing: false,
+          androidStopForegroundOnPause: true,
+          androidResumeOnClick: false,
+        ),
+      );
+    } catch (e) {
+      debugPrint('PlaybackController Error initializing AudioService: $e');
+    }
+  }
+
+  /// Completely stops audio playback and dismisses the system media notification widget.
+  Future<void> stopAndClose() async {
+    try {
+      await _player.stop();
+      await _audioHandler?.stop();
+      _currentSong = null;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('PlaybackController Error stopping playback: $e');
+    }
+  }
+
   /// Binds listeners to internal audio player streams.
   void _listenToStreams() {
     _playerStateSubscription = _player.playerStateStream.listen((state) {
@@ -152,8 +199,69 @@ class PlaybackController extends ChangeNotifier {
     }
   }
 
+  /// Resolves the filesystem URI or MediaStore content URI for notification artwork.
+  Uri? _resolveArtUri(Song song) {
+    try {
+      final coverPath = ArtworkService.instance.getCoverPath(
+        song.mediaStoreId,
+        albumId: song.albumId,
+      );
+      if (coverPath != null && File(coverPath).existsSync()) {
+        return Uri.file(coverPath);
+      }
+      final thumbPath = ArtworkService.instance.getThumbnailPath(
+        song.mediaStoreId,
+        albumId: song.albumId,
+      );
+      if (thumbPath != null && File(thumbPath).existsSync()) {
+        return Uri.file(thumbPath);
+      }
+      if (song.albumId != null && song.albumId! > 0) {
+        return Uri.parse('content://media/external/audio/albumart/${song.albumId}');
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Updates the system notification metadata (title, artist, album, artUri, duration).
+  void _updateSystemNotification(Song song) {
+    final title = song.title.trim().isEmpty ? 'Canción' : song.title;
+    final artist = (song.artist == null || song.artist!.trim().isEmpty)
+        ? '<Desconocido>'
+        : song.artist!;
+    final album = (song.album == null || song.album!.trim().isEmpty)
+        ? '<Desconocido>'
+        : song.album!;
+
+    final mediaItem = MediaItem(
+      id: '${song.id ?? song.mediaStoreId}',
+      album: album,
+      title: title,
+      artist: artist,
+      duration: Duration(milliseconds: song.duration),
+      artUri: _resolveArtUri(song),
+    );
+
+    _audioHandler?.updateMetadata(mediaItem);
+  }
+
+  /// Requests notification permissions on Android 13+ (API 33+) to guarantee system media widget display.
+  Future<void> _checkNotificationPermission() async {
+    if (kIsWeb) return;
+    try {
+      if (Platform.isAndroid) {
+        final status = await Permission.notification.status;
+        if (!status.isGranted) {
+          await Permission.notification.request();
+        }
+      }
+    } catch (_) {}
+  }
+
   /// Plays a specific [Song] and optionally initializes or replaces the active [queue].
   Future<void> playSong(Song song, {List<Song>? queue}) async {
+    unawaited(_checkNotificationPermission());
+
     // 1. Update queue
     if (queue != null && queue.isNotEmpty) {
       _queue = List<Song>.from(queue);
@@ -170,12 +278,15 @@ class PlaybackController extends ChangeNotifier {
     _currentSong = song;
     notifyListeners();
 
-    // 2. Load audio source and start playback
+    // 2. Load audio file and start playback
     try {
       await _player.setFilePath(song.path);
       await _player.play();
 
-      // 3. Record playback history asynchronously in SQLite
+      // 3. Update system notification widget metadata
+      _updateSystemNotification(song);
+
+      // 4. Record playback history asynchronously in SQLite
       final songId = song.id ?? song.mediaStoreId;
       _songDao.recordPlayback(
         songId: songId,
@@ -189,19 +300,20 @@ class PlaybackController extends ChangeNotifier {
   /// Internal helper to play a track by queue index.
   Future<void> _playIndex(int index) async {
     if (index < 0 || index >= _queue.length) return;
-    _currentIndex = index;
-    final song = _queue[index];
-    _currentSong = song;
-    notifyListeners();
-
     try {
-      await _player.setFilePath(song.path);
+      _currentIndex = index;
+      _currentSong = _queue[index];
+      notifyListeners();
+
+      await _player.setFilePath(_currentSong!.path);
       await _player.play();
 
-      final songId = song.id ?? song.mediaStoreId;
+      _updateSystemNotification(_currentSong!);
+
+      final songId = _currentSong!.id ?? _currentSong!.mediaStoreId;
       _songDao.recordPlayback(
         songId: songId,
-        artist: song.artist,
+        artist: _currentSong!.artist,
       );
     } catch (e) {
       debugPrint('PlaybackController Error loading audio file at index $index: $e');
@@ -241,8 +353,10 @@ class PlaybackController extends ChangeNotifier {
 
     if (_currentIndex < _queue.length - 1) {
       await _playIndex(_currentIndex + 1);
-    } else if (_player.loopMode == LoopMode.all) {
+    } else if (_player.loopMode == LoopMode.all && _queue.isNotEmpty) {
       await _playIndex(0);
+    } else {
+      await _player.seek(Duration.zero);
     }
   }
 
@@ -257,7 +371,7 @@ class PlaybackController extends ChangeNotifier {
 
     if (_currentIndex > 0) {
       await _playIndex(_currentIndex - 1);
-    } else if (_player.loopMode == LoopMode.all) {
+    } else if (_player.loopMode == LoopMode.all && _queue.isNotEmpty) {
       await _playIndex(_queue.length - 1);
     } else {
       await _player.seek(Duration.zero);
@@ -267,6 +381,9 @@ class PlaybackController extends ChangeNotifier {
   /// Toggles shuffle mode.
   Future<void> toggleShuffle() async {
     final nextShuffle = !_player.shuffleModeEnabled;
+    if (nextShuffle) {
+      await _player.shuffle();
+    }
     await _player.setShuffleModeEnabled(nextShuffle);
     notifyListeners();
   }
@@ -293,7 +410,6 @@ class PlaybackController extends ChangeNotifier {
   void dispose() {
     _playerStateSubscription?.cancel();
     _processingStateSubscription?.cancel();
-    _currentIndexSubscription?.cancel();
     _player.dispose();
     super.dispose();
   }
