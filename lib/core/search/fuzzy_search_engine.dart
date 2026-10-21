@@ -383,6 +383,35 @@ class FuzzySearchEngine {
       matchedArtists: secondaryArtists,
     );
   }
+
+  /// Searches only songs using the in-memory cached dictionary with typo-tolerant
+  /// fuzzy matching (title, artist, album), token scoring, and Damerau-Levenshtein distance.
+  Future<List<Song>> searchOnlySongs(String rawQuery, {int limit = 20}) async {
+    final query = rawQuery.trim();
+    if (query.isEmpty) return [];
+
+    if (!_isDictionaryLoaded) {
+      await reloadDictionary();
+    }
+
+    const double minRelevanceThreshold = 0.38;
+    final List<_ScoredItem<Song>> scoredSongs = [];
+
+    for (final song in _cachedSongs) {
+      final titleScore = computeFuzzyScore(query, song.title);
+      final artistScore = song.artist != null ? computeFuzzyScore(query, song.artist!) : 0.0;
+      final albumScore = song.album != null ? computeFuzzyScore(query, song.album!) : 0.0;
+
+      final score = math.max(titleScore, math.max(artistScore * 0.85, albumScore * 0.75));
+
+      if (score >= minRelevanceThreshold) {
+        scoredSongs.add(_ScoredItem(song, score));
+      }
+    }
+
+    scoredSongs.sort((a, b) => b.score.compareTo(a.score));
+    return scoredSongs.take(limit).map((e) => e.item).toList();
+  }
 }
 
 /// Helper container pairing a scored data item with its normalized similarity score.

@@ -1,0 +1,173 @@
+/// File: library_playlists_view.dart
+/// Description: Playlists coordinator view within the Library.
+/// Queries user playlists from PlaylistDao, displaying an empty placeholder
+/// when no playlists exist, or a 2-per-row grid of LibraryPlaylistCard items.
+/// Supports inspecting playlists via PlaylistDetailScreen and reloading upon updates.
+///
+/// Components / Classes / Functions:
+/// - LibraryPlaylistsView: Stateful coordinator widget for library playlists.
+/// - LibraryPlaylistsViewState: State class handling asynchronous loading and navigation.
+library;
+
+import 'package:flutter/material.dart';
+import 'package:project_anima/core/database/dao/playlist_dao.dart';
+import 'package:project_anima/core/database/dao/song_dao.dart';
+import 'package:project_anima/core/database/models/playlist.dart';
+import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/library/components/playlists/library_playlist_card.dart';
+import 'package:project_anima/features/library/components/playlists/library_playlists_placeholder.dart';
+import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
+
+/// Coordinator view presenting user playlists in the Library tab.
+class LibraryPlaylistsView extends StatefulWidget {
+  /// Preloaded playlists for dependency injection and testing.
+  final List<Playlist>? playlists;
+
+  /// Optional PlaylistDao for dependency injection.
+  final PlaylistDao? playlistDao;
+
+  /// Optional SongDao for dependency injection.
+  final SongDao? songDao;
+
+  /// Optional callback invoked when a playlist card is tapped.
+  final ValueChanged<Playlist>? onPlaylistTap;
+
+  /// Optional scroll controller.
+  final ScrollController? scrollController;
+
+  const LibraryPlaylistsView({
+    super.key,
+    this.playlists,
+    this.playlistDao,
+    this.songDao,
+    this.onPlaylistTap,
+    this.scrollController,
+  });
+
+  @override
+  State<LibraryPlaylistsView> createState() => LibraryPlaylistsViewState();
+}
+
+class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
+  late final PlaylistDao _playlistDao;
+  late final SongDao _songDao;
+
+  List<Playlist>? _playlists;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _playlistDao = widget.playlistDao ?? PlaylistDao();
+    _songDao = widget.songDao ?? SongDao();
+
+    if (widget.playlists != null) {
+      _playlists = List.of(widget.playlists!);
+      _isLoading = false;
+    } else {
+      _loadPlaylists();
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant LibraryPlaylistsView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.playlists != null && widget.playlists != oldWidget.playlists) {
+      setState(() {
+        _playlists = List.of(widget.playlists!);
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Reloads all user playlists from the database.
+  Future<void> reloadPlaylists() async {
+    await _loadPlaylists();
+  }
+
+  Future<void> _loadPlaylists() async {
+    try {
+      final playlists = await _playlistDao.getPlaylists();
+      if (mounted) {
+        setState(() {
+          _playlists = playlists;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ [LibraryPlaylistsView] Error loading playlists: $e');
+      if (mounted) {
+        setState(() {
+          _playlists = [];
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _handlePlaylistTap(Playlist playlist) async {
+    if (widget.onPlaylistTap != null) {
+      widget.onPlaylistTap!(playlist);
+      return;
+    }
+
+    final updated = await Navigator.of(context).push<Playlist?>(
+      PlaylistDetailScreen.route(
+        playlist: playlist,
+        playlistDao: _playlistDao,
+        songDao: _songDao,
+      ),
+    );
+
+    if (updated != null && mounted) {
+      await reloadPlaylists();
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Center(
+        child: CircularProgressIndicator(
+          strokeWidth: 2.0,
+          color: AppColors.navActiveIcon,
+        ),
+      );
+    }
+
+    final playlists = _playlists ?? [];
+
+    if (playlists.isEmpty) {
+      return const LibraryPlaylistsPlaceholder(
+        key: ValueKey('library_playlists_empty_placeholder'),
+      );
+    }
+
+    return GridView.builder(
+      key: const ValueKey('library_playlists_grid'),
+      controller: widget.scrollController,
+      padding: const EdgeInsets.only(
+        left: 16.0,
+        right: 16.0,
+        top: 12.0,
+        bottom: 96.0,
+      ),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 16.0,
+        mainAxisSpacing: 20.0,
+        childAspectRatio: 0.74,
+      ),
+      itemCount: playlists.length,
+      itemBuilder: (context, index) {
+        final playlist = playlists[index];
+        return LibraryPlaylistCard(
+          key: ValueKey('library_playlist_card_${playlist.id ?? index}'),
+          playlist: playlist,
+          onTap: () => _handlePlaylistTap(playlist),
+        );
+      },
+    );
+  }
+}
+

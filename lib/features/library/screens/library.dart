@@ -12,15 +12,19 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
+import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/database/models/playlist.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/library/components/albums/library_albums_grid.dart';
 import 'package:project_anima/features/library/components/artists/library_artists_list.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
-import 'package:project_anima/features/library/components/playlists/library_playlists_placeholder.dart';
+import 'package:project_anima/features/library/components/playlists/library_playlists_view.dart';
+import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
 
 /// Type alias allowing both `Library` and `LibraryScreen` across the codebase.
 typedef Library = LibraryScreen;
@@ -39,6 +43,12 @@ class LibraryScreen extends StatefulWidget {
   /// Optional pre-loaded artists for dependency injection.
   final List<ArtistDiscoveryItem>? initialArtists;
 
+  /// Optional pre-loaded playlists for dependency injection.
+  final List<Playlist>? initialPlaylists;
+
+  /// Optional PlaylistDao for dependency injection.
+  final PlaylistDao? playlistDao;
+
   /// Optional SongDao for dependency injection.
   final SongDao? songDao;
 
@@ -48,6 +58,8 @@ class LibraryScreen extends StatefulWidget {
     this.initialFilter = LibraryFilter.albums,
     this.initialAlbums,
     this.initialArtists,
+    this.initialPlaylists,
+    this.playlistDao,
     this.songDao,
   });
 
@@ -57,6 +69,8 @@ class LibraryScreen extends StatefulWidget {
 
 class _LibraryScreenState extends State<LibraryScreen> {
   late LibraryFilter _selectedFilter;
+  final GlobalKey<LibraryPlaylistsViewState> _playlistsViewKey =
+      GlobalKey<LibraryPlaylistsViewState>();
 
   @override
   void initState() {
@@ -64,33 +78,69 @@ class _LibraryScreenState extends State<LibraryScreen> {
     _selectedFilter = widget.initialFilter;
   }
 
+  Future<void> _openCreatePlaylistScreen() async {
+    final created = await Navigator.of(context).push<Playlist?>(
+      PlaylistEditScreen.route(
+        playlistDao: widget.playlistDao,
+        songDao: widget.songDao,
+      ),
+    );
+
+    if (created != null && mounted) {
+      await _playlistsViewKey.currentState?.reloadPlaylists();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.bottomNavBackground,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const LibraryHeader(),
-            LibraryFilterPills(
-              selectedFilter: _selectedFilter,
-              onFilterChanged: (filter) {
-                setState(() {
-                  _selectedFilter = filter;
-                });
-              },
+    return ListenableBuilder(
+      listenable: PlaybackController.instance,
+      builder: (context, _) {
+        return Scaffold(
+          backgroundColor: AppColors.bottomNavBackground,
+          body: SafeArea(
+            child: Column(
+              children: [
+                const LibraryHeader(),
+                LibraryFilterPills(
+                  selectedFilter: _selectedFilter,
+                  onFilterChanged: (filter) {
+                    setState(() {
+                      _selectedFilter = filter;
+                    });
+                  },
+                ),
+                Expanded(
+                  child: _buildActiveView(),
+                ),
+              ],
             ),
-            Expanded(
-              child: _buildActiveView(),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: widget.showBottomNav
-          ? const AppBottomNav(
-              currentIndex: 2,
-            )
-          : null,
+          ),
+          floatingActionButton: _selectedFilter == LibraryFilter.playlists
+              ? FloatingActionButton(
+                  key: const ValueKey('library_create_playlist_fab'),
+                  onPressed: _openCreatePlaylistScreen,
+                  backgroundColor: AppColors.navIndicator,
+                  foregroundColor: AppColors.futuristicWhite,
+                  elevation: 6.0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.0),
+                    side: const BorderSide(
+                      color: AppColors.outline,
+                      width: 1.0,
+                    ),
+                  ),
+                  child: const Icon(Icons.add_rounded, size: 28.0),
+                )
+              : null,
+          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+          bottomNavigationBar: widget.showBottomNav
+              ? const AppBottomNav(
+                  currentIndex: 2,
+                )
+              : null,
+        );
+      },
     );
   }
 
@@ -109,8 +159,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
           songDao: widget.songDao,
         );
       case LibraryFilter.playlists:
-        return const LibraryPlaylistsPlaceholder(
-          key: ValueKey('library_playlists_view'),
+        return LibraryPlaylistsView(
+          key: _playlistsViewKey,
+          playlists: widget.initialPlaylists,
+          playlistDao: widget.playlistDao,
+          songDao: widget.songDao,
         );
     }
   }

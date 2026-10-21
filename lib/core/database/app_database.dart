@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 5;
+  static const int databaseVersion = 6;
 
   Database? _db;
 
@@ -141,11 +141,43 @@ class AppDatabase {
         );
       } catch (_) {}
     }
+
+    if (oldVersion < 6) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS playlists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            name TEXT NOT NULL,
+            cover_path TEXT,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER NOT NULL
+          )
+        ''');
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS playlist_songs (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            playlist_id INTEGER NOT NULL,
+            song_id INTEGER,
+            media_store_id INTEGER NOT NULL,
+            track_order INTEGER NOT NULL,
+            added_at INTEGER NOT NULL,
+            FOREIGN KEY (playlist_id) REFERENCES playlists (id) ON DELETE CASCADE,
+            FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE SET NULL
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_playlist_songs_order ON playlist_songs (playlist_id, track_order ASC)',
+        );
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_playlists_updated ON playlists (updated_at DESC)',
+        );
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
   Future<void> _onOpen(Database db) async {
-    // Defensive check to ensure album_artist and track_number columns exist on pre-existing databases
+    // Defensive check to ensure all columns and tables exist on pre-existing databases
     try {
       final columns = await db.rawQuery('PRAGMA table_info(songs)');
       final hasAlbumArtist = columns.any((col) => col['name'] == 'album_artist');
@@ -196,6 +228,33 @@ class AppDatabase {
           updated_at INTEGER NOT NULL
         )
       ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS playlists (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          name TEXT NOT NULL,
+          cover_path TEXT,
+          created_at INTEGER NOT NULL,
+          updated_at INTEGER NOT NULL
+        )
+      ''');
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS playlist_songs (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          playlist_id INTEGER NOT NULL,
+          song_id INTEGER,
+          media_store_id INTEGER NOT NULL,
+          track_order INTEGER NOT NULL,
+          added_at INTEGER NOT NULL,
+          FOREIGN KEY (playlist_id) REFERENCES playlists (id) ON DELETE CASCADE,
+          FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE SET NULL
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_playlist_songs_order ON playlist_songs (playlist_id, track_order ASC)',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_playlists_updated ON playlists (updated_at DESC)',
+      );
     } catch (_) {}
   }
 
@@ -268,7 +327,32 @@ class AppDatabase {
       )
     ''');
 
-    // 5. Mandatory B-Tree Indices for zero-jank retrieval
+    // 6. Table: playlists
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS playlists (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        name TEXT NOT NULL,
+        cover_path TEXT,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER NOT NULL
+      )
+    ''');
+
+    // 7. Table: playlist_songs
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS playlist_songs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        playlist_id INTEGER NOT NULL,
+        song_id INTEGER,
+        media_store_id INTEGER NOT NULL,
+        track_order INTEGER NOT NULL,
+        added_at INTEGER NOT NULL,
+        FOREIGN KEY (playlist_id) REFERENCES playlists (id) ON DELETE CASCADE,
+        FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE SET NULL
+      )
+    ''');
+
+    // Mandatory B-Tree Indices for zero-jank retrieval
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_artist ON songs (artist COLLATE NOCASE)',
     );
@@ -290,18 +374,20 @@ class AppDatabase {
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_media_store_id ON songs (media_store_id)',
     );
-
-    // Indices for playback history
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_history_played_at ON playback_history (played_at DESC)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_history_artist ON playback_history (artist COLLATE NOCASE)',
     );
-
-    // Indices for recent searches
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_recent_searches_searched_at ON recent_searches (searched_at DESC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_playlist_songs_order ON playlist_songs (playlist_id, track_order ASC)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_playlists_updated ON playlists (updated_at DESC)',
     );
   }
 
