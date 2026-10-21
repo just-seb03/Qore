@@ -18,6 +18,7 @@ import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/components/artist_assorted_songs_section.dart';
 import 'package:project_anima/features/artist/components/artist_discography_section.dart';
@@ -67,6 +68,7 @@ class ArtistDetailScreen extends StatefulWidget {
 class _ArtistDetailScreenState extends State<ArtistDetailScreen>
     with SingleTickerProviderStateMixin {
   late final SongDao _songDao;
+  late final String _resolvedArtistName;
   double _dragOffset = 0.0;
   late final AnimationController _springController;
   Animation<double>? _springAnimation;
@@ -80,6 +82,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
   void initState() {
     super.initState();
     _songDao = widget.songDao ?? SongDao();
+    _resolvedArtistName = sanitizeArtistName(widget.artistName) ?? widget.artistName.trim();
     _springController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
@@ -134,10 +137,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
     setState(() => _isLoading = true);
 
     try {
-      final topFuture = _songDao.getTopSongsByArtist(widget.artistName, limit: 3);
-      final albumsFuture = _songDao.getAlbumsByArtist(widget.artistName);
+      final topFuture = _songDao.getTopSongsByArtist(_resolvedArtistName, limit: 3);
+      final albumsFuture = _songDao.getAlbumsByArtist(_resolvedArtistName);
       final assortedFuture =
-          _songDao.getAssortedSongsByArtist(widget.artistName, limit: 5);
+          _songDao.getAssortedSongsByArtist(_resolvedArtistName, limit: 5);
 
       final results = await Future.wait([topFuture, albumsFuture, assortedFuture]);
 
@@ -157,7 +160,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
 
   Future<void> _handleEditPhoto() async {
     final hasCustomPhoto =
-        ArtworkService.instance.getCustomArtistAvatar(widget.artistName) != null;
+        ArtworkService.instance.getCustomArtistAvatar(_resolvedArtistName) != null;
 
     if (hasCustomPhoto) {
       ArtistPhotoOptionsSheet.show(
@@ -171,7 +174,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
   }
 
   Future<void> _removeCustomPhoto() async {
-    await ArtworkService.instance.removeCustomArtistAvatar(widget.artistName);
+    await ArtworkService.instance.removeCustomArtistAvatar(_resolvedArtistName);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -197,7 +200,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
 
       if (croppedBytes != null && mounted) {
         await ArtworkService.instance
-            .setCustomArtistAvatar(widget.artistName, croppedBytes);
+            .setCustomArtistAvatar(_resolvedArtistName, croppedBytes);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -256,7 +259,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
 
                       // 1. Top Avatar with Glow, Pencil Badge & Artist Name
                       ArtistHeaderView(
-                        artistName: widget.artistName,
+                        artistName: _resolvedArtistName,
                         onEditTap: _handleEditPhoto,
                       ),
                       const SizedBox(height: 30.0),

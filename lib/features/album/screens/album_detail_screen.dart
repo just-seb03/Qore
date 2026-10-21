@@ -14,6 +14,7 @@ import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
+import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/components/album_header_view.dart';
 import 'package:project_anima/features/album/components/album_tracks_section.dart';
@@ -79,6 +80,10 @@ class AlbumDetailScreen extends StatefulWidget {
     );
   }
 
+  /// Sanitizes an artist name by stripping accidental category prefixes
+  /// like 'Album • ', 'Álbum • ', 'album ', 'song • ', etc.
+  static String? sanitizeArtist(String? raw) => sanitizeArtistName(raw);
+
   @override
   State<AlbumDetailScreen> createState() => _AlbumDetailScreenState();
 }
@@ -100,7 +105,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
     super.initState();
     _songDao = widget.songDao ?? SongDao();
     _resolvedRepresentativeId = widget.representativeSongId;
-    _resolvedArtist = widget.artistName;
+    _resolvedArtist = AlbumDetailScreen.sanitizeArtist(widget.artistName);
 
     _springController = AnimationController(
       vsync: this,
@@ -155,11 +160,22 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
 
   Future<void> _loadAlbumSongs() async {
     try {
-      final songs = await _songDao.getSongsByAlbum(
+      var songs = await _songDao.getSongsByAlbum(
         widget.albumName,
-        artist: widget.artistName,
+        artist: _resolvedArtist,
         albumId: widget.albumId,
       );
+
+      // Fallback: if scoped search returned 0 songs, try searching without artist filter
+      if (songs.isEmpty && _resolvedArtist != null) {
+        final fallback = await _songDao.getSongsByAlbum(
+          widget.albumName,
+          albumId: widget.albumId,
+        );
+        if (fallback.isNotEmpty) {
+          songs = fallback;
+        }
+      }
 
       if (mounted) {
         setState(() {
@@ -177,7 +193,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
             if (firstArtist != null &&
                 firstArtist.trim().isNotEmpty &&
                 firstArtist != '<Desconocido>') {
-              _resolvedArtist = firstArtist;
+              _resolvedArtist = AlbumDetailScreen.sanitizeArtist(firstArtist);
             }
           }
           _isLoading = false;

@@ -120,6 +120,40 @@ class RecentSearchItem {
     );
   }
 
+  /// Extracts the pure artist name from [subtitle] or [entityKey],
+  /// stripping category prefixes like 'Album • ', 'Álbum • ', 'Song • ', 'Canción • ',
+  /// or legacy/lowercase formats like 'album ', 'álbum '.
+  String? get cleanArtistName {
+    if (type == RecentSearchType.artist) {
+      return title.trim().isNotEmpty ? title.trim() : null;
+    }
+
+    var candidate = sanitizeArtistName(subtitle);
+
+    // Fallback: extract from entityKey if candidate is null or empty
+    if ((candidate == null || candidate.isEmpty) &&
+        type == RecentSearchType.album &&
+        entityKey.startsWith('album:')) {
+      final parts = entityKey.split(':');
+      if (parts.length >= 3) {
+        final artistFromKey = parts.sublist(2).join(':').trim();
+        if (artistFromKey.isNotEmpty &&
+            artistFromKey != 'unknown artist' &&
+            artistFromKey != '<desconocido>') {
+          return artistFromKey;
+        }
+      }
+    }
+
+    return candidate;
+  }
+
+  /// Convenience getter returning [cleanArtistName].
+  String? get artistName => cleanArtistName;
+
+  /// Static helper to sanitize raw artist strings by stripping prefixes.
+  static String? sanitizeArtist(String? raw) => sanitizeArtistName(raw);
+
   /// Converts this item to a map for SQLite persistence.
   Map<String, dynamic> toMap() {
     return {
@@ -194,3 +228,67 @@ class RecentSearchItem {
     return 'RecentSearchItem(type: ${type.name}, title: $title, key: $entityKey, time: $timestampSeconds)';
   }
 }
+
+/// Utility function to sanitize raw artist strings by stripping prefixes
+/// like 'Album • ', 'Álbum • ', 'album ', 'song • ', etc.
+String? sanitizeArtistName(String? raw) {
+  if (raw == null) return null;
+  final rawSubtitle = raw.trim();
+  String? candidate;
+
+  if (rawSubtitle.contains('•')) {
+    final parts = rawSubtitle.split('•');
+    candidate = parts.sublist(1).join('•').trim();
+  } else if (rawSubtitle.isNotEmpty) {
+    final lower = rawSubtitle.toLowerCase();
+    const prefixes = [
+      'album •',
+      'álbum •',
+      'song •',
+      'canción •',
+      'artist •',
+      'artista •',
+      'album:',
+      'álbum:',
+      'album -',
+      'álbum -',
+      'album ',
+      'álbum ',
+      'song ',
+      'canción ',
+      'artist ',
+      'artista ',
+    ];
+    bool matched = false;
+    for (final p in prefixes) {
+      if (lower.startsWith(p)) {
+        candidate = rawSubtitle.substring(p.length).trim();
+        matched = true;
+        break;
+      }
+    }
+    if (!matched) {
+      candidate = rawSubtitle;
+    }
+  }
+
+  if (candidate != null) {
+    final lowerCand = candidate.toLowerCase();
+    if (candidate.isEmpty ||
+        candidate == '<Desconocido>' ||
+        lowerCand == 'unknown artist' ||
+        lowerCand == 'album' ||
+        lowerCand == 'álbum' ||
+        lowerCand == 'song' ||
+        lowerCand == 'canción' ||
+        lowerCand == 'artist' ||
+        lowerCand == 'artista') {
+      candidate = null;
+    }
+  }
+
+  return candidate;
+}
+
+/// Backward compatible alias for [sanitizeArtistName].
+String? sanitizeArtist(String? raw) => sanitizeArtistName(raw);

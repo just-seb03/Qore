@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 
@@ -65,10 +66,11 @@ class AlbumHeaderView extends StatelessWidget {
     final countStr = '$songCount ${songCount == 1 ? "song" : "songs"}';
     final metadataSubtitle = durationStr.isNotEmpty ? '$countStr • $durationStr' : countStr;
 
-    final displayArtist = (artistName != null &&
-            artistName!.trim().isNotEmpty &&
-            artistName != '<Desconocido>')
-        ? artistName!
+    final sanitizedArtist = sanitizeArtistName(artistName);
+    final displayArtist = (sanitizedArtist != null &&
+            sanitizedArtist.trim().isNotEmpty &&
+            sanitizedArtist != '<Desconocido>')
+        ? sanitizedArtist
         : 'Unknown Artist';
 
     final hasValidArtist = displayArtist != 'Unknown Artist';

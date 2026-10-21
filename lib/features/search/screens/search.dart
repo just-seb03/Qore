@@ -81,7 +81,7 @@ class _SearchScreenState extends State<SearchScreen>
         Navigator.of(context).push(
           AlbumDetailScreen.route(
             albumName: item.title,
-            artistName: item.subtitle,
+            artistName: item.cleanArtistName,
             albumId: item.albumId,
             representativeSongId: item.representativeSongId,
           ),
