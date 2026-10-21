@@ -107,6 +107,8 @@ class ArtistDiscographySection extends StatelessWidget {
                         child: AnimaArtworkImage(
                           mediaStoreId: album.representativeSongId,
                           albumId: album.albumId,
+                          albumName: album.name,
+                          artistName: album.artist,
                           width: 134.0,
                           height: 134.0,
                           borderRadius: 16.0,

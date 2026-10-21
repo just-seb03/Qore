@@ -242,8 +242,43 @@ class SongDao {
                 AND s2.album_artist IS NOT NULL
                 AND TRIM(s2.album_artist) != ''
                 AND s2.album_artist != '<Desconocido>'
+                AND s2.album_artist != 'Unknown Artist'
+                AND (
+                  (s.album_id IS NOT NULL AND s2.album_id IS NOT NULL AND s2.album_id = s.album_id)
+                  OR s.artist = s2.album_artist COLLATE NOCASE
+                  OR s.artist = s2.artist COLLATE NOCASE
+                  OR s.artist LIKE s2.album_artist || '%'
+                  OR s2.album_artist LIKE s.artist || '%'
+                )
               LIMIT 1
             ),
+            (
+              SELECT NULLIF(NULLIF(TRIM(s3.artist), ''), '<Desconocido>')
+              FROM songs s3
+              WHERE s3.album = s.album COLLATE NOCASE
+                AND s3.artist IS NOT NULL
+                AND TRIM(s3.artist) != ''
+                AND s3.artist != '<Desconocido>'
+                AND s3.artist != 'Unknown Artist'
+                AND (
+                  s.artist LIKE s3.artist || '%'
+                  OR s3.artist LIKE s.artist || '%'
+                )
+              ORDER BY LENGTH(s3.artist) ASC
+              LIMIT 1
+            ),
+            CASE
+              WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
+              WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
+              ELSE s.artist
+            END,
             NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>'),
             '<Desconocido>'
           ) AS effective_artist,
@@ -295,6 +330,13 @@ class SongDao {
                 AND TRIM(s2.album_artist) != ''
                 AND s2.album_artist != '<Desconocido>'
                 AND s2.album_artist != 'Unknown Artist'
+                AND (
+                  (s.album_id IS NOT NULL AND s2.album_id IS NOT NULL AND s2.album_id = s.album_id)
+                  OR s.artist = s2.album_artist COLLATE NOCASE
+                  OR s.artist = s2.artist COLLATE NOCASE
+                  OR s.artist LIKE s2.album_artist || '%'
+                  OR s2.album_artist LIKE s.artist || '%'
+                )
               LIMIT 1
             ),
             (
@@ -305,8 +347,25 @@ class SongDao {
                 AND TRIM(s3.artist) != ''
                 AND s3.artist != '<Desconocido>'
                 AND s3.artist != 'Unknown Artist'
+                AND (
+                  s.artist LIKE s3.artist || '%'
+                  OR s3.artist LIKE s.artist || '%'
+                )
+              ORDER BY LENGTH(s3.artist) ASC
               LIMIT 1
             ),
+            CASE
+              WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
+              WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
+              ELSE s.artist
+            END,
             NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>'),
             'Unknown Artist'
           ) AS effective_artist
@@ -504,13 +563,25 @@ class SongDao {
     String where;
     List<dynamic> whereArgs;
 
-    if (albumId != null && albumId > 0) {
-      where = 'album_id = ?';
-      whereArgs = [albumId];
-    } else if (hasArtist) {
+    if (hasArtist) {
       where =
-          'album = ? COLLATE NOCASE AND (album_artist = ? COLLATE NOCASE OR (album_artist IS NULL AND artist = ? COLLATE NOCASE))';
-      whereArgs = [album, artist, artist];
+          "album = ? COLLATE NOCASE AND ("
+          "album_artist = ? COLLATE NOCASE "
+          "OR artist = ? COLLATE NOCASE "
+          "OR artist LIKE ? COLLATE NOCASE "
+          "OR ("
+          "album_artist IS NULL AND ("
+          "INSTR(LOWER(artist), ' feat. ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' feat. ') - 1)) = ? COLLATE NOCASE "
+          "OR INSTR(LOWER(artist), ' ft. ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' ft. ') - 1)) = ? COLLATE NOCASE "
+          "OR INSTR(LOWER(artist), ' & ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' & ') - 1)) = ? COLLATE NOCASE "
+          "OR INSTR(LOWER(artist), ', ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ', ') - 1)) = ? COLLATE NOCASE"
+          ")"
+          ")"
+          ")";
+      whereArgs = [album, artist, artist, '$artist%', artist, artist, artist, artist];
+    } else if (albumId != null && albumId > 0) {
+      where = 'album = ? COLLATE NOCASE AND album_id = ?';
+      whereArgs = [album, albumId];
     } else {
       where = 'album = ? COLLATE NOCASE';
       whereArgs = [album];
@@ -637,12 +708,50 @@ class SongDao {
         batch.update(
           'songs',
           {'album_artist': entry.value},
-          where: 'media_store_id = ? AND album_artist IS NULL',
+          where: 'media_store_id = ? AND (album_artist IS NULL OR TRIM(album_artist) = "" OR album_artist = "<Desconocido>")',
           whereArgs: [entry.key],
         );
       }
       await batch.commit(noResult: true);
     });
+  }
+
+  /// Checks whether the one-time physical file album_artist backfill has been executed.
+  Future<bool> isPhysicalAlbumArtistBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      final res = await db.query(
+        'app_metadata',
+        where: 'key = ?',
+        whereArgs: ['physical_album_artist_backfilled'],
+      );
+      return res.isNotEmpty && res.first['value'] == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Marks the one-time physical file album_artist backfill as complete in app_metadata.
+  Future<void> markPhysicalAlbumArtistBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      await db.insert(
+        'app_metadata',
+        {'key': 'physical_album_artist_backfilled', 'value': 'true'},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {}
+  }
+
+  /// Retrieves cached songs that lack an album_artist value.
+  Future<List<Song>> getSongsWithoutAlbumArtist() async {
+    final db = await _appDatabase.database;
+    final results = await db.query(
+      'songs',
+      columns: ['id', 'media_store_id', 'path'],
+      where: 'album_artist IS NULL OR TRIM(album_artist) = "" OR album_artist = "<Desconocido>"',
+    );
+    return results.map((row) => Song.fromMap(row)).toList();
   }
 
   /// Checks whether the one-time track_number backfill has been executed.

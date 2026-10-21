@@ -68,7 +68,8 @@ class LibraryAlbumCard extends StatelessWidget {
                 ),
                 child: AnimaArtworkImage(
                   mediaStoreId: album.representativeSongId,
-                  albumId: album.albumId,
+                  albumName: album.name,
+                  artistName: album.artist,
                   width: double.infinity,
                   height: double.infinity,
                   borderRadius: 0.0,

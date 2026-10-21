@@ -18,6 +18,26 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/models/indexing_result.dart';
 import 'package:project_anima/core/scanner/models/lightweight_audio_item.dart';
 
+/// Top-level worker function extracting physical album_artist tags in a background isolate.
+Map<int, String> extractPhysicalAlbumArtistsInIsolate(List<Map<String, dynamic>> items) {
+  final Map<int, String> results = {};
+  for (final item in items) {
+    try {
+      final file = File(item['path'] as String);
+      if (file.existsSync()) {
+        final metadata = readMetadata(file, getImage: false);
+        if (metadata.albumArtist != null && metadata.albumArtist!.trim().isNotEmpty) {
+          final clean = metadata.albumArtist!.trim();
+          if (clean != '<Desconocido>' && clean != 'Unknown Artist') {
+            results[item['id'] as int] = clean;
+          }
+        }
+      }
+    } catch (_) {}
+  }
+  return results;
+}
+
 /// Top-level worker function executing isolated physical metadata extraction (Phase 3).
 /// Runs in a background isolate via [compute] to protect the UI thread.
 List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
@@ -241,6 +261,22 @@ class MusicIndexer {
           await _songDao.backfillTrackNumbers(trackBackfillMap);
         }
         await _songDao.markTrackNumberBackfilled();
+      }
+
+      // Check if one-time physical album_artist tag backfill is needed for cached songs
+      final bool needsPhysicalBackfill = !await _songDao.isPhysicalAlbumArtistBackfilled();
+      if (needsPhysicalBackfill) {
+        final songsWithout = await _songDao.getSongsWithoutAlbumArtist();
+        if (songsWithout.isNotEmpty) {
+          final items = songsWithout
+              .map((s) => {'id': s.mediaStoreId, 'path': s.path})
+              .toList();
+          final resolved = await compute(extractPhysicalAlbumArtistsInIsolate, items);
+          if (resolved.isNotEmpty) {
+            await _songDao.backfillAlbumArtists(resolved);
+          }
+        }
+        await _songDao.markPhysicalAlbumArtistBackfilled();
       }
 
       // Si delta == 0: Finalizar sincronización de inmediato sin tocar el disco

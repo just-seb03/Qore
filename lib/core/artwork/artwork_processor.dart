@@ -34,49 +34,27 @@ List<ArtworkBatchResultItem> processArtworkBatchInIsolate(List<ArtworkBatchItem>
 
   for (final item in items) {
     try {
-      final String thumbPath = p.join(item.thumbnailTargetDirectory, '${item.mediaStoreId}.png');
+      final String thumbJpgPath = p.join(item.thumbnailTargetDirectory, '${item.mediaStoreId}.jpg');
+      final String thumbPngPath = p.join(item.thumbnailTargetDirectory, '${item.mediaStoreId}.png');
       final String coverPath = p.join(item.coverTargetDirectory, '${item.mediaStoreId}.jpg');
 
-      final thumbFile = File(thumbPath);
+      final thumbJpg = File(thumbJpgPath);
+      final thumbPng = File(thumbPngPath);
       final coverFile = File(coverPath);
 
+      final String actualThumbPath = thumbJpg.existsSync() ? thumbJpgPath : thumbPngPath;
+      final bool hasThumb = thumbJpg.existsSync() || thumbPng.existsSync();
+
       // Fast check: if both already exist on disk, return immediately
-      if (thumbFile.existsSync() && coverFile.existsSync()) {
+      if (hasThumb && coverFile.existsSync()) {
         results.add(ArtworkBatchResultItem(
           mediaStoreId: item.mediaStoreId,
           albumId: item.albumId,
-          thumbnailPath: thumbPath,
+          thumbnailPath: actualThumbPath,
           coverPath: coverPath,
           hasArtwork: true,
         ));
         continue;
-      }
-
-      // Check album shared cache if albumId is available
-      if (item.albumId != null) {
-        final albumThumbPath = p.join(item.thumbnailTargetDirectory, 'album_${item.albumId}.png');
-        final albumCoverPath = p.join(item.coverTargetDirectory, 'album_${item.albumId}.jpg');
-        final albumThumbFile = File(albumThumbPath);
-        final albumCoverFile = File(albumCoverPath);
-
-        if (albumThumbFile.existsSync() && albumCoverFile.existsSync()) {
-          // Re-use album files directly or copy
-          try {
-            if (!thumbFile.existsSync()) albumThumbFile.copySync(thumbPath);
-            if (!coverFile.existsSync()) albumCoverFile.copySync(coverPath);
-
-            results.add(ArtworkBatchResultItem(
-              mediaStoreId: item.mediaStoreId,
-              albumId: item.albumId,
-              thumbnailPath: thumbPath,
-              coverPath: coverPath,
-              hasArtwork: true,
-            ));
-            continue;
-          } catch (_) {
-            // If copy fails, fall through to direct extraction
-          }
-        }
       }
 
       final audioFile = File(item.filePath);
@@ -135,45 +113,35 @@ List<ArtworkBatchResultItem> processArtworkBatchInIsolate(List<ArtworkBatchItem>
         continue;
       }
 
-      // 4. Generate 200x200 Thumbnail (PNG) for crisp high-DPI rendering
+      // 4. Generate 200x200 Thumbnail (JPEG quality 85% for 10x faster encoding than PNG)
       final thumbnailImg = img.copyResize(
         decoded,
         width: 200,
         height: 200,
-        interpolation: img.Interpolation.cubic,
+        interpolation: img.Interpolation.linear,
       );
-      final thumbBytes = img.encodePng(thumbnailImg);
-      thumbFile.writeAsBytesSync(thumbBytes, flush: true);
+      final thumbBytes = img.encodeJpg(thumbnailImg, quality: 85);
+      thumbJpg.writeAsBytesSync(thumbBytes, flush: true);
 
-      // 5. Generate high-fidelity Cover (JPEG quality 90%)
+      // 5. Generate high-fidelity Cover (JPEG quality 85% at max 600x600)
       final img.Image coverImg;
-      if (decoded.width > 800 || decoded.height > 800) {
+      if (decoded.width > 600 || decoded.height > 600) {
         coverImg = img.copyResize(
           decoded,
-          width: 800,
-          height: 800,
-          interpolation: img.Interpolation.cubic,
+          width: 600,
+          height: 600,
+          interpolation: img.Interpolation.linear,
         );
       } else {
         coverImg = decoded;
       }
-      final coverBytes = img.encodeJpg(coverImg, quality: 90);
+      final coverBytes = img.encodeJpg(coverImg, quality: 85);
       coverFile.writeAsBytesSync(coverBytes, flush: true);
-
-      // Also save album copies if albumId is available
-      if (item.albumId != null) {
-        try {
-          final albumThumbFile = File(p.join(item.thumbnailTargetDirectory, 'album_${item.albumId}.png'));
-          final albumCoverFile = File(p.join(item.coverTargetDirectory, 'album_${item.albumId}.jpg'));
-          if (!albumThumbFile.existsSync()) thumbFile.copySync(albumThumbFile.path);
-          if (!albumCoverFile.existsSync()) coverFile.copySync(albumCoverFile.path);
-        } catch (_) {}
-      }
 
       results.add(ArtworkBatchResultItem(
         mediaStoreId: item.mediaStoreId,
         albumId: item.albumId,
-        thumbnailPath: thumbPath,
+        thumbnailPath: thumbJpgPath,
         coverPath: coverPath,
         hasArtwork: true,
       ));

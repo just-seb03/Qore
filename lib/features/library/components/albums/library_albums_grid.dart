@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -84,6 +85,8 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
   Future<void> _loadAlbums() async {
     try {
       final albums = await _songDao.getLibraryAlbums();
+      final repIds = albums.map((a) => a.representativeSongId).toList();
+      ArtworkService.instance.prioritizeSongIds(repIds);
       if (mounted) {
         setState(() {
           _albums = albums;

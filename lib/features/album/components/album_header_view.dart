@@ -102,6 +102,8 @@ class AlbumHeaderView extends StatelessWidget {
           child: AnimaArtworkImage(
             mediaStoreId: representativeSongId ?? 0,
             albumId: albumId,
+            albumName: albumName,
+            artistName: artistName,
             width: coverSize,
             height: coverSize,
             borderRadius: 0.0,

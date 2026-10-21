@@ -37,6 +37,12 @@ class AnimaArtworkImage extends StatelessWidget {
   /// Whether to display the 100x100 thumbnail or the 800x800 full cover.
   final bool isThumbnail;
 
+  /// Optional album name to resolve artwork if mediaStoreId has not yet been extracted.
+  final String? albumName;
+
+  /// Optional artist name to resolve artwork if mediaStoreId has not yet been extracted.
+  final String? artistName;
+
   /// How the image should be inscribed into the box. Defaults to [BoxFit.cover].
   final BoxFit fit;
 
@@ -47,6 +53,8 @@ class AnimaArtworkImage extends StatelessWidget {
     super.key,
     required this.mediaStoreId,
     this.albumId,
+    this.albumName,
+    this.artistName,
     this.width = 48.0,
     this.height = 48.0,
     this.borderRadius = 8.0,
@@ -62,8 +70,26 @@ class AnimaArtworkImage extends StatelessWidget {
     return ListenableBuilder(
       listenable: ArtworkService.instance,
       builder: (context, _) {
-        final coverPath = ArtworkService.instance.getCoverPath(mediaStoreId, albumId: albumId);
-        final thumbPath = ArtworkService.instance.getThumbnailPath(mediaStoreId, albumId: albumId);
+        var coverPath = ArtworkService.instance.getCoverPath(
+          mediaStoreId,
+          albumId: albumId,
+          album: albumName,
+          artist: artistName,
+        );
+        var thumbPath = ArtworkService.instance.getThumbnailPath(
+          mediaStoreId,
+          albumId: albumId,
+          album: albumName,
+          artist: artistName,
+        );
+
+        // Fallback to album name & artist lookup if representative ID has no cover yet
+        if ((coverPath == null || thumbPath == null) &&
+            albumName != null &&
+            artistName != null) {
+          coverPath ??= ArtworkService.instance.getCoverForAlbum(albumName!, artistName!);
+          thumbPath ??= ArtworkService.instance.getThumbnailForAlbum(albumName!, artistName!);
+        }
 
         // Prioritize full high-resolution cover when not in thumbnail mode
         // or whenever widget dimensions exceed compact list tiles (> 64dp).

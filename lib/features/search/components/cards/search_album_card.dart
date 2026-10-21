@@ -61,6 +61,8 @@ class SearchAlbumCard extends StatelessWidget {
               AnimaArtworkImage(
                 mediaStoreId: album.representativeSongId,
                 albumId: album.albumId,
+                albumName: album.name,
+                artistName: album.artist,
                 width: width,
                 height: width,
                 borderRadius: 6.0,

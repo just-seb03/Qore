@@ -100,6 +100,8 @@ class SearchTopResultCard extends StatelessWidget {
       leading: AnimaArtworkImage(
         mediaStoreId: album.representativeSongId,
         albumId: album.albumId,
+        albumName: album.name,
+        artistName: album.artist,
         width: 84.0,
         height: 84.0,
         borderRadius: 6.0,

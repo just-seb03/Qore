@@ -193,6 +193,8 @@ class _RecentSearchTile extends StatelessWidget {
         return AnimaArtworkImage(
           mediaStoreId: item.representativeSongId,
           albumId: item.albumId,
+          albumName: item.title,
+          artistName: item.cleanArtistName,
           width: 52.0,
           height: 52.0,
           borderRadius: 6.0,
