@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 3;
+  static const int databaseVersion = 4;
 
   Database? _db;
 
@@ -112,6 +112,24 @@ class AppDatabase {
         );
       } catch (_) {}
     }
+
+    if (oldVersion < 4) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS playback_session (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            song_media_store_id INTEGER,
+            song_id INTEGER,
+            position_ms INTEGER NOT NULL DEFAULT 0,
+            queue_media_store_ids TEXT,
+            current_index INTEGER NOT NULL DEFAULT 0,
+            shuffle_enabled INTEGER NOT NULL DEFAULT 0,
+            loop_mode TEXT NOT NULL DEFAULT 'off',
+            updated_at INTEGER NOT NULL
+          )
+        ''');
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
@@ -147,6 +165,19 @@ class AppDatabase {
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_recent_searches_searched_at ON recent_searches (searched_at DESC)',
       );
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS playback_session (
+          id INTEGER PRIMARY KEY CHECK (id = 1),
+          song_media_store_id INTEGER,
+          song_id INTEGER,
+          position_ms INTEGER NOT NULL DEFAULT 0,
+          queue_media_store_ids TEXT,
+          current_index INTEGER NOT NULL DEFAULT 0,
+          shuffle_enabled INTEGER NOT NULL DEFAULT 0,
+          loop_mode TEXT NOT NULL DEFAULT 'off',
+          updated_at INTEGER NOT NULL
+        )
+      ''');
     } catch (_) {}
   }
 
@@ -200,6 +231,21 @@ class AppDatabase {
         representative_song_id INTEGER NOT NULL,
         album_id INTEGER,
         searched_at INTEGER NOT NULL
+      )
+    ''');
+
+    // 5. Table: playback_session (singleton row with id = 1 for persistent playback session)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS playback_session (
+        id INTEGER PRIMARY KEY CHECK (id = 1),
+        song_media_store_id INTEGER,
+        song_id INTEGER,
+        position_ms INTEGER NOT NULL DEFAULT 0,
+        queue_media_store_ids TEXT,
+        current_index INTEGER NOT NULL DEFAULT 0,
+        shuffle_enabled INTEGER NOT NULL DEFAULT 0,
+        loop_mode TEXT NOT NULL DEFAULT 'off',
+        updated_at INTEGER NOT NULL
       )
     ''');
 

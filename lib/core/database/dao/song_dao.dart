@@ -71,6 +71,35 @@ class SongDao {
     return Song.fromMap(results.first);
   }
 
+  /// Batch retrieves songs by their MediaStore IDs, preserving the exact input order.
+  /// Executes inside a single SELECT query without N+1 overhead.
+  Future<List<Song>> getSongsByMediaStoreIds(List<int> mediaStoreIds) async {
+    if (mediaStoreIds.isEmpty) return [];
+
+    final db = await _appDatabase.database;
+    final placeholders = List.filled(mediaStoreIds.length, '?').join(',');
+    final List<Map<String, dynamic>> results = await db.query(
+      'songs',
+      where: 'media_store_id IN ($placeholders)',
+      whereArgs: mediaStoreIds,
+    );
+
+    final Map<int, Song> songMap = {
+      for (final row in results)
+        if (row['media_store_id'] != null)
+          row['media_store_id'] as int: Song.fromMap(row),
+    };
+
+    final List<Song> orderedSongs = [];
+    for (final id in mediaStoreIds) {
+      final song = songMap[id];
+      if (song != null) {
+        orderedSongs.add(song);
+      }
+    }
+    return orderedSongs;
+  }
+
   /// Searches indexed songs using high-speed B-Tree indices (title, artist, album)
   /// with multi-level relevance ranking (exact prefix, contains, artist, album).
   /// Operates in < 2 ms on native SQLite with zero external engine dependencies.

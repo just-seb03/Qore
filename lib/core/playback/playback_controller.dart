@@ -18,6 +18,7 @@ import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/audio_handler.dart';
+import 'package:project_anima/core/playback/playback_persistence_coordinator.dart';
 
 /// Centralized audio playback coordinator.
 class PlaybackController extends ChangeNotifier {
@@ -25,6 +26,7 @@ class PlaybackController extends ChangeNotifier {
 
   final AudioPlayer _player;
   final SongDao _songDao;
+  final PlaybackPersistenceCoordinator _persistenceCoordinator;
   AnimaAudioHandler? _audioHandler;
 
   Song? _currentSong;
@@ -36,19 +38,29 @@ class PlaybackController extends ChangeNotifier {
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<ProcessingState>? _processingStateSubscription;
 
-  PlaybackController({AudioPlayer? player, SongDao? songDao})
-      : _player = player ?? AudioPlayer(),
-        _songDao = songDao ?? SongDao() {
+  PlaybackController({
+    AudioPlayer? player,
+    SongDao? songDao,
+    PlaybackPersistenceCoordinator? persistenceCoordinator,
+  })  : _player = player ?? AudioPlayer(),
+        _songDao = songDao ?? SongDao(),
+        _persistenceCoordinator = persistenceCoordinator ??
+            PlaybackPersistenceCoordinator(songDao: songDao ?? SongDao()) {
     _initAudioSession();
     _listenToStreams();
   }
 
   PlaybackController._internal()
       : _player = AudioPlayer(),
-        _songDao = SongDao() {
+        _songDao = SongDao(),
+        _persistenceCoordinator = PlaybackPersistenceCoordinator() {
     _initAudioSession();
     _listenToStreams();
   }
+
+  /// Reference to persistence coordinator for testing or inspection.
+  PlaybackPersistenceCoordinator get persistenceCoordinator =>
+      _persistenceCoordinator;
 
   /// Reference to active system notification handler.
   AnimaAudioHandler? get audioHandler => _audioHandler;
@@ -156,6 +168,8 @@ class PlaybackController extends ChangeNotifier {
   /// Completely stops audio playback and dismisses the system media notification widget.
   Future<void> stopAndClose() async {
     try {
+      _stopPersistencePersister();
+      await saveCurrentSessionImmediate();
       await _player.stop();
       await _audioHandler?.stop();
       _currentSong = null;
@@ -165,11 +179,84 @@ class PlaybackController extends ChangeNotifier {
     }
   }
 
+  /// Starts periodic persistence while audio is playing.
+  void _startPersistencePersister() {
+    _persistenceCoordinator.startThrottledPersister(
+      isPlaying: () => _player.playing,
+      getCurrentSong: () => _currentSong,
+      getQueue: () => _queue,
+      getCurrentIndex: () => _currentIndex,
+      getPosition: () => _player.position,
+      isShuffleEnabled: () => _player.shuffleModeEnabled,
+      getLoopMode: () => _player.loopMode,
+    );
+  }
+
+  /// Stops periodic persistence when audio is paused or stopped.
+  void _stopPersistencePersister() {
+    _persistenceCoordinator.stopThrottledPersister();
+  }
+
+  /// Internal unawaited trigger for immediate state persistence.
+  void _persistCurrentSessionImmediate({Duration? overridePosition}) {
+    if (_currentSong == null) return;
+    unawaited(_persistenceCoordinator.persistImmediate(
+      currentSong: _currentSong,
+      queue: _queue,
+      currentIndex: _currentIndex,
+      position: overridePosition ?? _player.position,
+      shuffleEnabled: _player.shuffleModeEnabled,
+      loopMode: _player.loopMode,
+    ));
+  }
+
+  /// Immediately persists the active playback session snapshot to SQLite.
+  Future<void> saveCurrentSessionImmediate() async {
+    if (_currentSong == null) return;
+    await _persistenceCoordinator.persistImmediate(
+      currentSong: _currentSong,
+      queue: _queue,
+      currentIndex: _currentIndex,
+      position: _player.position,
+      shuffleEnabled: _player.shuffleModeEnabled,
+      loopMode: _player.loopMode,
+    );
+  }
+
+  /// Restores the last active playback session from SQLite across app restarts.
+  /// Preloads the audio source at the saved position in a paused state.
+  Future<bool> restoreLastSession() async {
+    final data = await _persistenceCoordinator.restoreSession();
+    if (data == null) return false;
+
+    _queue = data.queue;
+    _currentIndex = data.currentIndex;
+    _currentSong = data.song;
+
+    try {
+      await _player.setShuffleModeEnabled(data.shuffleEnabled);
+      await _player.setLoopMode(data.loopMode);
+      await _player.setFilePath(data.song.path, initialPosition: data.position);
+      await _player.pause();
+    } catch (e) {
+      debugPrint('PlaybackController Error preloading restored audio file: $e');
+    }
+
+    _updateSystemNotification(data.song);
+    notifyListeners();
+    return true;
+  }
+
   /// Binds listeners to internal audio player streams.
   void _listenToStreams() {
     _playerStateSubscription = _player.playerStateStream.listen((state) {
       _isBuffering = state.processingState == ProcessingState.buffering ||
           state.processingState == ProcessingState.loading;
+      if (state.playing) {
+        _startPersistencePersister();
+      } else {
+        _stopPersistencePersister();
+      }
       notifyListeners();
     });
 
@@ -283,13 +370,19 @@ class PlaybackController extends ChangeNotifier {
       await _player.setFilePath(song.path);
       await _player.play();
 
+      _persistCurrentSessionImmediate();
+
       // 3. Update system notification widget metadata
       _updateSystemNotification(song);
 
       // 4. Record playback history asynchronously in SQLite
-      final songId = song.id ?? song.mediaStoreId;
+      var songDbId = song.id;
+      if (songDbId == null) {
+        final dbSong = await _songDao.getSongByMediaStoreId(song.mediaStoreId);
+        songDbId = dbSong?.id ?? song.mediaStoreId;
+      }
       _songDao.recordPlayback(
-        songId: songId,
+        songId: songDbId,
         artist: song.artist,
       );
     } catch (e) {
@@ -308,11 +401,17 @@ class PlaybackController extends ChangeNotifier {
       await _player.setFilePath(_currentSong!.path);
       await _player.play();
 
+      _persistCurrentSessionImmediate();
+
       _updateSystemNotification(_currentSong!);
 
-      final songId = _currentSong!.id ?? _currentSong!.mediaStoreId;
+      var songDbId = _currentSong!.id;
+      if (songDbId == null) {
+        final dbSong = await _songDao.getSongByMediaStoreId(_currentSong!.mediaStoreId);
+        songDbId = dbSong?.id ?? _currentSong!.mediaStoreId;
+      }
       _songDao.recordPlayback(
-        songId: songId,
+        songId: songDbId,
         artist: _currentSong!.artist,
       );
     } catch (e) {
@@ -323,28 +422,30 @@ class PlaybackController extends ChangeNotifier {
   /// Toggles between playing and paused states.
   Future<void> togglePlayPause() async {
     if (_player.playing) {
-      await _player.pause();
+      await pause();
     } else {
-      await _player.play();
+      await play();
     }
-    notifyListeners();
   }
 
   /// Resumes playback.
   Future<void> play() async {
     await _player.play();
+    _persistCurrentSessionImmediate();
     notifyListeners();
   }
 
   /// Pauses playback.
   Future<void> pause() async {
     await _player.pause();
+    _persistCurrentSessionImmediate();
     notifyListeners();
   }
 
   /// Seeks to a specific [position].
   Future<void> seek(Duration position) async {
     await _player.seek(position);
+    _persistCurrentSessionImmediate(overridePosition: position);
   }
 
   /// Skips to the next track in the queue.
@@ -357,6 +458,7 @@ class PlaybackController extends ChangeNotifier {
       await _playIndex(0);
     } else {
       await _player.seek(Duration.zero);
+      _persistCurrentSessionImmediate(overridePosition: Duration.zero);
     }
   }
 
@@ -366,6 +468,7 @@ class PlaybackController extends ChangeNotifier {
 
     if (_player.position.inSeconds > 3) {
       await _player.seek(Duration.zero);
+      _persistCurrentSessionImmediate(overridePosition: Duration.zero);
       return;
     }
 
@@ -375,6 +478,7 @@ class PlaybackController extends ChangeNotifier {
       await _playIndex(_queue.length - 1);
     } else {
       await _player.seek(Duration.zero);
+      _persistCurrentSessionImmediate(overridePosition: Duration.zero);
     }
   }
 
@@ -385,6 +489,7 @@ class PlaybackController extends ChangeNotifier {
       await _player.shuffle();
     }
     await _player.setShuffleModeEnabled(nextShuffle);
+    _persistCurrentSessionImmediate();
     notifyListeners();
   }
 
@@ -403,11 +508,13 @@ class PlaybackController extends ChangeNotifier {
         break;
     }
     await _player.setLoopMode(nextMode);
+    _persistCurrentSessionImmediate();
     notifyListeners();
   }
 
   @override
   void dispose() {
+    _persistenceCoordinator.dispose();
     _playerStateSubscription?.cancel();
     _processingStateSubscription?.cancel();
     _player.dispose();

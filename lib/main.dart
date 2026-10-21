@@ -25,6 +25,12 @@ Future<void> main() async {
     debugPrint('AudioService init warning: $e');
   }
 
+  try {
+    await PlaybackController.instance.restoreLastSession();
+  } catch (e) {
+    debugPrint('Playback session restore warning: $e');
+  }
+
   // Configure true Edge-to-Edge and disable artificial OS status bar scrims/shadows
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   SystemChrome.setSystemUIOverlayStyle(
@@ -65,6 +71,11 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.detached) {
+      PlaybackController.instance.saveCurrentSessionImmediate();
+    }
     if (state == AppLifecycleState.detached) {
       // User closed the application completely: stop playback and close notification
       PlaybackController.instance.stopAndClose();
