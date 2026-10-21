@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
@@ -24,6 +25,7 @@ import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/artist/components/artist_avatar_crop_screen.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
@@ -292,10 +294,16 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                       // Downward Animated Dismiss Chevron (lowered down for easy reach)
                       const SizedBox(height: 14.0),
                       Center(
-                        child: _ArtistDismissIndicator(
+                        child: ModalDismissIndicator(
                           onDismiss: _handleDismiss,
                           onDragUpdate: _handleDragUpdate,
                           onDragEnd: _handleDragEnd,
+                          size: 34.0,
+                          color: AppColors.onSurfaceVariant,
+                          padding: const EdgeInsets.symmetric(
+                            vertical: 4.0,
+                            horizontal: 36.0,
+                          ),
                         ),
                       ),
                       const SizedBox(height: 12.0),
@@ -337,91 +345,6 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                     ],
                   ),
                 ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Downward-pointing animated chevron dismiss indicator cueing swipe-down or tap to exit.
-class _ArtistDismissIndicator extends StatefulWidget {
-  final VoidCallback onDismiss;
-  final ValueChanged<double>? onDragUpdate;
-  final ValueChanged<DragEndDetails>? onDragEnd;
-
-  const _ArtistDismissIndicator({
-    required this.onDismiss,
-    this.onDragUpdate,
-    this.onDragEnd,
-  });
-
-  @override
-  State<_ArtistDismissIndicator> createState() => _ArtistDismissIndicatorState();
-}
-
-class _ArtistDismissIndicatorState extends State<_ArtistDismissIndicator>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _animController;
-  late final Animation<double> _bounceAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat(reverse: true);
-
-    _bounceAnimation = Tween<double>(begin: 0.0, end: 6.0).animate(
-      CurvedAnimation(
-        parent: _animController,
-        curve: Curves.easeInOutSine,
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: widget.onDismiss,
-      onVerticalDragUpdate: (details) {
-        if (widget.onDragUpdate != null) {
-          widget.onDragUpdate!(details.primaryDelta ?? 0.0);
-        } else if ((details.primaryDelta ?? 0.0) > 6.0) {
-          widget.onDismiss();
-        }
-      },
-      onVerticalDragEnd: (details) {
-        if (widget.onDragEnd != null) {
-          widget.onDragEnd!(details);
-        } else if ((details.primaryVelocity ?? 0.0) > 200.0) {
-          widget.onDismiss();
-        }
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 36.0),
-        child: RepaintBoundary(
-          child: AnimatedBuilder(
-            animation: _bounceAnimation,
-            builder: (context, child) {
-              return Transform.translate(
-                offset: Offset(0.0, _bounceAnimation.value),
-                child: child,
-              );
-            },
-            child: const Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 34.0,
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
         ),
       ),
     );
@@ -784,55 +707,68 @@ class _DiscographySection extends StatelessWidget {
               final countStr =
                   '${album.songCount} ${album.songCount == 1 ? "song" : "songs"}';
 
-              return SizedBox(
-                width: 134.0,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(16.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.35),
-                            blurRadius: 10.0,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: AnimaArtworkImage(
-                        mediaStoreId: album.representativeSongId,
-                        albumId: album.albumId,
-                        width: 134.0,
-                        height: 134.0,
-                        borderRadius: 16.0,
-                        fallbackIcon: Icons.album_rounded,
-                        isThumbnail: false,
-                      ),
+              return InkWell(
+                borderRadius: BorderRadius.circular(16.0),
+                onTap: () {
+                  Navigator.of(context).push(
+                    AlbumDetailScreen.route(
+                      albumName: album.name,
+                      artistName: album.artist,
+                      albumId: album.albumId,
+                      representativeSongId: album.representativeSongId,
                     ),
-                    const SizedBox(height: 8.0),
-                    Text(
-                      album.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.outfit(
-                        fontSize: 14.0,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                  );
+                },
+                child: SizedBox(
+                  width: 134.0,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16.0),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.35),
+                              blurRadius: 10.0,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: AnimaArtworkImage(
+                          mediaStoreId: album.representativeSongId,
+                          albumId: album.albumId,
+                          width: 134.0,
+                          height: 134.0,
+                          borderRadius: 16.0,
+                          fallbackIcon: Icons.album_rounded,
+                          isThumbnail: false,
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 2.0),
-                    Text(
-                      countStr,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inconsolata(
-                        fontSize: 12.0,
-                        color: AppColors.onSurfaceVariant,
+                      const SizedBox(height: 8.0),
+                      Text(
+                        album.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.outfit(
+                          fontSize: 14.0,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 2.0),
+                      Text(
+                        countStr,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inconsolata(
+                          fontSize: 12.0,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               );
             },

@@ -10,17 +10,20 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 
 /// Centered track title, artist, and album presentation widget.
 class PlayerMetadataView extends StatelessWidget {
   final Song? song;
   final VoidCallback? onArtistTap;
+  final VoidCallback? onAlbumTap;
 
   const PlayerMetadataView({
     super.key,
     required this.song,
     this.onArtistTap,
+    this.onAlbumTap,
   });
 
   static final TextStyle _titleStyle = GoogleFonts.inconsolata(
@@ -48,13 +51,14 @@ class PlayerMetadataView extends StatelessWidget {
     final title = song?.title ?? 'Sin reproducción';
     final hasArtist = song?.artist != null &&
         song!.artist!.trim().isNotEmpty &&
-        song!.artist != '<Desconocido>';
+        song!.artist != '<Desconocido>' &&
+        song!.artist != 'Unknown Artist';
     final artist = hasArtist ? song!.artist! : 'Artista desconocido';
-    final album = (song?.album != null &&
-            song!.album!.trim().isNotEmpty &&
-            song!.album != '<Desconocido>')
-        ? song!.album!
-        : 'Álbum desconocido';
+    final hasAlbum = song?.album != null &&
+        song!.album!.trim().isNotEmpty &&
+        song!.album != '<Desconocido>' &&
+        song!.album != 'Unknown Album';
+    final album = hasAlbum ? song!.album! : 'Unknown Album';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
@@ -95,12 +99,37 @@ class PlayerMetadataView extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 4.0),
-          Text(
-            album,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _albumStyle,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8.0),
+              onTap: hasAlbum
+                  ? () {
+                      if (onAlbumTap != null) {
+                        onAlbumTap!();
+                      } else {
+                        Navigator.of(context).push(
+                          AlbumDetailScreen.route(
+                            albumName: album,
+                            artistName: hasArtist ? artist : null,
+                            albumId: song?.albumId,
+                            representativeSongId: song?.mediaStoreId,
+                          ),
+                        );
+                      }
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                child: Text(
+                  album,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _albumStyle,
+                ),
+              ),
+            ),
           ),
         ],
       ),

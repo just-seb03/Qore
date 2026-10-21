@@ -29,6 +29,7 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
     String album = item.fallbackAlbum ?? '<Desconocido>';
     String? albumArtist = item.fallbackAlbumArtist;
     int duration = item.duration;
+    int? trackNumber = item.trackNumber;
 
     try {
       final file = File(item.path);
@@ -48,6 +49,9 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
         }
         if (metadata.duration != null && metadata.duration!.inMilliseconds > 0) {
           duration = metadata.duration!.inMilliseconds;
+        }
+        if (metadata.trackNumber != null && metadata.trackNumber! > 0) {
+          trackNumber = metadata.trackNumber;
         }
       }
     } catch (_) {
@@ -93,6 +97,20 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
       }
     }
 
+    // Fallback track number extraction from filename/title if tag reader had none
+    if (trackNumber == null || trackNumber <= 0) {
+      final fileName = item.path.split(Platform.pathSeparator).last;
+      final fileMatch = RegExp(r'^(\d+)[\s._-]+').firstMatch(fileName);
+      if (fileMatch != null) {
+        trackNumber = int.tryParse(fileMatch.group(1)!);
+      } else {
+        final titleMatch = RegExp(r'^(\d+)[\s._-]+').firstMatch(title);
+        if (titleMatch != null) {
+          trackNumber = int.tryParse(titleMatch.group(1)!);
+        }
+      }
+    }
+
     results.add(Song(
       mediaStoreId: item.mediaStoreId,
       title: title,
@@ -102,6 +120,7 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
       albumId: item.albumId,
       duration: duration,
       path: item.path,
+      trackNumber: trackNumber,
       dateModified: item.dateModified,
       dateAdded: item.dateAdded,
       size: item.size,
@@ -210,6 +229,20 @@ class MusicIndexer {
         await _songDao.markAlbumArtistBackfilled();
       }
 
+      // Check if one-time track_number backfill is needed for cached songs
+      final bool needsTrackNumberBackfill = !await _songDao.isTrackNumberBackfilled();
+      if (needsTrackNumberBackfill) {
+        final Map<int, int> trackBackfillMap = {
+          for (final item in deviceItems)
+            if (item.trackNumber != null && item.trackNumber! > 0)
+              item.mediaStoreId: item.trackNumber!,
+        };
+        if (trackBackfillMap.isNotEmpty) {
+          await _songDao.backfillTrackNumbers(trackBackfillMap);
+        }
+        await _songDao.markTrackNumberBackfilled();
+      }
+
       // Si delta == 0: Finalizar sincronización de inmediato sin tocar el disco
       if (deltaCount == 0) {
         stopwatch.stop();
@@ -312,6 +345,7 @@ class MusicIndexer {
           fallbackAlbum: raw['album'] as String?,
           fallbackAlbumArtist: raw['albumArtist'] as String?,
           albumId: (raw['albumId'] as num?)?.toInt(),
+          trackNumber: (raw['trackNumber'] as num?)?.toInt(),
         ));
       }
       return items;
@@ -342,6 +376,11 @@ class MusicIndexer {
           final id = path.hashCode.abs();
           final fileName = path.split(Platform.pathSeparator).last;
           final title = fileName.replaceAll(RegExp(r'\.[a-zA-Z0-9]+$'), '');
+          int? trackNumber;
+          final trackMatch = RegExp(r'^(\d+)[\s._-]+').firstMatch(fileName);
+          if (trackMatch != null) {
+            trackNumber = int.tryParse(trackMatch.group(1)!);
+          }
 
           items.add(LightweightAudioItem(
             mediaStoreId: id,
@@ -354,6 +393,7 @@ class MusicIndexer {
             fallbackArtist: '<Desconocido>',
             fallbackAlbum: '<Desconocido>',
             albumId: null,
+            trackNumber: trackNumber,
           ));
         } catch (_) {
           // Skip inaccessible file
@@ -363,5 +403,38 @@ class MusicIndexer {
       debugPrint('⚠️ [MusicIndexer] Desktop filesystem scan warning: $e');
     }
     return items;
+  }
+
+  /// Inspects physical audio file tags on-demand for tracks lacking track numbers.
+  /// Automatically writes resolved track numbers into SQLite in a single transaction
+  /// and returns the songs with updated trackNumber attributes.
+  Future<List<Song>> resolveMissingTrackNumbers(List<Song> songs) async {
+    final missing = songs
+        .where((s) => s.trackNumber == null || s.trackNumber! <= 0)
+        .toList();
+    if (missing.isEmpty) return songs;
+
+    final Map<int, int> resolvedMap = {};
+    for (final s in missing) {
+      try {
+        final file = File(s.path);
+        if (file.existsSync()) {
+          final metadata = readMetadata(file, getImage: false);
+          if (metadata.trackNumber != null && metadata.trackNumber! > 0) {
+            resolvedMap[s.mediaStoreId] = metadata.trackNumber!;
+          }
+        }
+      } catch (_) {}
+    }
+
+    if (resolvedMap.isNotEmpty) {
+      await _songDao.backfillTrackNumbers(resolvedMap);
+      return songs.map((s) {
+        final newTrack = resolvedMap[s.mediaStoreId];
+        return newTrack != null ? s.copyWith(trackNumber: newTrack) : s;
+      }).toList();
+    }
+
+    return songs;
   }
 }

@@ -73,6 +73,7 @@ class MainActivity : AudioServiceActivity() {
             MediaStore.Audio.Media.ARTIST,
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.ALBUM_ID,
+            MediaStore.Audio.Media.TRACK,
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.DATE_MODIFIED,
             MediaStore.Audio.Media.DATE_ADDED,
@@ -107,6 +108,7 @@ class MainActivity : AudioServiceActivity() {
                 c.getColumnIndex("album_artist")
             }
             val albumIdCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
+            val trackCol = c.getColumnIndex(MediaStore.Audio.Media.TRACK)
             val durationCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
             val dateModifiedCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_MODIFIED)
             val dateAddedCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
@@ -118,6 +120,8 @@ class MainActivity : AudioServiceActivity() {
                 if (duration < 30000) continue
 
                 val albumArtist = if (albumArtistCol != -1) c.getString(albumArtistCol) else null
+                val rawTrack = if (trackCol != -1) c.getInt(trackCol) else 0
+                val trackNumber = if (rawTrack > 0) rawTrack else null
 
                 val songMap = mapOf(
                     "id" to c.getLong(idCol),
@@ -127,6 +131,7 @@ class MainActivity : AudioServiceActivity() {
                     "album" to (c.getString(albumCol) ?: "<Desconocido>"),
                     "albumArtist" to albumArtist,
                     "albumId" to c.getLong(albumIdCol),
+                    "trackNumber" to trackNumber,
                     "duration" to duration,
                     "dateModified" to c.getLong(dateModifiedCol),
                     "dateAdded" to c.getLong(dateAddedCol),

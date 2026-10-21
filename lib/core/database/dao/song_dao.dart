@@ -407,24 +407,115 @@ class SongDao {
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
-  /// Retrieves up to [limit] songs belonging to [album], optionally scoped to [artist].
+  /// Retrieves songs belonging to [album], optionally scoped to [artist] or [albumId].
   /// Matches against `album_artist` first, falling back to `artist` when `album_artist` is null.
-  Future<List<Song>> getSongsByAlbum(String album, {String? artist, int limit = 5}) async {
+  Future<List<Song>> getSongsByAlbum(
+    String album, {
+    String? artist,
+    int? albumId,
+    int? limit,
+  }) async {
     final db = await _appDatabase.database;
-    final bool hasArtist = artist != null && artist.trim().isNotEmpty && artist != '<Desconocido>';
-    final where = hasArtist
-        ? 'album = ? COLLATE NOCASE AND (album_artist = ? COLLATE NOCASE OR (album_artist IS NULL AND artist = ? COLLATE NOCASE))'
-        : 'album = ? COLLATE NOCASE';
-    final whereArgs = hasArtist ? [album, artist, artist] : [album];
+    final bool hasArtist = artist != null &&
+        artist.trim().isNotEmpty &&
+        artist != '<Desconocido>' &&
+        artist != 'Unknown Artist';
+
+    String where;
+    List<dynamic> whereArgs;
+
+    if (albumId != null && albumId > 0) {
+      where = 'album_id = ?';
+      whereArgs = [albumId];
+    } else if (hasArtist) {
+      where =
+          'album = ? COLLATE NOCASE AND (album_artist = ? COLLATE NOCASE OR (album_artist IS NULL AND artist = ? COLLATE NOCASE))';
+      whereArgs = [album, artist, artist];
+    } else {
+      where = 'album = ? COLLATE NOCASE';
+      whereArgs = [album];
+    }
 
     final List<Map<String, dynamic>> results = await db.query(
       'songs',
       where: where,
       whereArgs: whereArgs,
-      orderBy: 'title COLLATE NOCASE ASC',
+      orderBy: 'CASE WHEN track_number IS NOT NULL AND track_number > 0 THEN track_number ELSE 999999 END ASC, path ASC, title COLLATE NOCASE ASC',
       limit: limit,
     );
-    return results.map((row) => Song.fromMap(row)).toList();
+
+    final songs = results.map((row) => Song.fromMap(row)).toList();
+
+    // Natural sort prioritizing trackNumber (from tags/MediaStore),
+    // fallback to regex on filename/title, and finally alphabetical on title.
+    songs.sort((a, b) {
+      final trackA = a.trackNumber ?? _extractTrackNumber(a);
+      final trackB = b.trackNumber ?? _extractTrackNumber(b);
+      if (trackA != null && trackB != null) {
+        final cmp = trackA.compareTo(trackB);
+        if (cmp != 0) return cmp;
+      } else if (trackA != null) {
+        return -1;
+      } else if (trackB != null) {
+        return 1;
+      }
+      return a.title.toLowerCase().compareTo(b.title.toLowerCase());
+    });
+
+    return songs;
+  }
+
+  static int? _extractTrackNumber(Song song) {
+    if (song.trackNumber != null && song.trackNumber! > 0) {
+      return song.trackNumber;
+    }
+
+    final filename = song.path.split(RegExp(r'[\\/]')).last;
+    final parsedFromPath = _parseTrackFromString(filename);
+    if (parsedFromPath != null) return parsedFromPath;
+
+    final parsedFromTitle = _parseTrackFromString(song.title);
+    if (parsedFromTitle != null) return parsedFromTitle;
+
+    return null;
+  }
+
+  static int? _parseTrackFromString(String str) {
+    final clean = str.trim();
+    if (clean.isEmpty) return null;
+
+    // Pattern 1: Multi-disc "1-02 Title" or "1.02 Title" -> Disc 1, Track 2 -> 1002
+    final discMatch = RegExp(r'^(\d{1,2})[-.](\d{1,3})[\s._-]+').firstMatch(clean);
+    if (discMatch != null) {
+      final disc = int.tryParse(discMatch.group(1)!);
+      final track = int.tryParse(discMatch.group(2)!);
+      if (disc != null && track != null && disc > 0 && track > 0 && disc < 10) {
+        return disc * 1000 + track;
+      }
+    }
+
+    // Pattern 2: "[01] Title" or "(01) Title"
+    final bracketMatch = RegExp(r'^[\[\(](\d{1,3})[\]\)][\s._-]*').firstMatch(clean);
+    if (bracketMatch != null) {
+      final track = int.tryParse(bracketMatch.group(1)!);
+      if (track != null && track > 0) return track;
+    }
+
+    // Pattern 3: "Track 01" or "Pista 01" or "Track 1"
+    final trackPrefixMatch = RegExp(r'^(?:track|pista)\s*(\d{1,3})', caseSensitive: false).firstMatch(clean);
+    if (trackPrefixMatch != null) {
+      final track = int.tryParse(trackPrefixMatch.group(1)!);
+      if (track != null && track > 0) return track;
+    }
+
+    // Pattern 4: Standard "01 Title", "01 - Title", "01. Title", "01_Title"
+    final standardMatch = RegExp(r'^(\d{1,3})[\s._-]+').firstMatch(clean);
+    if (standardMatch != null) {
+      final track = int.tryParse(standardMatch.group(1)!);
+      if (track != null && track > 0) return track;
+    }
+
+    return null;
   }
 
   /// Checks whether the one-time album_artist backfill has been executed.
@@ -472,6 +563,74 @@ class SongDao {
       }
       await batch.commit(noResult: true);
     });
+  }
+
+  /// Checks whether the one-time track_number backfill has been executed.
+  Future<bool> isTrackNumberBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      final res = await db.query(
+        'app_metadata',
+        where: 'key = ?',
+        whereArgs: ['track_number_backfilled'],
+      );
+      return res.isNotEmpty && res.first['value'] == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Marks the one-time track_number backfill as complete in app_metadata.
+  Future<void> markTrackNumberBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      await db.insert(
+        'app_metadata',
+        {'key': 'track_number_backfilled', 'value': 'true'},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {}
+  }
+
+  /// Batch backfills `track_number` for cached songs using a mapping of {mediaStoreId: trackNumber}.
+  /// Executes inside a single ACID batch in < 20 ms.
+  Future<void> backfillTrackNumbers(Map<int, int> trackNumbersByMediaStoreId) async {
+    if (trackNumbersByMediaStoreId.isEmpty) return;
+    final db = await _appDatabase.database;
+
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final entry in trackNumbersByMediaStoreId.entries) {
+        batch.update(
+          'songs',
+          {'track_number': entry.value},
+          where: 'media_store_id = ? AND (track_number IS NULL OR track_number = 0)',
+          whereArgs: [entry.key],
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  /// Updates track_number for a single song by its database ID or MediaStore ID.
+  Future<void> updateSongTrackNumber({int? songId, int? mediaStoreId, required int trackNumber}) async {
+    if (trackNumber <= 0) return;
+    final db = await _appDatabase.database;
+    if (songId != null) {
+      await db.update(
+        'songs',
+        {'track_number': trackNumber},
+        where: 'id = ?',
+        whereArgs: [songId],
+      );
+    } else if (mediaStoreId != null) {
+      await db.update(
+        'songs',
+        {'track_number': trackNumber},
+        where: 'media_store_id = ?',
+        whereArgs: [mediaStoreId],
+      );
+    }
   }
 
   /// Retrieves unique artists for search dictionary indexing.

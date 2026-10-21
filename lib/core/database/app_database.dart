@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 4;
+  static const int databaseVersion = 5;
 
   Database? _db;
 
@@ -130,11 +130,22 @@ class AppDatabase {
         ''');
       } catch (_) {}
     }
+
+    if (oldVersion < 5) {
+      try {
+        await db.execute('ALTER TABLE songs ADD COLUMN track_number INTEGER');
+      } catch (_) {}
+      try {
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_songs_album_track ON songs (album COLLATE NOCASE, track_number ASC)',
+        );
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
   Future<void> _onOpen(Database db) async {
-    // Defensive check to ensure album_artist column exists on pre-existing databases
+    // Defensive check to ensure album_artist and track_number columns exist on pre-existing databases
     try {
       final columns = await db.rawQuery('PRAGMA table_info(songs)');
       final hasAlbumArtist = columns.any((col) => col['name'] == 'album_artist');
@@ -142,6 +153,13 @@ class AppDatabase {
         await db.execute('ALTER TABLE songs ADD COLUMN album_artist TEXT');
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_songs_album_artist ON songs (album_artist COLLATE NOCASE)',
+        );
+      }
+      final hasTrackNumber = columns.any((col) => col['name'] == 'track_number');
+      if (!hasTrackNumber) {
+        await db.execute('ALTER TABLE songs ADD COLUMN track_number INTEGER');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_songs_album_track ON songs (album COLLATE NOCASE, track_number ASC)',
         );
       }
       await db.execute('''
@@ -195,6 +213,7 @@ class AppDatabase {
         album_id INTEGER,
         duration INTEGER,
         path TEXT NOT NULL,
+        track_number INTEGER,
         date_modified INTEGER,
         date_added INTEGER,
         size INTEGER
@@ -258,6 +277,9 @@ class AppDatabase {
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_album_artist ON songs (album_artist COLLATE NOCASE)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_songs_album_track ON songs (album COLLATE NOCASE, track_number ASC)',
     );
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_title ON songs (title COLLATE NOCASE)',

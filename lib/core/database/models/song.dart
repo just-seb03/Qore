@@ -35,6 +35,9 @@ class Song {
   /// Full absolute filesystem path to the audio file.
   final String path;
 
+  /// Track position or index inside the album (e.g. 1, 2, 3).
+  final int? trackNumber;
+
   /// Last modification timestamp in seconds.
   final int dateModified;
 
@@ -54,6 +57,7 @@ class Song {
     this.albumId,
     required this.duration,
     required this.path,
+    this.trackNumber,
     required this.dateModified,
     this.dateAdded,
     this.size,
@@ -71,6 +75,7 @@ class Song {
       'album_id': albumId,
       'duration': duration,
       'path': path,
+      'track_number': trackNumber,
       'date_modified': dateModified,
       'date_added': dateAdded,
       'size': size,
@@ -89,6 +94,7 @@ class Song {
       albumId: map['album_id'] as int?,
       duration: (map['duration'] as int?) ?? 0,
       path: map['path'] as String,
+      trackNumber: (map['track_number'] as num?)?.toInt(),
       dateModified: (map['date_modified'] as int?) ?? 0,
       dateAdded: map['date_added'] as int?,
       size: map['size'] as int?,
@@ -106,6 +112,7 @@ class Song {
     int? albumId,
     int? duration,
     String? path,
+    int? trackNumber,
     int? dateModified,
     int? dateAdded,
     int? size,
@@ -120,6 +127,7 @@ class Song {
       albumId: albumId ?? this.albumId,
       duration: duration ?? this.duration,
       path: path ?? this.path,
+      trackNumber: trackNumber ?? this.trackNumber,
       dateModified: dateModified ?? this.dateModified,
       dateAdded: dateAdded ?? this.dateAdded,
       size: size ?? this.size,
