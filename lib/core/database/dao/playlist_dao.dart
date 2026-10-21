@@ -28,6 +28,7 @@ class PlaylistDao {
         p.id,
         p.name,
         p.cover_path,
+        p.font_family,
         p.created_at,
         p.updated_at,
         COUNT(ps.id) AS song_count,
@@ -60,6 +61,7 @@ class PlaylistDao {
         p.id,
         p.name,
         p.cover_path,
+        p.font_family,
         p.created_at,
         p.updated_at,
         COUNT(ps.id) AS song_count,
@@ -102,10 +104,11 @@ class PlaylistDao {
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
-  /// Creates a new playlist with optional initial songs and custom cover path.
+  /// Creates a new playlist with optional initial songs, custom cover path, and font family.
   Future<Playlist> createPlaylist(
     String name, {
     String? coverPath,
+    String? fontFamily,
     List<Song>? songs,
   }) async {
     final db = await _appDatabase.database;
@@ -116,6 +119,7 @@ class PlaylistDao {
       final playlistId = await txn.insert('playlists', {
         'name': name.trim().isEmpty ? 'Untitled Playlist' : name.trim(),
         'cover_path': coverPath,
+        'font_family': fontFamily,
         'created_at': now,
         'updated_at': now,
       });
@@ -145,6 +149,7 @@ class PlaylistDao {
         id: playlistId,
         name: name.trim().isEmpty ? 'Untitled Playlist' : name.trim(),
         coverPath: coverPath,
+        fontFamily: fontFamily,
         createdAt: now,
         updatedAt: now,
         songCount: songs?.length ?? 0,
@@ -159,6 +164,7 @@ class PlaylistDao {
     int playlistId, {
     String? name,
     String? coverPath,
+    String? fontFamily,
     List<Song>? songs,
   }) async {
     final db = await _appDatabase.database;
@@ -171,6 +177,7 @@ class PlaylistDao {
       };
       if (name != null) updateFields['name'] = name.trim();
       if (coverPath != null) updateFields['cover_path'] = coverPath;
+      if (fontFamily != null) updateFields['font_family'] = fontFamily;
 
       await txn.update(
         'playlists',

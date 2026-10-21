@@ -32,6 +32,9 @@ class Playlist {
   /// Representative MediaStore ID of the first song, used as cover fallback.
   final int? firstMediaStoreId;
 
+  /// Custom typography font family for the playlist title, if specified.
+  final String? fontFamily;
+
   const Playlist({
     this.id,
     required this.name,
@@ -41,6 +44,7 @@ class Playlist {
     this.songCount = 0,
     this.totalDuration = 0,
     this.firstMediaStoreId,
+    this.fontFamily,
   });
 
   /// Instantiates a [Playlist] from an SQLite query row.
@@ -54,6 +58,7 @@ class Playlist {
       songCount: (map['song_count'] as num?)?.toInt() ?? 0,
       totalDuration: (map['total_duration'] as num?)?.toInt() ?? 0,
       firstMediaStoreId: (map['first_media_store_id'] as num?)?.toInt(),
+      fontFamily: map['font_family'] as String?,
     );
   }
 
@@ -63,6 +68,7 @@ class Playlist {
       if (id != null) 'id': id,
       'name': name,
       'cover_path': coverPath,
+      if (fontFamily != null) 'font_family': fontFamily,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
@@ -77,6 +83,7 @@ class Playlist {
     int? songCount,
     int? totalDuration,
     int? firstMediaStoreId,
+    String? fontFamily,
   }) {
     return Playlist(
       id: id ?? this.id,
@@ -87,11 +94,12 @@ class Playlist {
       songCount: songCount ?? this.songCount,
       totalDuration: totalDuration ?? this.totalDuration,
       firstMediaStoreId: firstMediaStoreId ?? this.firstMediaStoreId,
+      fontFamily: fontFamily ?? this.fontFamily,
     );
   }
 
   @override
   String toString() {
-    return 'Playlist(id: $id, name: $name, songs: $songCount, duration: ${totalDuration}ms)';
+    return 'Playlist(id: $id, name: $name, font: $fontFamily, songs: $songCount, duration: ${totalDuration}ms)';
   }
 }

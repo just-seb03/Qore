@@ -1,10 +1,10 @@
 /// File: playlist_cover_picker.dart
-/// Description: Interactive cover image picker widget for playlist creation and editing.
-/// Displays a stylized generic placeholder or picked custom image with rich shadows,
-/// and launches ImagePicker on user interaction.
+/// Description: Interactive hero banner image picker widget for playlist creation and editing.
+/// Displays a stylized 1920x620 hero banner placeholder or custom picked image with rich shadows,
+/// launching ImagePicker on user interaction.
 ///
 /// Components / Classes / Functions:
-/// - PlaylistCoverPicker: Stateful widget managing cover selection.
+/// - PlaylistCoverPicker: Stateless widget managing playlist hero banner selection.
 library;
 
 import 'dart:io';
@@ -14,7 +14,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
-/// Cover artwork picker displaying generic placeholder or user-selected photo.
+/// Hero banner picker displaying a 1920x620 placeholder or user-selected photo.
 class PlaylistCoverPicker extends StatelessWidget {
   /// Local filesystem path to the currently chosen image, if any.
   final String? coverPath;
@@ -22,14 +22,14 @@ class PlaylistCoverPicker extends StatelessWidget {
   /// Callback when a new cover photo is selected.
   final ValueChanged<String?> onCoverPicked;
 
-  /// Size of the square artwork card. Defaults to 160.0.
-  final double size;
+  /// Optional width constraint (defaults to double.infinity).
+  final double? width;
 
   const PlaylistCoverPicker({
     super.key,
     required this.coverPath,
     required this.onCoverPicked,
-    this.size = 160.0,
+    this.width,
   });
 
   Future<void> _pickImage(BuildContext context) async {
@@ -37,9 +37,9 @@ class PlaylistCoverPicker extends StatelessWidget {
       final picker = ImagePicker();
       final XFile? file = await picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 85,
-        maxWidth: 1000,
-        maxHeight: 1000,
+        imageQuality: 88,
+        maxWidth: 1920,
+        maxHeight: 1080,
       );
       if (file != null) {
         onCoverPicked(file.path);
@@ -74,41 +74,46 @@ class PlaylistCoverPicker extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              // 1. Artwork Container with Shadow
-              Container(
-                width: size,
-                height: size,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHighest,
-                  borderRadius: BorderRadius.circular(8.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      blurRadius: 28.0,
-                      spreadRadius: 2.0,
-                      offset: const Offset(0, 14),
+              // 1. Hero Artwork Container with 1920x620 Aspect Ratio
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 125.0),
+                child: AspectRatio(
+                  aspectRatio: 1920 / 620,
+                  child: Container(
+                  width: width ?? double.infinity,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(14.0),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.65),
+                        blurRadius: 24.0,
+                        spreadRadius: 2.0,
+                        offset: const Offset(0, 10),
+                      ),
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.35),
+                        blurRadius: 8.0,
+                        offset: const Offset(0, 3),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: AppColors.outline.withValues(alpha: 0.5),
+                      width: 1.0,
                     ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      blurRadius: 8.0,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                  border: Border.all(
-                    color: AppColors.outline.withValues(alpha: 0.5),
-                    width: 1.0,
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(14.0),
+                    child: _buildArtworkContent(),
                   ),
                 ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(8.0),
-                  child: _buildArtworkContent(),
-                ),
+              ),
               ),
 
               // 2. Camera Badge at Bottom Right
               Positioned(
-                right: -6.0,
-                bottom: -6.0,
+                right: 8.0,
+                bottom: 8.0,
                 child: Container(
                   width: 38.0,
                   height: 38.0,
@@ -117,7 +122,7 @@ class PlaylistCoverPicker extends StatelessWidget {
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.55),
+                        color: Colors.black.withValues(alpha: 0.65),
                         blurRadius: 8.0,
                         offset: const Offset(0, 3),
                       ),
@@ -139,13 +144,13 @@ class PlaylistCoverPicker extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12.0),
+        const SizedBox(height: 10.0),
 
-        // 3. Optional "Change photo" action text
+        // 3. "Change photo" action text
         GestureDetector(
           onTap: () => _pickImage(context),
           child: Text(
-            coverPath != null ? 'Change photo' : 'Choose cover photo',
+            coverPath != null ? 'Change hero banner (1920x620)' : 'Choose hero banner (1920x620)',
             style: _changePhotoStyle,
           ),
         ),
@@ -158,28 +163,44 @@ class PlaylistCoverPicker extends StatelessWidget {
       return Image.file(
         File(coverPath!),
         fit: BoxFit.cover,
-        width: size,
-        height: size,
+        width: double.infinity,
+        height: double.infinity,
       );
     }
 
-    // Generic placeholder
+    // Generic placeholder banner
     return Container(
       decoration: const BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF282828),
-            Color(0xFF161616),
+            Color(0xFF242436),
+            Color(0xFF161622),
+            Color(0xFF101018),
           ],
         ),
       ),
       child: Center(
-        child: Icon(
-          Symbols.queue_music_rounded,
-          size: size * 0.42,
-          color: AppColors.futuristicWhite.withValues(alpha: 0.3),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Symbols.queue_music_rounded,
+              size: 44.0,
+              color: AppColors.futuristicWhite.withValues(alpha: 0.35),
+            ),
+            const SizedBox(height: 6.0),
+            Text(
+              'HERO BANNER 1920x620',
+              style: GoogleFonts.inconsolata(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+                color: AppColors.futuristicWhite.withValues(alpha: 0.40),
+              ),
+            ),
+          ],
         ),
       ),
     );

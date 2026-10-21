@@ -22,6 +22,7 @@ import 'package:project_anima/features/playlist/components/playlist_discard_dial
 import 'package:project_anima/features/playlist/components/playlist_reorderable_song_list.dart';
 import 'package:project_anima/features/playlist/components/playlist_song_search_bar.dart';
 import 'package:project_anima/features/playlist/components/playlist_song_search_results.dart';
+import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 
 /// Screen widget for creating or editing user playlists.
 class PlaylistEditScreen extends StatefulWidget {
@@ -98,17 +99,11 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
   late final TextEditingController _searchController;
 
   String? _coverPath;
+  String? _selectedFontFamily;
   final List<Song> _playlistSongs = [];
   List<Song> _searchResults = [];
   bool _isSearching = false;
   bool _isSaving = false;
-
-  static final TextStyle _nameInputStyle = GoogleFonts.outfit(
-    fontSize: 22.0,
-    fontWeight: FontWeight.w700,
-    color: Colors.white,
-    letterSpacing: -0.3,
-  );
 
   static final TextStyle _nameHintStyle = GoogleFonts.outfit(
     fontSize: 22.0,
@@ -143,6 +138,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     );
     _searchController = TextEditingController();
     _coverPath = widget.initialPlaylist?.coverPath;
+    _selectedFontFamily = widget.initialPlaylist?.fontFamily ?? 'Inconsolata';
 
     if (widget.initialSongs != null) {
       _playlistSongs.addAll(widget.initialSongs!);
@@ -177,6 +173,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     final currentName = _nameController.text.trim();
     if (currentName != initialName && currentName.isNotEmpty) return true;
     if (_coverPath != widget.initialPlaylist?.coverPath) return true;
+    if (_selectedFontFamily != widget.initialPlaylist?.fontFamily) return true;
     if (_playlistSongs.length != (widget.initialSongs?.length ?? 0)) return true;
     return false;
   }
@@ -261,17 +258,20 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
           widget.initialPlaylist!.id!,
           name: name,
           coverPath: _coverPath,
+          fontFamily: _selectedFontFamily,
           songs: _playlistSongs,
         );
         savedPlaylist = widget.initialPlaylist!.copyWith(
           name: name,
           coverPath: _coverPath,
+          fontFamily: _selectedFontFamily,
           songCount: _playlistSongs.length,
         );
       } else {
         savedPlaylist = await _playlistDao.createPlaylist(
           name,
           coverPath: _coverPath,
+          fontFamily: _selectedFontFamily,
           songs: _playlistSongs,
         );
       }
@@ -329,18 +329,21 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                       padding: const EdgeInsets.only(top: 8.0, bottom: 16.0),
                     ),
 
-                    // Cover Photo Picker
-                    PlaylistCoverPicker(
-                      coverPath: _coverPath,
-                      onCoverPicked: (path) {
-                        setState(() {
-                          _coverPath = path;
-                        });
-                      },
+                    // Hero Banner Cover Photo Picker (1920x620)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: PlaylistCoverPicker(
+                        coverPath: _coverPath,
+                        onCoverPicked: (path) {
+                          setState(() {
+                            _coverPath = path;
+                          });
+                        },
+                      ),
                     ),
                     const SizedBox(height: 20.0),
 
-                    // Playlist Name Input Container
+                    // Playlist Name Input Container with dynamic font preview
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 24.0),
                       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
@@ -355,7 +358,15 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                       child: TextField(
                         controller: _nameController,
                         textAlign: TextAlign.center,
-                        style: _nameInputStyle,
+                        style: getPlaylistTitleFont(
+                          _selectedFontFamily,
+                          baseStyle: const TextStyle(
+                            fontSize: 22.0,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            letterSpacing: -0.3,
+                          ),
+                        ),
                         cursorColor: AppColors.futuristicWhite,
                         decoration: InputDecoration(
                           hintText: 'Playlist Name',
@@ -364,6 +375,73 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                           isDense: true,
                           contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
                         ),
+                      ),
+                    ),
+                    const SizedBox(height: 16.0),
+
+                    // Font Family Selector Carousel
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          'TITLE FONT / TIPOGRAFÍA',
+                          style: _sectionHeaderStyle,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8.0),
+                    SizedBox(
+                      height: 42.0,
+                      child: ListView.separated(
+                        padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                        scrollDirection: Axis.horizontal,
+                        physics: const BouncingScrollPhysics(),
+                        itemCount: availablePlaylistFonts.length,
+                        separatorBuilder: (context, index) => const SizedBox(width: 8.0),
+                        itemBuilder: (context, index) {
+                          final font = availablePlaylistFonts[index];
+                          final isSelected = (_selectedFontFamily ?? 'Inconsolata').toLowerCase() ==
+                              font.id.toLowerCase();
+                          return Material(
+                            color: isSelected
+                                ? AppColors.navIndicator
+                                : AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
+                            borderRadius: BorderRadius.circular(22.0),
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(22.0),
+                              onTap: () {
+                                setState(() {
+                                  _selectedFontFamily = font.id;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                                decoration: BoxDecoration(
+                                  borderRadius: BorderRadius.circular(22.0),
+                                  border: Border.all(
+                                    color: isSelected
+                                        ? AppColors.futuristicWhite
+                                        : AppColors.outline.withValues(alpha: 0.35),
+                                    width: isSelected ? 1.5 : 1.0,
+                                  ),
+                                ),
+                                alignment: Alignment.center,
+                                child: Text(
+                                  font.displayName,
+                                  style: getPlaylistTitleFont(
+                                    font.id,
+                                    baseStyle: TextStyle(
+                                      fontSize: 13.0,
+                                      fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                                      color: isSelected ? Colors.white : AppColors.onSurfaceVariant,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: 24.0),

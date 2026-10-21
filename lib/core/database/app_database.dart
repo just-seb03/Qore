@@ -233,10 +233,16 @@ class AppDatabase {
           id INTEGER PRIMARY KEY AUTOINCREMENT,
           name TEXT NOT NULL,
           cover_path TEXT,
+          font_family TEXT,
           created_at INTEGER NOT NULL,
           updated_at INTEGER NOT NULL
         )
       ''');
+      final playlistCols = await db.rawQuery('PRAGMA table_info(playlists)');
+      final hasFontFamily = playlistCols.any((col) => col['name'] == 'font_family');
+      if (!hasFontFamily) {
+        await db.execute('ALTER TABLE playlists ADD COLUMN font_family TEXT');
+      }
       await db.execute('''
         CREATE TABLE IF NOT EXISTS playlist_songs (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -333,6 +339,7 @@ class AppDatabase {
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         name TEXT NOT NULL,
         cover_path TEXT,
+        font_family TEXT,
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       )

@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlist_card.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_placeholder.dart';
@@ -124,6 +125,18 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
     }
   }
 
+  Future<void> _handlePlayTap(Playlist playlist) async {
+    if (playlist.id == null) return;
+    try {
+      final songs = await _playlistDao.getPlaylistSongs(playlist.id!);
+      if (songs.isNotEmpty) {
+        PlaybackController.instance.playSong(songs.first, queue: songs);
+      }
+    } catch (e) {
+      debugPrint('⚠️ [LibraryPlaylistsView] Play error: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -143,21 +156,16 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
       );
     }
 
-    return GridView.builder(
+    return ListView.separated(
       key: const ValueKey('library_playlists_grid'),
       controller: widget.scrollController,
       padding: const EdgeInsets.only(
         left: 16.0,
         right: 16.0,
-        top: 12.0,
+        top: 14.0,
         bottom: 96.0,
       ),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 20.0,
-        childAspectRatio: 0.74,
-      ),
+      separatorBuilder: (context, index) => const SizedBox(height: 14.0),
       itemCount: playlists.length,
       itemBuilder: (context, index) {
         final playlist = playlists[index];
@@ -165,6 +173,7 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
           key: ValueKey('library_playlist_card_${playlist.id ?? index}'),
           playlist: playlist,
           onTap: () => _handlePlaylistTap(playlist),
+          onPlayTap: () => _handlePlayTap(playlist),
         );
       },
     );
