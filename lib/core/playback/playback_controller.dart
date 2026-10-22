@@ -539,9 +539,14 @@ class PlaybackController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Adds a song to the end of the active playback queue without triggering playback.
+  /// Adds a song to the beginning of the active queue (next up to play) without triggering playback.
   void addToQueue(Song song) {
-    _queue.add(song);
+    if (_queue.isEmpty || _currentIndex < 0) {
+      _queue.insert(0, song);
+    } else {
+      final insertIndex = (_currentIndex + 1).clamp(0, _queue.length);
+      _queue.insert(insertIndex, song);
+    }
     notifyListeners();
   }
 

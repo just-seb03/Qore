@@ -56,18 +56,30 @@ class SearchResultsList extends StatelessWidget {
   });
 
   void _handleSongTap(Song song) {
-    RecentSearchController.instance.addSong(song);
     onSongTap?.call(song);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        RecentSearchController.instance.addSong(song);
+      });
+    });
   }
 
   void _handleAlbumTap(AlbumDiscoveryItem album) {
-    RecentSearchController.instance.addAlbum(album);
     onAlbumTap?.call(album);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        RecentSearchController.instance.addAlbum(album);
+      });
+    });
   }
 
   void _handleArtistTap(ArtistDiscoveryItem artist) {
-    RecentSearchController.instance.addArtist(artist);
     onArtistTap?.call(artist);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        RecentSearchController.instance.addArtist(artist);
+      });
+    });
   }
 
   @override

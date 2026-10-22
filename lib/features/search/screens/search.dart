@@ -64,16 +64,25 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   Future<void> _handleRecentItemTap(RecentSearchItem item) async {
-    RecentSearchController.instance.touchItem(item);
+    void deferTouch() {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        Future.delayed(const Duration(milliseconds: 400), () {
+          RecentSearchController.instance.touchItem(item);
+        });
+      });
+    }
+
     if (item.type == RecentSearchType.song) {
       final song = await SongDao().getSongByMediaStoreId(item.representativeSongId);
       if (song != null && mounted) {
         _handleSongTap(song);
+        deferTouch();
         return;
       }
     } else if (item.type == RecentSearchType.artist) {
       if (mounted) {
         Navigator.of(context).push(ArtistDetailScreen.route(item.title));
+        deferTouch();
         return;
       }
     } else if (item.type == RecentSearchType.album) {
@@ -86,11 +95,13 @@ class _SearchScreenState extends State<SearchScreen>
             representativeSongId: item.representativeSongId,
           ),
         );
+        deferTouch();
         return;
       }
     }
     _searchController.text = item.title;
     _searchEngine.onQueryChanged(item.title);
+    deferTouch();
   }
 
   void _handleArtistTap(ArtistDiscoveryItem artist) {
