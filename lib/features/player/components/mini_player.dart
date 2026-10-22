@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/player/components/playback_queue_sheet.dart';
 import 'package:project_anima/features/player/screens/player_screen.dart';
 
 /// Global Material 3 Expressive floating mini-player bar positioned directly above the bottom nav.
@@ -78,19 +79,29 @@ class MiniPlayer extends StatelessWidget {
                             ),
                           ),
 
-                          // 2. Tappable M3 Expressive Card Surface
+                          // 2. Tappable & Draggable M3 Expressive Card Surface
                           Material(
                             color: Colors.transparent,
-                            child: InkWell(
-                              borderRadius: BorderRadius.circular(20.0),
-                              onTap: onTap ??
-                                  () {
-                                    Navigator.of(context).push(PlayerScreen.route());
-                                  },
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                                child: Row(
-                                  children: [
+                            child: GestureDetector(
+                              behavior: HitTestBehavior.translucent,
+                              onVerticalDragEnd: (details) {
+                                if (details.primaryVelocity != null && details.primaryVelocity! < -120) {
+                                  PlaybackQueueSheet.show(context);
+                                }
+                              },
+                              onLongPress: () {
+                                PlaybackQueueSheet.show(context);
+                              },
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(20.0),
+                                onTap: onTap ??
+                                    () {
+                                      Navigator.of(context).push(PlayerScreen.route());
+                                    },
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                                  child: Row(
+                                    children: [
                                     // 1. Album Artwork Thumbnail (Dual-Tier fast cache)
                                     AnimaArtworkImage(
                                       mediaStoreId: currentSong.mediaStoreId,
@@ -213,7 +224,8 @@ class MiniPlayer extends StatelessWidget {
                               ),
                             ),
                           ),
-                        ],
+                        ),
+                      ],
                       ),
                     ),
                   ),

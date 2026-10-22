@@ -520,6 +520,73 @@ class PlaybackController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Adds a song to the end of the active playback queue.
+  /// If nothing is currently playing, initiates playback immediately.
+  void addToQueue(Song song) {
+    if (_currentSong == null || _queue.isEmpty) {
+      playSong(song);
+    } else {
+      _queue.add(song);
+      notifyListeners();
+    }
+  }
+
+  /// Plays the song at the specified [index] within the active queue.
+  Future<void> playFromQueue(int index) async {
+    await _playIndex(index);
+  }
+
+  /// Reorders items in the queue from [oldIndex] to [newIndex].
+  void reorderQueue(int oldIndex, int newIndex) {
+    if (oldIndex < 0 || oldIndex >= _queue.length) return;
+    final currentPlaying = _currentSong;
+    final movedItem = _queue.removeAt(oldIndex);
+    final targetIndex = newIndex.clamp(0, _queue.length);
+    _queue.insert(targetIndex, movedItem);
+
+    if (currentPlaying != null) {
+      _currentIndex = _queue.indexOf(currentPlaying);
+    }
+    notifyListeners();
+  }
+
+  /// Removes the song at [index] from the queue.
+  void removeFromQueue(int index) {
+    if (index < 0 || index >= _queue.length) return;
+    final currentPlaying = _currentSong;
+    _queue.removeAt(index);
+
+    if (currentPlaying != null) {
+      _currentIndex = _queue.indexOf(currentPlaying);
+    }
+    notifyListeners();
+  }
+
+  /// Clears upcoming tracks in the queue while preserving the active song.
+  void clearUpcomingQueue() {
+    if (_currentSong != null) {
+      _queue = [_currentSong!];
+      _currentIndex = 0;
+    } else {
+      _queue.clear();
+      _currentIndex = -1;
+    }
+    notifyListeners();
+  }
+
+  /// Injects a testing queue and current index without triggering audio player.
+  @visibleForTesting
+  void setQueueForTesting(List<Song> testQueue, {int currentIndex = 0}) {
+    _queue = List<Song>.from(testQueue);
+    _currentIndex = currentIndex;
+    if (currentIndex >= 0 && currentIndex < testQueue.length) {
+      _currentSong = testQueue[currentIndex];
+    } else {
+      _currentSong = null;
+    }
+    notifyListeners();
+  }
+
   @override
   void dispose() {
     _persistenceCoordinator.dispose();

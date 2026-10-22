@@ -10,6 +10,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
+import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -17,6 +18,7 @@ import 'package:project_anima/core/permissions/audio_permission_service.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/selection/today_selection_service.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/home/components/home_favorites_hero_card.dart';
 import 'package:project_anima/features/home/components/home_header.dart';
 import 'package:project_anima/features/home/components/home_pinned_section.dart';
 import 'package:project_anima/features/home/components/today_selection_hero_card.dart';
@@ -24,13 +26,16 @@ import 'package:project_anima/features/home/components/today_selection_hero_card
 /// Type alias allowing both `Home` and `HomeScreen` to be used cleanly across the codebase.
 typedef Home = HomeScreen;
 
-/// Home screen with the futuristic header, Today's Selection, and pinned favorites.
+/// Home screen with the futuristic header, Today's Selection, Favorites, and pinned favorites.
 class HomeScreen extends StatefulWidget {
   /// Whether to display the bottom navigation bar. Defaults to true.
   final bool showBottomNav;
 
   /// Optional pre-loaded today's selection songs (for testing/DI).
   final List<Song>? initialTodaySongs;
+
+  /// Optional pre-loaded favorites songs (for testing/DI).
+  final List<Song>? initialFavoriteSongs;
 
   /// Optional pre-loaded pinned items (for testing/DI).
   final List<PinnedFavorite>? initialPinnedItems;
@@ -39,6 +44,7 @@ class HomeScreen extends StatefulWidget {
     super.key,
     this.showBottomNav = true,
     this.initialTodaySongs,
+    this.initialFavoriteSongs,
     this.initialPinnedItems,
   });
 
@@ -48,6 +54,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   List<Song> _todaySongs = [];
+  List<Song> _favoriteSongs = [];
   List<PinnedFavorite> _pinnedItems = [];
 
   @override
@@ -56,11 +63,15 @@ class _HomeScreenState extends State<HomeScreen> {
     if (widget.initialTodaySongs != null) {
       _todaySongs = widget.initialTodaySongs!;
     }
+    if (widget.initialFavoriteSongs != null) {
+      _favoriteSongs = widget.initialFavoriteSongs!;
+    }
     if (widget.initialPinnedItems != null) {
       _pinnedItems = widget.initialPinnedItems!;
     }
 
     PinnedFavoritesDao.revision.addListener(_onPinnedRevisionChanged);
+    FavoriteSongsDao.instance.favoritesRevision.addListener(_onFavoritesRevisionChanged);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _requestInitialPermissions();
@@ -71,11 +82,16 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     PinnedFavoritesDao.revision.removeListener(_onPinnedRevisionChanged);
+    FavoriteSongsDao.instance.favoritesRevision.removeListener(_onFavoritesRevisionChanged);
     super.dispose();
   }
 
   void _onPinnedRevisionChanged() {
     _loadPinnedFavorites();
+  }
+
+  void _onFavoritesRevisionChanged() {
+    _loadFavoriteSongs();
   }
 
   Future<void> _requestInitialPermissions() async {
@@ -94,17 +110,33 @@ class _HomeScreenState extends State<HomeScreen> {
     try {
       final songs = widget.initialTodaySongs ??
           await TodaySelectionService.instance.getTodaySelection();
+      final favs = widget.initialFavoriteSongs ??
+          await FavoriteSongsDao.instance.getAllFavorites();
       final pinned = widget.initialPinnedItems ??
           await PinnedFavoritesDao.instance.getAllPinned();
 
       if (mounted) {
         setState(() {
           _todaySongs = songs;
+          _favoriteSongs = favs;
           _pinnedItems = pinned;
         });
       }
     } catch (e) {
       debugPrint('⚠️ [HomeScreen] Error loading home data: $e');
+    }
+  }
+
+  Future<void> _loadFavoriteSongs() async {
+    try {
+      final favs = await FavoriteSongsDao.instance.getAllFavorites();
+      if (mounted) {
+        setState(() {
+          _favoriteSongs = favs;
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ [HomeScreen] Error refreshing favorite songs: $e');
     }
   }
 
@@ -137,9 +169,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
               // 2. "Today's Selection" System 20-Track Playlist Collage Hero
               TodaySelectionHeroCard(songs: _todaySongs),
+              const SizedBox(height: 16.0),
+
+              // 3. "Favorites" System Playlist Collage Hero
+              HomeFavoritesHeroCard(songs: _favoriteSongs),
               const SizedBox(height: 32.0),
 
-              // 3. User-Pinned Favorites (Albums, Artists, Playlists) with Gapless Packing
+              // 4. User-Pinned Favorites (Albums, Artists, Playlists) with Gapless Packing
               HomePinnedSection(items: _pinnedItems),
 
               // Spacing above bottom MiniPlayer / Bottom Navigation Bar
