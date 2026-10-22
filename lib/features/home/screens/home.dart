@@ -13,15 +13,18 @@ import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
+import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/permissions/audio_permission_service.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/selection/today_selection_service.dart';
 import 'package:project_anima/core/theme/theme.dart';
-import 'package:project_anima/features/home/components/home_favorites_hero_card.dart';
+import 'package:project_anima/features/album/screens/album_detail_screen.dart';
+import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/home/components/home_header.dart';
-import 'package:project_anima/features/home/components/home_pinned_section.dart';
-import 'package:project_anima/features/home/components/today_selection_hero_card.dart';
+import 'package:project_anima/features/home/controls/home_layout_controller.dart';
+import 'package:project_anima/features/home/controls/home_slot_grid.dart';
+import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 
 /// Type alias allowing both `Home` and `HomeScreen` to be used cleanly across the codebase.
 typedef Home = HomeScreen;
@@ -56,6 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Song> _todaySongs = [];
   List<Song> _favoriteSongs = [];
   List<PinnedFavorite> _pinnedItems = [];
+  final HomeLayoutController _layoutController = HomeLayoutController.instance;
 
   @override
   void initState() {
@@ -70,13 +74,25 @@ class _HomeScreenState extends State<HomeScreen> {
       _pinnedItems = widget.initialPinnedItems!;
     }
 
+    _syncLayout();
+
     PinnedFavoritesDao.revision.addListener(_onPinnedRevisionChanged);
     FavoriteSongsDao.instance.favoritesRevision.addListener(_onFavoritesRevisionChanged);
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _requestInitialPermissions();
-      _loadHomeData();
-    });
+    final isTesting = widget.initialTodaySongs != null ||
+        widget.initialFavoriteSongs != null ||
+        widget.initialPinnedItems != null;
+
+    if (!isTesting) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _requestInitialPermissions();
+        _loadHomeData();
+      });
+
+      _layoutController.init().then((_) {
+        if (mounted) _syncLayout();
+      });
+    }
   }
 
   @override
@@ -92,6 +108,14 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onFavoritesRevisionChanged() {
     _loadFavoriteSongs();
+  }
+
+  void _syncLayout() {
+    _layoutController.syncItems(
+      pinnedItems: _pinnedItems,
+      showToday: true,
+      showFavorites: true,
+    );
   }
 
   Future<void> _requestInitialPermissions() async {
@@ -121,6 +145,7 @@ class _HomeScreenState extends State<HomeScreen> {
           _favoriteSongs = favs;
           _pinnedItems = pinned;
         });
+        _syncLayout();
       }
     } catch (e) {
       debugPrint('⚠️ [HomeScreen] Error loading home data: $e');
@@ -134,6 +159,7 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _favoriteSongs = favs;
         });
+        _syncLayout();
       }
     } catch (e) {
       debugPrint('⚠️ [HomeScreen] Error refreshing favorite songs: $e');
@@ -147,10 +173,44 @@ class _HomeScreenState extends State<HomeScreen> {
         setState(() {
           _pinnedItems = pinned;
         });
+        _syncLayout();
       }
     } catch (e) {
       debugPrint('⚠️ [HomeScreen] Error refreshing pinned favorites: $e');
     }
+  }
+
+  void _openAlbum(PinnedFavorite item) {
+    Navigator.of(context).push(
+      AlbumDetailScreen.route(
+        albumName: item.title,
+        artistName: item.subtitle,
+        albumId: item.albumId,
+        representativeSongId: item.representativeSongId,
+      ),
+    );
+  }
+
+  void _openPlaylist(PinnedFavorite item) {
+    final playlist = Playlist(
+      id: item.playlistId,
+      name: item.title,
+      coverPath: item.coverPath,
+      fontFamily: item.fontFamily,
+      firstMediaStoreId: item.representativeSongId,
+      createdAt: item.pinnedAt.millisecondsSinceEpoch,
+      updatedAt: item.pinnedAt.millisecondsSinceEpoch,
+    );
+
+    Navigator.of(context).push(
+      PlaylistDetailScreen.route(playlist: playlist),
+    );
+  }
+
+  void _openArtist(PinnedFavorite item) {
+    Navigator.of(context).push(
+      ArtistDetailScreen.route(item.title),
+    );
   }
 
   @override
@@ -164,19 +224,26 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // 1. Futuristic Header ("WELCOME")
-              const HomeHeader(),
+              // 1. Futuristic Header ("WELCOME") with ticket/check when in arranging mode
+              ListenableBuilder(
+                listenable: _layoutController,
+                builder: (context, _) {
+                  return HomeHeader(
+                    isArranging: _layoutController.isArranging,
+                    onDoneTap: () => _layoutController.exitArrangingMode(),
+                  );
+                },
+              ),
 
-              // 2. "Today's Selection" System 20-Track Playlist Collage Hero
-              TodaySelectionHeroCard(songs: _todaySongs),
-              const SizedBox(height: 16.0),
-
-              // 3. "Favorites" System Playlist Collage Hero
-              HomeFavoritesHeroCard(songs: _favoriteSongs),
-              const SizedBox(height: 32.0),
-
-              // 4. User-Pinned Favorites (Albums, Artists, Playlists) with Gapless Packing
-              HomePinnedSection(items: _pinnedItems),
+              // 2. Defined-Places Grid (System Playlists & User-Pinned Favorites)
+              HomeSlotGrid(
+                todaySongs: _todaySongs,
+                favoriteSongs: _favoriteSongs,
+                controller: _layoutController,
+                onOpenAlbum: _openAlbum,
+                onOpenPlaylist: _openPlaylist,
+                onOpenArtist: _openArtist,
+              ),
 
               // Spacing above bottom MiniPlayer / Bottom Navigation Bar
               const SizedBox(height: 36.0),

@@ -100,7 +100,7 @@ class PlaylistDetailHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (showHeroCover) ...[
-          // 1. Large 1920x620 Widescreen Hero Banner with Rounded Corners & Heart Button
+          // 1. Large 1920x620 Widescreen Hero Banner with Rounded Corners (Border removed)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: AspectRatio(
@@ -109,10 +109,6 @@ class PlaylistDetailHeader extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: AppColors.surface,
                   borderRadius: BorderRadius.circular(12.0),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    width: 1.0,
-                  ),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.65),
@@ -129,34 +125,12 @@ class PlaylistDetailHeader extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.0),
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      // Hero Cover Artwork
-                      _buildCoverWidget(),
-
-                      // Right Margin Favorite Heart Button
-                      if (onToggleFavorite != null)
-                        Positioned(
-                          right: 14.0,
-                          top: 0,
-                          bottom: 0,
-                          child: Center(
-                            child: FavoriteHeartButton(
-                              isPinned: isPinned,
-                              onToggle: onToggleFavorite!,
-                              showBackground: true,
-                              size: 24.0,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
+                  child: _buildCoverWidget(),
                 ),
               ),
             ),
           ),
-          const SizedBox(height: 20.0),
+          const SizedBox(height: 14.0),
         ] else ...[
           const SizedBox(height: 12.0),
         ],
@@ -187,7 +161,7 @@ class PlaylistDetailHeader extends StatelessWidget {
         ),
         const SizedBox(height: 16.0),
 
-        // 4. Centered Playlist Action Menu: Shuffle | Play/Pause | Edit (if editable)
+        // 4. Centered Playlist Action Menu: Shuffle | Play/Pause | Favorite Heart
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -229,19 +203,15 @@ class PlaylistDetailHeader extends StatelessWidget {
               splashRadius: 24.0,
             ),
 
-            // Right: Edit Action Icon (if editable)
-            if (isEditable && onEdit != null) ...[
+            // Right: Favorite Heart Toggle Button (No circle background)
+            if (onToggleFavorite != null) ...[
               const SizedBox(width: 20.0),
-              IconButton(
-                key: const ValueKey('playlist_detail_edit_button'),
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  size: 22.0,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                onPressed: onEdit,
-                tooltip: 'Edit playlist',
-                splashRadius: 22.0,
+              FavoriteHeartButton(
+                key: const ValueKey('playlist_detail_favorite_button'),
+                isPinned: isPinned,
+                onToggle: onToggleFavorite!,
+                showBackground: false,
+                size: 26.0,
               ),
             ],
           ],

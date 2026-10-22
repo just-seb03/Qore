@@ -24,6 +24,12 @@ class HomeHeader extends StatelessWidget {
   /// Custom padding around the header.
   final EdgeInsetsGeometry padding;
 
+  /// Whether the home grid is in edit / arranging mode.
+  final bool isArranging;
+
+  /// Callback when the checkmark ticket button is tapped to exit arranging mode.
+  final VoidCallback? onDoneTap;
+
   // Cached TextStyle to eliminate runtime font parsing on build
   static final TextStyle _titleTextStyle = GoogleFonts.inconsolata(
     fontSize: 34.0,
@@ -40,20 +46,42 @@ class HomeHeader extends StatelessWidget {
       left: 24.0,
       top: 32.0,
       right: 24.0,
-      bottom: 16.0,
+      bottom: 12.0,
     ),
+    this.isArranging = false,
+    this.onDoneTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: padding,
-      child: Center(
-        child: Text(
-          title,
-          textAlign: TextAlign.center,
-          style: _titleTextStyle,
-        ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Center(
+            child: Text(
+              title,
+              textAlign: TextAlign.center,
+              style: _titleTextStyle,
+            ),
+          ),
+          if (isArranging && onDoneTap != null) ...[
+            const SizedBox(height: 6.0),
+            IconButton(
+              key: const ValueKey('home_slot_grid_done_button'),
+              icon: const Icon(
+                Icons.check_rounded,
+                color: AppColors.futuristicWhite,
+                size: 28.0,
+              ),
+              tooltip: 'Listo',
+              splashRadius: 22.0,
+              onPressed: onDoneTap,
+            ),
+          ],
+        ],
       ),
     );
   }

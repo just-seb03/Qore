@@ -401,75 +401,94 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   }
 
   Widget _buildTracksSection() {
-    if (_songs.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-        child: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'NO TRACKS IN THIS PLAYLIST',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inconsolata(
-                  fontSize: 13.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.4,
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
-                ),
-              ),
-              const SizedBox(height: 8.0),
-              Text(
-                'Add tracks to your playlist by editing it.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inconsolata(
-                  fontSize: 13.5,
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
-                ),
-              ),
-              if (widget.isEditable) ...[
-                const SizedBox(height: 16.0),
-                OutlinedButton.icon(
-                  key: const ValueKey('playlist_detail_add_songs_button'),
-                  onPressed: _editPlaylist,
-                  icon: const Icon(Icons.add_rounded, size: 18.0),
-                  label: const Text('Add Songs'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.futuristicWhite,
-                    side: const BorderSide(color: AppColors.outline),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                    ),
-                  ),
-                ),
-              ],
-            ],
-          ),
-        ),
-      );
-    }
-
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Section Header
+        // Section Header with Edit Pencil on Right Margin
         Padding(
-          padding: const EdgeInsets.only(left: 20.0, right: 12.0),
-          child: Text(
-            'TRACKS',
-            style: GoogleFonts.inconsolata(
-              fontSize: 13.0,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.4,
-              color: AppColors.onSurfaceVariant,
-            ),
+          padding: const EdgeInsets.only(left: 20.0, right: 16.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Text(
+                'TRACKS',
+                style: GoogleFonts.inconsolata(
+                  fontSize: 13.0,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 1.4,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+              if (widget.isEditable)
+                IconButton(
+                  key: const ValueKey('playlist_detail_edit_button'),
+                  icon: const Icon(
+                    Icons.edit_outlined,
+                    size: 20.0,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                  onPressed: _editPlaylist,
+                  tooltip: 'Edit playlist',
+                  splashRadius: 20.0,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+            ],
           ),
         ),
         const SizedBox(height: 8.0),
 
-        // Ordered Tracklist
-        ListView.separated(
+        if (_songs.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'NO TRACKS IN THIS PLAYLIST',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inconsolata(
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                    ),
+                  ),
+                  const SizedBox(height: 8.0),
+                  Text(
+                    'Add tracks to your playlist by editing it.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inconsolata(
+                      fontSize: 13.5,
+                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
+                    ),
+                  ),
+                  if (widget.isEditable) ...[
+                    const SizedBox(height: 16.0),
+                    OutlinedButton.icon(
+                      key: const ValueKey('playlist_detail_add_songs_button'),
+                      onPressed: _editPlaylist,
+                      icon: const Icon(Icons.add_rounded, size: 18.0),
+                      label: const Text('Add Songs'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.futuristicWhite,
+                        side: const BorderSide(color: AppColors.outline),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16.0),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          )
+        else
+          // Ordered Tracklist
+          ListView.separated(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 14.0),

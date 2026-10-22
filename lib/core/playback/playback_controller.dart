@@ -353,6 +353,7 @@ class PlaybackController extends ChangeNotifier {
     );
 
     _audioHandler?.updateMetadata(mediaItem);
+    _audioHandler?.broadcastCurrentState();
   }
 
   /// Requests notification permissions on Android 13+ (API 33+) to guarantee system media widget display.

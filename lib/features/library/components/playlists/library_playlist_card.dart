@@ -30,11 +30,15 @@ class LibraryPlaylistCard extends StatelessWidget {
   /// Callback when the right Play button is tapped.
   final VoidCallback? onPlayTap;
 
+  /// Whether to render the right Play button. Defaults to true.
+  final bool showPlayButton;
+
   const LibraryPlaylistCard({
     super.key,
     required this.playlist,
     this.onTap,
     this.onPlayTap,
+    this.showPlayButton = true,
   });
 
   @override
@@ -139,10 +143,11 @@ class LibraryPlaylistCard extends StatelessWidget {
                             style: titleStyle,
                           ),
                         ),
-                        const SizedBox(width: 14.0),
-
-                        // Right: Floating Play / Pause Trigger Button
-                        _buildPlayButton(),
+                        if (showPlayButton) ...[
+                          const SizedBox(width: 14.0),
+                          // Right: Floating Play / Pause Trigger Button
+                          _buildPlayButton(),
+                        ],
                       ],
                     ),
                   ),

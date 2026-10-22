@@ -13,7 +13,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
-import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 
@@ -65,28 +64,6 @@ class HomeFavoritesHeroCard extends StatelessWidget {
         showHeroCover: false,
       ),
     );
-  }
-
-  void _handlePlay() async {
-    if (onPlayTap != null) {
-      onPlayTap!();
-      return;
-    }
-
-    if (songs.isEmpty) return;
-
-    final controller = PlaybackController.instance;
-    final isCurrent = controller.activePlaylistId == _kFavoritesPlaylistId;
-
-    if (isCurrent) {
-      await controller.togglePlayPause();
-    } else {
-      await controller.playSong(
-        songs.first,
-        queue: songs,
-        playlistId: _kFavoritesPlaylistId,
-      );
-    }
   }
 
   List<Song> _getCollageSongs() {
@@ -174,37 +151,18 @@ class HomeFavoritesHeroCard extends StatelessWidget {
                         ),
                       ),
 
-                      // 3. Information and Controls Overlay (Centered along Y axis)
+                      // 3. Information Overlay (Centered along Y axis)
                       Positioned.fill(
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                          child: Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              // Left: Title only ("Favorites")
-                              Expanded(
-                                child: Row(
-                                  children: [
-                                    Text(
-                                      'Favorites',
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: _titleStyle,
-                                    ),
-                                    const SizedBox(width: 8.0),
-                                    Icon(
-                                      Icons.favorite_rounded,
-                                      color: Colors.white.withValues(alpha: 0.8),
-                                      size: 18.0,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(width: 14.0),
-
-                              // Right: Prominent Direct Play / Pause Trigger
-                              _buildPlayTrigger(),
-                            ],
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              'Favorites',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: _titleStyle,
+                            ),
                           ),
                         ),
                       ),
@@ -222,24 +180,7 @@ class HomeFavoritesHeroCard extends StatelessWidget {
   Widget _buildCollage(List<Song> collageSongs) {
     if (collageSongs.isEmpty) {
       return Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF2E1216),
-              Color(0xFF1E1418),
-              Color(0xFF121214),
-            ],
-          ),
-        ),
-        child: Center(
-          child: Icon(
-            Icons.favorite_border_rounded,
-            color: Colors.white.withValues(alpha: 0.08),
-            size: 64.0,
-          ),
-        ),
+        color: const Color(0xFF141416),
       );
     }
 
@@ -258,55 +199,6 @@ class HomeFavoritesHeroCard extends StatelessWidget {
           ),
         );
       }).toList(),
-    );
-  }
-
-  Widget _buildPlayTrigger() {
-    return ListenableBuilder(
-      listenable: PlaybackController.instance,
-      builder: (context, _) {
-        final isCurrent = PlaybackController.instance.activePlaylistId == _kFavoritesPlaylistId;
-        final isPlaying = isCurrent && PlaybackController.instance.isPlaying;
-
-        return Material(
-          color: Colors.transparent,
-          shape: const CircleBorder(),
-          child: InkWell(
-            customBorder: const CircleBorder(),
-            onTap: _handlePlay,
-            splashColor: Colors.white.withValues(alpha: 0.25),
-            highlightColor: Colors.white.withValues(alpha: 0.15),
-            child: Container(
-              width: 44.0,
-              height: 44.0,
-              decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: 0.75),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isPlaying
-                      ? AppColors.futuristicWhite
-                      : Colors.white.withValues(alpha: 0.35),
-                  width: 1.5,
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.65),
-                    blurRadius: 10.0,
-                    offset: const Offset(0, 3),
-                  ),
-                ],
-              ),
-              child: Center(
-                child: Icon(
-                  isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                  size: 26.0,
-                  color: AppColors.futuristicWhite,
-                ),
-              ),
-            ),
-          ),
-        );
-      },
     );
   }
 }
