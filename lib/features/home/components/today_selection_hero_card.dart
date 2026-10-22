@@ -33,13 +33,6 @@ class TodaySelectionHeroCard extends StatelessWidget {
 
   static const int _kTodayPlaylistId = -1;
 
-  static final TextStyle _tagStyle = GoogleFonts.inconsolata(
-    fontSize: 11.5,
-    fontWeight: FontWeight.w700,
-    color: const Color(0xFFE50914),
-    letterSpacing: 1.6,
-  );
-
   static final TextStyle _titleStyle = GoogleFonts.outfit(
     fontSize: 22.0,
     fontWeight: FontWeight.w800,
@@ -54,27 +47,13 @@ class TodaySelectionHeroCard extends StatelessWidget {
     ],
   );
 
-  static final TextStyle _subtitleStyle = GoogleFonts.inconsolata(
-    fontSize: 12.5,
-    fontWeight: FontWeight.w500,
-    color: const Color(0xFFD4D4D4),
-    letterSpacing: 0.4,
-    shadows: const [
-      Shadow(
-        color: Colors.black87,
-        blurRadius: 4.0,
-        offset: Offset(0, 1),
-      ),
-    ],
-  );
-
   void _handleOpen(BuildContext context) {
     if (songs.isEmpty) return;
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final todayPlaylist = Playlist(
       id: _kTodayPlaylistId,
-      name: "Today's Selection",
+      name: "Today Selection",
       createdAt: nowMs,
       updatedAt: nowMs,
       firstMediaStoreId: songs.isNotEmpty ? songs.first.mediaStoreId : null,
@@ -84,6 +63,8 @@ class TodaySelectionHeroCard extends StatelessWidget {
       PlaylistDetailScreen.route(
         playlist: todayPlaylist,
         initialSongs: songs,
+        isEditable: false,
+        showHeroCover: false,
       ),
     );
   }
@@ -136,12 +117,14 @@ class TodaySelectionHeroCard extends StatelessWidget {
                   offset: const Offset(0, 3),
                 ),
               ],
+              borderRadius: BorderRadius.circular(12.0),
               border: Border.all(
                 color: Colors.white.withValues(alpha: 0.12),
                 width: 1.0,
               ),
             ),
-            child: ClipRect(
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12.0),
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -174,47 +157,28 @@ class TodaySelectionHeroCard extends StatelessWidget {
                         ),
                       ),
 
-                      // 3. Information and Controls Overlay
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 12.0,
-                        ),
-                        child: Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // Left: Category Tag, Title, and Subtitle
-                            Expanded(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'DAILY MIX',
-                                    style: _tagStyle,
-                                  ),
-                                  const SizedBox(height: 2.0),
-                                  Text(
-                                    "Today's Selection",
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: _titleStyle,
-                                  ),
-                                  const SizedBox(height: 3.0),
-                                  Text(
-                                    '${songs.length} tracks • Curated for today',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: _subtitleStyle,
-                                  ),
-                                ],
+                      // 3. Information and Controls Overlay (Centered along Y axis)
+                      Positioned.fill(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // Left: Title only ("Today Selection")
+                              Expanded(
+                                child: Text(
+                                  'Today Selection',
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: _titleStyle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 12.0),
+                              const SizedBox(width: 14.0),
 
-                            // Right: Prominent Direct Play / Pause Trigger
-                            _buildPlayTrigger(),
-                          ],
+                              // Right: Prominent Direct Play / Pause Trigger
+                              _buildPlayTrigger(),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -282,21 +246,17 @@ class TodaySelectionHeroCard extends StatelessWidget {
               width: 44.0,
               height: 44.0,
               decoration: BoxDecoration(
-                color: isPlaying
-                    ? const Color(0xFFE50914)
-                    : Colors.black.withValues(alpha: 0.70),
+                color: Colors.black.withValues(alpha: 0.75),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isPlaying
-                      ? const Color(0xFFFF5252)
+                      ? AppColors.futuristicWhite
                       : Colors.white.withValues(alpha: 0.35),
                   width: 1.5,
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: isPlaying
-                        ? const Color(0xFFE50914).withValues(alpha: 0.5)
-                        : Colors.black.withValues(alpha: 0.65),
+                    color: Colors.black.withValues(alpha: 0.65),
                     blurRadius: 10.0,
                     offset: const Offset(0, 3),
                   ),

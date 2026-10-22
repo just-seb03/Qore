@@ -7,13 +7,11 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
-import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/home/components/home_artist_card.dart';
 import 'package:project_anima/features/library/components/albums/library_album_card.dart';
@@ -46,12 +44,6 @@ class HomePinnedSection extends StatelessWidget {
     required this.items,
   });
 
-  static final TextStyle _sectionHeaderStyle = GoogleFonts.inconsolata(
-    fontSize: 13.5,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 1.5,
-    color: AppColors.onSurfaceVariant,
-  );
 
   /// Partitions items into gapless rows (2-span playlists on full rows, 1-span items paired).
   static List<HomeRowItem> buildGaplessRows(List<PinnedFavorite> items) {
@@ -122,96 +114,10 @@ class HomePinnedSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Section Header
-        Padding(
-          padding: const EdgeInsets.only(left: 24.0, right: 24.0, bottom: 16.0),
-          child: Row(
-            children: [
-              Text(
-                'PINNED FAVORITES',
-                style: _sectionHeaderStyle,
-              ),
-              const SizedBox(width: 8.0),
-              Icon(
-                Icons.push_pin_rounded,
-                size: 14.0,
-                color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
-              ),
-            ],
-          ),
-        ),
-
-        // Body: Empty State or Gapless Rows
-        if (items.isEmpty)
-          _buildEmptyState()
-        else
-          _buildRows(context),
-      ],
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 16.0),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(12.0),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.05),
-            width: 0.8,
-          ),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 44.0,
-              height: 44.0,
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerHigh,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.touch_app_rounded,
-                size: 22.0,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(width: 16.0),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'DOUBLE-TAP TO PIN',
-                    style: GoogleFonts.inconsolata(
-                      fontSize: 13.0,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.futuristicWhite,
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 3.0),
-                  Text(
-                    'Double-tap any album, artist, or playlist to pin them here for instant access.',
-                    style: GoogleFonts.inconsolata(
-                      fontSize: 12.0,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
+    if (items.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return _buildRows(context);
   }
 
   Widget _buildRows(BuildContext context) {

@@ -8,11 +8,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 
 /// Large interactive header featuring circular avatar, atmospheric halo glow,
-/// floating pencil edit badge, and centered artist name directly below.
+/// floating pencil edit badge, centered artist name, and favorite heart button.
 class ArtistHeaderView extends StatelessWidget {
   /// Name of the artist to display.
   final String artistName;
@@ -23,15 +24,15 @@ class ArtistHeaderView extends StatelessWidget {
   /// Whether the artist is pinned to favorites.
   final bool isPinned;
 
-  /// Callback when the circular artist avatar is double tapped.
-  final VoidCallback? onDoubleTap;
+  /// Callback when the favorite heart button is tapped.
+  final VoidCallback? onToggleFavorite;
 
   const ArtistHeaderView({
     super.key,
     required this.artistName,
     required this.onEditTap,
     this.isPinned = false,
-    this.onDoubleTap,
+    this.onToggleFavorite,
   });
 
   @override
@@ -44,7 +45,7 @@ class ArtistHeaderView extends StatelessWidget {
           Stack(
             alignment: Alignment.center,
             children: [
-              // Ambient soft halo (tinted crimson when pinned)
+              // Ambient soft halo
               Container(
                 width: 200.0,
                 height: 200.0,
@@ -52,12 +53,8 @@ class ArtistHeaderView extends StatelessWidget {
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
                     colors: [
-                      isPinned
-                          ? const Color(0xFFE50914).withValues(alpha: 0.14)
-                          : Colors.white.withValues(alpha: 0.07),
-                      isPinned
-                          ? const Color(0xFFE50914).withValues(alpha: 0.04)
-                          : Colors.white.withValues(alpha: 0.02),
+                      Colors.white.withValues(alpha: 0.07),
+                      Colors.white.withValues(alpha: 0.02),
                       Colors.transparent,
                     ],
                     stops: const [0.0, 0.5, 1.0],
@@ -68,33 +65,26 @@ class ArtistHeaderView extends StatelessWidget {
               Stack(
                 alignment: Alignment.bottomRight,
                 children: [
-                  GestureDetector(
-                    onDoubleTap: onDoubleTap,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: isPinned
-                              ? AppColors.pinnedRedBorder
-                              : AppColors.outlineVariant.withValues(alpha: 0.5),
-                          width: 1.8,
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.5),
+                        width: 1.8,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.55),
+                          blurRadius: 22.0,
+                          offset: const Offset(0, 8),
                         ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isPinned
-                                ? const Color(0xFFE50914).withValues(alpha: 0.35)
-                                : Colors.black.withValues(alpha: 0.55),
-                            blurRadius: 22.0,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: MaterialArtistAvatar(
-                        radius: 66.0,
-                        artistName: artistName,
-                        backgroundColor: AppColors.surfaceContainerHigh,
-                        iconColor: AppColors.onSurfaceVariant,
-                      ),
+                      ],
+                    ),
+                    child: MaterialArtistAvatar(
+                      radius: 66.0,
+                      artistName: artistName,
+                      backgroundColor: AppColors.surfaceContainerHigh,
+                      iconColor: AppColors.onSurfaceVariant,
                     ),
                   ),
 
@@ -153,6 +143,16 @@ class ArtistHeaderView extends StatelessWidget {
               ),
             ),
           ),
+
+          // Favorite Heart Button centered below artist name
+          if (onToggleFavorite != null) ...[
+            const SizedBox(height: 10.0),
+            FavoriteHeartButton(
+              isPinned: isPinned,
+              onToggle: onToggleFavorite!,
+              size: 28.0,
+            ),
+          ],
         ],
       ),
     );

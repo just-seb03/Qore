@@ -44,6 +44,12 @@ class PlaylistDetailScreen extends StatefulWidget {
   /// Whether to run continuous floating bounce animation on the dismiss chevron.
   final bool animateBounce;
 
+  /// Whether the playlist can be edited.
+  final bool isEditable;
+
+  /// Whether to show the widescreen 1920x620 hero banner cover.
+  final bool showHeroCover;
+
   const PlaylistDetailScreen({
     super.key,
     required this.playlist,
@@ -51,6 +57,8 @@ class PlaylistDetailScreen extends StatefulWidget {
     this.playlistDao,
     this.songDao,
     this.animateBounce = true,
+    this.isEditable = true,
+    this.showHeroCover = true,
   });
 
   /// Factory helper for smooth bottom-to-top modal slide transition.
@@ -60,6 +68,8 @@ class PlaylistDetailScreen extends StatefulWidget {
     PlaylistDao? playlistDao,
     SongDao? songDao,
     bool animateBounce = true,
+    bool isEditable = true,
+    bool showHeroCover = true,
   }) {
     return PageRouteBuilder<Playlist?>(
       pageBuilder: (context, animation, secondaryAnimation) => PlaylistDetailScreen(
@@ -68,6 +78,8 @@ class PlaylistDetailScreen extends StatefulWidget {
         playlistDao: playlistDao,
         songDao: songDao,
         animateBounce: animateBounce,
+        isEditable: isEditable,
+        showHeroCover: showHeroCover,
       ),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final tween = Tween<Offset>(
@@ -96,6 +108,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   List<Song> _songs = [];
   bool _isLoading = true;
   bool _isPinned = false;
+  bool _isFlashingRed = false;
+
+  /// Whether this playlist is currently pinned to favorites.
+  bool get isPinned => _isPinned;
 
   String get _playlistKey => PinnedFavoritesDao.playlistKey(_playlist.id ?? -1);
 
@@ -151,6 +167,15 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   Future<void> _togglePinned() async {
     if (_playlist.id == null || _playlist.id! <= 0) return;
     try {
+      final willPin = !_isPinned;
+      HapticFeedback.mediumImpact();
+
+      if (willPin && mounted) {
+        setState(() {
+          _isFlashingRed = true;
+        });
+      }
+
       final newStatus = await PinnedFavoritesDao.instance.togglePin(
         PinnedFavorite(
           itemType: PinnedItemType.playlist,
@@ -164,14 +189,28 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
           pinnedAt: DateTime.now(),
         ),
       );
+
       if (mounted) {
         setState(() {
           _isPinned = newStatus;
         });
-        HapticFeedback.mediumImpact();
+      }
+
+      if (willPin) {
+        await Future.delayed(const Duration(milliseconds: 650));
+        if (mounted) {
+          setState(() {
+            _isFlashingRed = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('⚠️ [PlaylistDetailScreen] Error toggling pin: $e');
+      if (mounted) {
+        setState(() {
+          _isFlashingRed = false;
+        });
+      }
     }
   }
 
@@ -287,8 +326,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
         listenable: PlaybackController.instance,
         builder: (context, _) {
         return AnimatedContainer(
-          duration: const Duration(milliseconds: 300),
-          color: _isPinned ? AppColors.pinnedRedBackground : AppColors.background,
+          duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
+          curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
+          color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
           child: Scaffold(
             backgroundColor: Colors.transparent,
             bottomNavigationBar: const SafeArea(
@@ -336,7 +376,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                               onPlay: _playFromStart,
                               onToggleShuffle: _toggleShuffle,
                               isPinned: _isPinned,
-                              onDoubleTap: _togglePinned,
+                              onToggleFavorite: widget.showHeroCover ? _togglePinned : null,
+                              showHeroCover: widget.showHeroCover,
+                              isEditable: widget.isEditable,
+                              onEdit: widget.isEditable ? _editPlaylist : null,
                             ),
                             const SizedBox(height: 24.0),
 
@@ -384,20 +427,22 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                   color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
                 ),
               ),
-              const SizedBox(height: 16.0),
-              OutlinedButton.icon(
-                key: const ValueKey('playlist_detail_edit_button'),
-                onPressed: _editPlaylist,
-                icon: const Icon(Icons.add_rounded, size: 18.0),
-                label: const Text('Add Songs'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.futuristicWhite,
-                  side: const BorderSide(color: AppColors.outline),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.0),
+              if (widget.isEditable) ...[
+                const SizedBox(height: 16.0),
+                OutlinedButton.icon(
+                  key: const ValueKey('playlist_detail_add_songs_button'),
+                  onPressed: _editPlaylist,
+                  icon: const Icon(Icons.add_rounded, size: 18.0),
+                  label: const Text('Add Songs'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.futuristicWhite,
+                    side: const BorderSide(color: AppColors.outline),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.0),
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -408,33 +453,17 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Section Header with subtle pencil icon on the right margin
+        // Section Header
         Padding(
           padding: const EdgeInsets.only(left: 20.0, right: 12.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'TRACKS',
-                style: GoogleFonts.inconsolata(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.4,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              IconButton(
-                key: const ValueKey('playlist_detail_edit_button'),
-                icon: const Icon(
-                  Icons.edit_outlined,
-                  size: 19.0,
-                  color: AppColors.onSurfaceVariant,
-                ),
-                onPressed: _editPlaylist,
-                tooltip: 'Edit playlist',
-                splashRadius: 18.0,
-              ),
-            ],
+          child: Text(
+            'TRACKS',
+            style: GoogleFonts.inconsolata(
+              fontSize: 13.0,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.4,
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
         ),
         const SizedBox(height: 8.0),

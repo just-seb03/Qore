@@ -80,6 +80,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
   List<AlbumDiscoveryItem> _albums = [];
   List<Song> _assortedSongs = [];
   bool _isPinned = false;
+  bool _isFlashingRed = false;
+
+  /// Whether this artist is currently pinned to favorites.
+  bool get isPinned => _isPinned;
 
   String get _artistKey => PinnedFavoritesDao.artistKey(_resolvedArtistName);
 
@@ -115,6 +119,15 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
 
   Future<void> _togglePinned() async {
     try {
+      final willPin = !_isPinned;
+      HapticFeedback.mediumImpact();
+
+      if (willPin && mounted) {
+        setState(() {
+          _isFlashingRed = true;
+        });
+      }
+
       final newStatus = await PinnedFavoritesDao.instance.togglePin(
         PinnedFavorite(
           itemType: PinnedItemType.artist,
@@ -124,14 +137,28 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
           pinnedAt: DateTime.now(),
         ),
       );
+
       if (mounted) {
         setState(() {
           _isPinned = newStatus;
         });
-        HapticFeedback.mediumImpact();
+      }
+
+      if (willPin) {
+        await Future.delayed(const Duration(milliseconds: 650));
+        if (mounted) {
+          setState(() {
+            _isFlashingRed = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('⚠️ [ArtistDetailScreen] Error toggling pin: $e');
+      if (mounted) {
+        setState(() {
+          _isFlashingRed = false;
+        });
+      }
     }
   }
 
@@ -258,8 +285,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
   @override
   Widget build(BuildContext context) {
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      color: _isPinned ? AppColors.pinnedRedBackground : AppColors.background,
+      duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
+      curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
+      color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         bottomNavigationBar: const SafeArea(
@@ -304,7 +332,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                           artistName: _resolvedArtistName,
                           onEditTap: _handleEditPhoto,
                           isPinned: _isPinned,
-                          onDoubleTap: _togglePinned,
+                          onToggleFavorite: _togglePinned,
                         ),
                         const SizedBox(height: 30.0),
 

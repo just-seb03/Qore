@@ -61,91 +61,70 @@ class HomeArtistCard extends StatelessWidget {
         splashColor: const Color(0xFF282828),
         highlightColor: const Color(0xFF1E1E1E),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 1. Square Container (matching LibraryAlbumCard dimensions) with Centered Circular Avatar
+            // 1. Large Circular Avatar without square container
             AspectRatio(
               aspectRatio: 1.0,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      blurRadius: 10.0,
-                      spreadRadius: 1.0,
-                      offset: const Offset(0, 5),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final size = constraints.maxWidth;
+                  final radius = (size / 2.0) - 6.0;
+
+                  return Center(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.16),
+                          width: 1.5,
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            blurRadius: 14.0,
+                            spreadRadius: 1.0,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: MaterialArtistAvatar(
+                        radius: radius > 0 ? radius : 46.0,
+                        artistName: artist.title,
+                        backgroundColor: AppColors.surfaceContainerHigh,
+                        iconColor: AppColors.onSurfaceVariant,
+                      ),
                     ),
-                  ],
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    width: 0.8,
-                  ),
-                ),
-                child: Center(
-                  child: Stack(
-                    alignment: Alignment.center,
-                    children: [
-                      // Subtle atmospheric ambient halo
-                      Container(
-                        width: 105.0,
-                        height: 105.0,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          gradient: RadialGradient(
-                            colors: [
-                              Colors.white.withValues(alpha: 0.06),
-                              Colors.transparent,
-                            ],
-                            stops: const [0.4, 1.0],
-                          ),
-                        ),
-                      ),
-                      Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.18),
-                            width: 1.5,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.45),
-                              blurRadius: 12.0,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                        ),
-                        child: MaterialArtistAvatar(
-                          radius: 46.0,
-                          artistName: artist.title,
-                          backgroundColor: AppColors.surfaceContainerHigh,
-                          iconColor: AppColors.onSurfaceVariant,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+                  );
+                },
               ),
             ),
             const SizedBox(height: 10.0),
 
-            // 2. Artist Name (prominent and bold)
-            Text(
-              artist.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: _nameStyle,
+            // 2. Artist Name centered in its component
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Text(
+                artist.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _nameStyle,
+              ),
             ),
             const SizedBox(height: 2.0),
 
-            // 3. Subtitle ("Artist")
-            Text(
-              artist.subtitle ?? 'Artist',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: _subtitleStyle,
+            // 3. Subtitle centered
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Text(
+                artist.subtitle ?? 'Artist',
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: _subtitleStyle,
+              ),
             ),
           ],
         ),

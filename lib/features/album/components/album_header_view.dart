@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -37,8 +38,8 @@ class AlbumHeaderView extends StatelessWidget {
   /// Whether the album is pinned to favorites.
   final bool isPinned;
 
-  /// Callback when album cover is double tapped.
-  final VoidCallback? onDoubleTap;
+  /// Callback when the favorite heart button is tapped.
+  final VoidCallback? onToggleFavorite;
 
   const AlbumHeaderView({
     super.key,
@@ -49,7 +50,7 @@ class AlbumHeaderView extends StatelessWidget {
     required this.songCount,
     required this.totalDurationMs,
     this.isPinned = false,
-    this.onDoubleTap,
+    this.onToggleFavorite,
   });
 
   String _formatTotalDuration(int totalMs) {
@@ -88,46 +89,35 @@ class AlbumHeaderView extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         // 1. Large Sharp Square Album Artwork with Deep Shadow (Not rounded)
-        GestureDetector(
-          onDoubleTap: onDoubleTap,
-          child: Container(
+        Container(
+          width: coverSize,
+          height: coverSize,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.65),
+                blurRadius: 36.0,
+                spreadRadius: 2.0,
+                offset: const Offset(0, 18),
+              ),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 10.0,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: AnimaArtworkImage(
+            mediaStoreId: representativeSongId ?? 0,
+            albumId: albumId,
+            albumName: albumName,
+            artistName: artistName,
             width: coverSize,
             height: coverSize,
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              border: isPinned
-                  ? Border.all(
-                      color: AppColors.pinnedRedBorder,
-                      width: 1.5,
-                    )
-                  : null,
-              boxShadow: [
-                BoxShadow(
-                  color: isPinned
-                      ? const Color(0xFFE50914).withValues(alpha: 0.35)
-                      : Colors.black.withValues(alpha: 0.65),
-                  blurRadius: 36.0,
-                  spreadRadius: 2.0,
-                  offset: const Offset(0, 18),
-                ),
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.35),
-                  blurRadius: 10.0,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: AnimaArtworkImage(
-              mediaStoreId: representativeSongId ?? 0,
-              albumId: albumId,
-              albumName: albumName,
-              artistName: artistName,
-              width: coverSize,
-              height: coverSize,
-              borderRadius: 0.0,
-              isThumbnail: false,
-              fallbackIcon: Icons.album_rounded,
-            ),
+            borderRadius: 0.0,
+            isThumbnail: false,
+            fallbackIcon: Icons.album_rounded,
           ),
         ),
         const SizedBox(height: 24.0),
@@ -191,6 +181,14 @@ class AlbumHeaderView extends StatelessWidget {
             letterSpacing: 0.6,
           ),
         ),
+        if (onToggleFavorite != null) ...[
+          const SizedBox(height: 12.0),
+          FavoriteHeartButton(
+            isPinned: isPinned,
+            onToggle: onToggleFavorite!,
+            size: 28.0,
+          ),
+        ],
       ],
     );
   }

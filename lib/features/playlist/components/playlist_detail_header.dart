@@ -12,6 +12,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
@@ -31,8 +32,17 @@ class PlaylistDetailHeader extends StatelessWidget {
   /// Whether the playlist is pinned to favorites.
   final bool isPinned;
 
-  /// Callback when the hero banner is double tapped.
-  final VoidCallback? onDoubleTap;
+  /// Callback when the favorite heart button is tapped.
+  final VoidCallback? onToggleFavorite;
+
+  /// Whether to render the 1920x620 hero banner cover.
+  final bool showHeroCover;
+
+  /// Whether the playlist can be edited.
+  final bool isEditable;
+
+  /// Callback when edit button is tapped.
+  final VoidCallback? onEdit;
 
   const PlaylistDetailHeader({
     super.key,
@@ -43,7 +53,10 @@ class PlaylistDetailHeader extends StatelessWidget {
     required this.onPlay,
     required this.onToggleShuffle,
     this.isPinned = false,
-    this.onDoubleTap,
+    this.onToggleFavorite,
+    this.showHeroCover = true,
+    this.isEditable = false,
+    this.onEdit,
   });
 
   String _formatTotalDuration(int totalMs) {
@@ -86,27 +99,23 @@ class PlaylistDetailHeader extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 1. Large 1920x620 Widescreen Hero Banner with Cinematic Shadow
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: GestureDetector(
-            onDoubleTap: onDoubleTap,
+        if (showHeroCover) ...[
+          // 1. Large 1920x620 Widescreen Hero Banner with Rounded Corners & Heart Button
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: AspectRatio(
               aspectRatio: 1920 / 620,
               child: Container(
                 decoration: BoxDecoration(
                   color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(12.0),
                   border: Border.all(
-                    color: isPinned
-                        ? AppColors.pinnedRedBorder
-                        : Colors.white.withValues(alpha: 0.12),
+                    color: Colors.white.withValues(alpha: 0.12),
                     width: 1.0,
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: isPinned
-                          ? const Color(0xFFE50914).withValues(alpha: 0.35)
-                          : Colors.black.withValues(alpha: 0.65),
+                      color: Colors.black.withValues(alpha: 0.65),
                       blurRadius: 32.0,
                       spreadRadius: 2.0,
                       offset: const Offset(0, 14),
@@ -118,88 +127,124 @@ class PlaylistDetailHeader extends StatelessWidget {
                     ),
                   ],
                 ),
-                child: ClipRect(
-                  child: _buildCoverWidget(),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(12.0),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Hero Cover Artwork
+                      _buildCoverWidget(),
+
+                      // Right Margin Favorite Heart Button
+                      if (onToggleFavorite != null)
+                        Positioned(
+                          right: 14.0,
+                          top: 0,
+                          bottom: 0,
+                          child: Center(
+                            child: FavoriteHeartButton(
+                              isPinned: isPinned,
+                              onToggle: onToggleFavorite!,
+                              showBackground: true,
+                              size: 24.0,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
               ),
             ),
           ),
-        ),
-        const SizedBox(height: 20.0),
+          const SizedBox(height: 20.0),
+        ] else ...[
+          const SizedBox(height: 12.0),
+        ],
 
-        // 2. Interactive Controls Row: Shuffle Toggle (Left) | Title & Metadata (Center) | Play (Right)
+        // 2. Playlist Name (Centered)
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              // Left: Shuffle Toggle Icon
-              IconButton(
-                key: const ValueKey('playlist_detail_shuffle_button'),
-                onPressed: songCount > 0 ? onToggleShuffle : null,
-                icon: Icon(
-                  Icons.shuffle_rounded,
-                  size: 26.0,
-                  color: isShuffleEnabled
-                      ? AppColors.futuristicWhite
-                      : AppColors.onSurfaceVariant.withValues(alpha: 0.4),
-                ),
-                tooltip: isShuffleEnabled ? 'Disable shuffle' : 'Enable shuffle',
-                splashRadius: 22.0,
-              ),
-              const SizedBox(width: 8.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Text(
+            playlist.name,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: titleStyle,
+          ),
+        ),
+        const SizedBox(height: 6.0),
 
-              // Center: Playlist Name & Metadata
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      playlist.name,
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: titleStyle,
-                    ),
-                    const SizedBox(height: 4.0),
-                    Text(
-                      metadataSubtitle,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inconsolata(
-                        fontSize: 13.0,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.onSurfaceVariant,
-                        letterSpacing: 0.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8.0),
+        // 3. Cantidad de canciones & duration (Centered)
+        Text(
+          metadataSubtitle,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inconsolata(
+            fontSize: 13.0,
+            fontWeight: FontWeight.w500,
+            color: AppColors.onSurfaceVariant,
+            letterSpacing: 0.6,
+          ),
+        ),
+        const SizedBox(height: 16.0),
 
-              // Right: Play / Pause Action Icon
-              IconButton(
-                key: const ValueKey('playlist_detail_play_button'),
-                onPressed: songCount > 0 ? onPlay : null,
-                icon: Icon(
-                  playlist.id != null &&
-                          PlaybackController.instance.activePlaylistId == playlist.id &&
-                          PlaybackController.instance.isPlaying
-                      ? Icons.pause_rounded
-                      : Icons.play_arrow_rounded,
-                  size: 38.0,
-                  color: AppColors.futuristicWhite,
-                ),
-                tooltip: playlist.id != null &&
+        // 4. Centered Playlist Action Menu: Shuffle | Play/Pause | Edit (if editable)
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // Left: Shuffle Toggle Icon
+            IconButton(
+              key: const ValueKey('playlist_detail_shuffle_button'),
+              onPressed: songCount > 0 ? onToggleShuffle : null,
+              icon: Icon(
+                Icons.shuffle_rounded,
+                size: 26.0,
+                color: isShuffleEnabled
+                    ? AppColors.futuristicWhite
+                    : AppColors.onSurfaceVariant.withValues(alpha: 0.4),
+              ),
+              tooltip: isShuffleEnabled ? 'Disable shuffle' : 'Enable shuffle',
+              splashRadius: 22.0,
+            ),
+            const SizedBox(width: 20.0),
+
+            // Center: Play / Pause Action Icon
+            IconButton(
+              key: const ValueKey('playlist_detail_play_button'),
+              onPressed: songCount > 0 ? onPlay : null,
+              icon: Icon(
+                playlist.id != null &&
                         PlaybackController.instance.activePlaylistId == playlist.id &&
                         PlaybackController.instance.isPlaying
-                    ? 'Pause playlist'
-                    : 'Play playlist',
-                splashRadius: 24.0,
+                    ? Icons.pause_rounded
+                    : Icons.play_arrow_rounded,
+                size: 38.0,
+                color: AppColors.futuristicWhite,
+              ),
+              tooltip: playlist.id != null &&
+                      PlaybackController.instance.activePlaylistId == playlist.id &&
+                      PlaybackController.instance.isPlaying
+                  ? 'Pause playlist'
+                  : 'Play playlist',
+              splashRadius: 24.0,
+            ),
+
+            // Right: Edit Action Icon (if editable)
+            if (isEditable && onEdit != null) ...[
+              const SizedBox(width: 20.0),
+              IconButton(
+                key: const ValueKey('playlist_detail_edit_button'),
+                icon: const Icon(
+                  Icons.edit_outlined,
+                  size: 22.0,
+                  color: AppColors.onSurfaceVariant,
+                ),
+                onPressed: onEdit,
+                tooltip: 'Edit playlist',
+                splashRadius: 22.0,
               ),
             ],
-          ),
+          ],
         ),
       ],
     );

@@ -103,6 +103,10 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
   int? _resolvedRepresentativeId;
   String? _resolvedArtist;
   bool _isPinned = false;
+  bool _isFlashingRed = false;
+
+  /// Whether this album is currently pinned to favorites.
+  bool get isPinned => _isPinned;
 
   String get _albumKey => PinnedFavoritesDao.albumKey(
         widget.albumName,
@@ -144,6 +148,15 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
 
   Future<void> _togglePinned() async {
     try {
+      final willPin = !_isPinned;
+      HapticFeedback.mediumImpact();
+
+      if (willPin && mounted) {
+        setState(() {
+          _isFlashingRed = true;
+        });
+      }
+
       final newStatus = await PinnedFavoritesDao.instance.togglePin(
         PinnedFavorite(
           itemType: PinnedItemType.album,
@@ -155,14 +168,28 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
           pinnedAt: DateTime.now(),
         ),
       );
+
       if (mounted) {
         setState(() {
           _isPinned = newStatus;
         });
-        HapticFeedback.mediumImpact();
+      }
+
+      if (willPin) {
+        await Future.delayed(const Duration(milliseconds: 650));
+        if (mounted) {
+          setState(() {
+            _isFlashingRed = false;
+          });
+        }
       }
     } catch (e) {
       debugPrint('⚠️ [AlbumDetailScreen] Error toggling pin: $e');
+      if (mounted) {
+        setState(() {
+          _isFlashingRed = false;
+        });
+      }
     }
   }
 
@@ -280,8 +307,9 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
     final totalMs = _songs.fold<int>(0, (sum, s) => sum + s.duration);
 
     return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      color: _isPinned ? AppColors.pinnedRedBackground : AppColors.background,
+      duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
+      curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
+      color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         bottomNavigationBar: const SafeArea(
@@ -320,7 +348,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
                         ),
                         const SizedBox(height: 14.0),
 
-                        // 2. Cohesive Album Header: Large Sharp Cover + Title + Artist + Duration
+                        // 2. Cohesive Album Header: Large Sharp Cover + Title + Artist + Duration + Heart
                         AlbumHeaderView(
                           albumName: widget.albumName,
                           artistName: _resolvedArtist,
@@ -329,7 +357,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
                           songCount: _songs.length,
                           totalDurationMs: totalMs,
                           isPinned: _isPinned,
-                          onDoubleTap: _togglePinned,
+                          onToggleFavorite: _togglePinned,
                         ),
                       const SizedBox(height: 24.0),
 
@@ -337,7 +365,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
                       AlbumTracksSection(songs: _songs),
 
                       // Spacing above bottom MiniPlayer
-                      const SizedBox(height: 28.0),
+                      const SizedBox(height: 32.0),
                     ],
                   ),
                 ),

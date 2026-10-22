@@ -10,7 +10,6 @@ library;
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
@@ -38,43 +37,15 @@ class LibraryPlaylistCard extends StatelessWidget {
     this.onPlayTap,
   });
 
-  static final TextStyle _subtitleStyle = GoogleFonts.inconsolata(
-    fontSize: 12.0,
-    fontWeight: FontWeight.w500,
-    color: const Color(0xFFD4D4D4),
-    letterSpacing: 0.3,
-    shadows: const [
-      Shadow(
-        color: Colors.black87,
-        blurRadius: 4.0,
-        offset: Offset(0, 1),
-      ),
-    ],
-  );
-
-  String _formatDuration(int ms) {
-    final minutes = ms ~/ 60000;
-    if (minutes < 1) return '< 1 min';
-    if (minutes < 60) return '$minutes min';
-    final hours = minutes ~/ 60;
-    final remMin = minutes % 60;
-    return '${hours}h ${remMin}m';
-  }
-
   @override
   Widget build(BuildContext context) {
-    final songStr = playlist.songCount == 1 ? '1 song' : '${playlist.songCount} songs';
-    final durationStr = playlist.totalDuration > 0
-        ? ' • ${_formatDuration(playlist.totalDuration)}'
-        : '';
-
     final titleStyle = getPlaylistTitleFont(
       playlist.fontFamily,
       baseStyle: const TextStyle(
-        fontSize: 18.0,
-        fontWeight: FontWeight.w700,
+        fontSize: 22.0,
+        fontWeight: FontWeight.w800,
         color: Colors.white,
-        letterSpacing: -0.2,
+        letterSpacing: -0.4,
         shadows: [
           Shadow(
             color: Colors.black,
@@ -95,6 +66,7 @@ class LibraryPlaylistCard extends StatelessWidget {
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF141416),
+          borderRadius: BorderRadius.circular(12.0),
           border: Border.all(
             color: Colors.white.withValues(alpha: 0.12),
             width: 1.0,
@@ -113,7 +85,8 @@ class LibraryPlaylistCard extends StatelessWidget {
             ),
           ],
         ),
-        child: ClipRect(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12.0),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -149,7 +122,7 @@ class LibraryPlaylistCard extends StatelessWidget {
                 ),
               ),
 
-              // 3. Foreground Interactive Row: Left Title & Info | Right Play Button
+              // 3. Foreground Interactive Row: Left Title | Right Play Button
               Material(
                 color: Colors.transparent,
                 child: InkWell(
@@ -157,30 +130,17 @@ class LibraryPlaylistCard extends StatelessWidget {
                   splashColor: Colors.white.withValues(alpha: 0.08),
                   highlightColor: Colors.white.withValues(alpha: 0.04),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 18.0, vertical: 12.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Left: Playlist Title (Custom Font) & Metadata
+                        // Left: Playlist Title (Custom Font, Large & Centered on Y axis)
                         Expanded(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                playlist.name,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: titleStyle,
-                              ),
-                              const SizedBox(height: 4.0),
-                              Text(
-                                '$songStr$durationStr',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: _subtitleStyle,
-                              ),
-                            ],
+                          child: Text(
+                            playlist.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: titleStyle,
                           ),
                         ),
                         const SizedBox(width: 14.0),
