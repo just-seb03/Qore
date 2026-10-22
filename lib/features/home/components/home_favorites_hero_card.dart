@@ -139,10 +139,6 @@ class HomeFavoritesHeroCard extends StatelessWidget {
                 ),
               ],
               borderRadius: BorderRadius.circular(12.0),
-              border: Border.all(
-                color: Colors.white.withValues(alpha: 0.12),
-                width: 1.0,
-              ),
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12.0),

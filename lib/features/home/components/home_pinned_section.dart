@@ -66,9 +66,6 @@ class HomePinnedSection extends StatelessWidget {
       if (halfIdx + 1 < halfItems.length) {
         rows.add(PairRowItem(halfItems[halfIdx], halfItems[halfIdx + 1]));
         halfIdx += 2;
-      } else if (halfIdx < halfItems.length && fullIdx >= fullItems.length) {
-        rows.add(PairRowItem(halfItems[halfIdx]));
-        halfIdx += 1;
       }
 
       if (fullIdx < fullItems.length) {
@@ -76,9 +73,15 @@ class HomePinnedSection extends StatelessWidget {
         fullIdx += 1;
       }
 
-      if (halfIdx < halfItems.length && fullIdx >= fullItems.length) {
-        rows.add(PairRowItem(halfItems[halfIdx]));
-        halfIdx += 1;
+      if (fullIdx >= fullItems.length) {
+        while (halfIdx + 1 < halfItems.length) {
+          rows.add(PairRowItem(halfItems[halfIdx], halfItems[halfIdx + 1]));
+          halfIdx += 2;
+        }
+        if (halfIdx < halfItems.length) {
+          rows.add(PairRowItem(halfItems[halfIdx]));
+          halfIdx += 1;
+        }
       }
     }
 

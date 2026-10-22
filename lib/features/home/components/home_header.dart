@@ -48,11 +48,10 @@ class HomeHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: padding,
-      child: Align(
-        alignment: Alignment.centerLeft,
+      child: Center(
         child: Text(
           title,
-          textAlign: TextAlign.left,
+          textAlign: TextAlign.center,
           style: _titleTextStyle,
         ),
       ),

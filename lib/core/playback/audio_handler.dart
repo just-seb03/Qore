@@ -15,23 +15,39 @@ class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player;
   final Future<void> Function() onSkipToNext;
   final Future<void> Function() onSkipToPrevious;
+  final Future<void> Function()? onToggleFavorite;
+  final bool Function()? isFavorite;
 
   AnimaAudioHandler(
     this._player, {
     required this.onSkipToNext,
     required this.onSkipToPrevious,
+    this.onToggleFavorite,
+    this.isFavorite,
   }) {
     _broadcastState(_player.playbackEvent);
     _player.playbackEventStream.listen(_broadcastState);
     _player.playerStateStream.listen((_) => _broadcastState(_player.playbackEvent));
   }
 
+  /// Manually re-broadcasts playback state (e.g. when favorite status toggles).
+  void broadcastCurrentState() {
+    _broadcastState(_player.playbackEvent);
+  }
+
   void _broadcastState(PlaybackEvent event) {
     final playing = _player.playing;
+    final isFav = isFavorite?.call() ?? false;
 
-    // Strict 3-action control list: [Previous, Play/Pause, Next].
-    // MediaControl.stop is strictly omitted to prevent Android/MIUI notification corruption.
+    final favoriteControl = MediaControl.custom(
+      androidIcon: isFav ? 'drawable/ic_heart_filled' : 'drawable/ic_heart_outline',
+      label: isFav ? 'Favorited' : 'Favorite',
+      name: 'toggleFavorite',
+    );
+
+    // Media notification controls: [Favorite, Previous, Play/Pause, Next].
     final controls = [
+      favoriteControl,
       MediaControl.skipToPrevious,
       playing ? MediaControl.pause : MediaControl.play,
       MediaControl.skipToNext,
@@ -43,8 +59,9 @@ class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
         MediaAction.seek,
         MediaAction.seekForward,
         MediaAction.seekBackward,
+        MediaAction.setRating,
       },
-      androidCompactActionIndices: const [0, 1, 2],
+      androidCompactActionIndices: const [1, 2, 3],
       processingState: switch (_player.processingState) {
         ProcessingState.idle => AudioProcessingState.idle,
         ProcessingState.completed => AudioProcessingState.completed,
@@ -80,6 +97,20 @@ class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> skipToPrevious() => onSkipToPrevious();
+
+  @override
+  Future<void> setRating(Rating rating, [Map<String, dynamic>? extras]) async {
+    await onToggleFavorite?.call();
+  }
+
+  @override
+  Future<dynamic> customAction(String name, [Map<String, dynamic>? extras]) async {
+    if (name == 'toggleFavorite') {
+      await onToggleFavorite?.call();
+      return true;
+    }
+    return super.customAction(name, extras);
+  }
 
   @override
   Future<void> stop() async {

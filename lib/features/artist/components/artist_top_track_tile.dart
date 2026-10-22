@@ -9,7 +9,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:project_anima/components/liquid_track_gesture_wrapper.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -59,16 +58,13 @@ class ArtistTopTrackTile extends StatelessWidget {
           }
         }
 
-        return LiquidTrackGestureWrapper(
-          song: song,
-          onTap: handleTap,
-          child: Material(
-            color: isCurrentTrack
-                ? AppColors.surfaceContainerHigh.withValues(alpha: 0.6)
-                : Colors.transparent,
+        return Material(
+          color: isCurrentTrack
+              ? AppColors.surfaceContainerHigh.withValues(alpha: 0.6)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14.0),
+          child: InkWell(
             borderRadius: BorderRadius.circular(14.0),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(14.0),
               onTap: handleTap,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
@@ -117,16 +113,22 @@ class ArtistTopTrackTile extends StatelessWidget {
                       ),
                     ),
 
-                    // Favorite Heart Indicator
-                    if (isFav)
-                      const Padding(
-                        padding: EdgeInsets.only(right: 4.0),
-                        child: Icon(
-                          Icons.favorite_rounded,
-                          size: 14.0,
-                          color: Colors.white,
-                        ),
+                    // Favorite Heart Button (Direct toggle without playing)
+                    IconButton(
+                      icon: Icon(
+                        isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                        size: 19.0,
+                        color: isFav ? Colors.white : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
                       ),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
+                      splashRadius: 16.0,
+                      tooltip: isFav ? 'Quitar de favoritos' : 'Añadir a favoritos',
+                      onPressed: () {
+                        FavoriteSongsDao.instance.toggleFavorite(song);
+                        HapticFeedback.lightImpact();
+                      },
+                    ),
 
                     // Add to Playback Queue Icon
                     IconButton(
@@ -172,9 +174,8 @@ class ArtistTopTrackTile extends StatelessWidget {
                 ),
               ),
             ),
-          ),
-        );
-      },
-    );
-  }
+          );
+        },
+      );
+    }
 }

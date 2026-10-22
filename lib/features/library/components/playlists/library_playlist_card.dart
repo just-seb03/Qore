@@ -67,10 +67,6 @@ class LibraryPlaylistCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFF141416),
           borderRadius: BorderRadius.circular(12.0),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.12),
-            width: 1.0,
-          ),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.70),

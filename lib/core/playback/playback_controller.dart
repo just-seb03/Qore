@@ -15,6 +15,7 @@ import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/audio_handler.dart';
@@ -142,8 +143,8 @@ class PlaybackController extends ChangeNotifier {
     }
   }
 
-  /// Initializes the system media notification service with strict 3-button layout
-  /// [Previous, Play/Pause, Next] and no stop button.
+  /// Initializes the system media notification service with controls:
+  /// [Favorite, Previous, Play/Pause, Next] and no stop button.
   Future<void> initAudioService() async {
     if (_audioHandler != null) return;
     try {
@@ -152,6 +153,10 @@ class PlaybackController extends ChangeNotifier {
           _player,
           onSkipToNext: skipToNext,
           onSkipToPrevious: skipToPrevious,
+          onToggleFavorite: toggleCurrentSongFavorite,
+          isFavorite: () =>
+              _currentSong != null &&
+              FavoriteSongsDao.instance.isFavorite(_currentSong!.mediaStoreId),
         ),
         config: const AudioServiceConfig(
           androidNotificationChannelId: 'com.example.project_anima.channel.audio',
@@ -164,9 +169,22 @@ class PlaybackController extends ChangeNotifier {
           androidResumeOnClick: false,
         ),
       );
+
+      FavoriteSongsDao.instance.favoritesRevision.addListener(_onFavoritesRevisionChanged);
     } catch (e) {
       debugPrint('PlaybackController Error initializing AudioService: $e');
     }
+  }
+
+  void _onFavoritesRevisionChanged() {
+    _audioHandler?.broadcastCurrentState();
+  }
+
+  /// Toggles favorite status for the currently playing song from system notification or UI.
+  Future<void> toggleCurrentSongFavorite() async {
+    if (_currentSong == null) return;
+    await FavoriteSongsDao.instance.toggleFavorite(_currentSong!);
+    _audioHandler?.broadcastCurrentState();
   }
 
   /// Completely stops audio playback and dismisses the system media notification widget.
@@ -520,15 +538,10 @@ class PlaybackController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Adds a song to the end of the active playback queue.
-  /// If nothing is currently playing, initiates playback immediately.
+  /// Adds a song to the end of the active playback queue without triggering playback.
   void addToQueue(Song song) {
-    if (_currentSong == null || _queue.isEmpty) {
-      playSong(song);
-    } else {
-      _queue.add(song);
-      notifyListeners();
-    }
+    _queue.add(song);
+    notifyListeners();
   }
 
   /// Plays the song at the specified [index] within the active queue.
@@ -589,6 +602,7 @@ class PlaybackController extends ChangeNotifier {
 
   @override
   void dispose() {
+    FavoriteSongsDao.instance.favoritesRevision.removeListener(_onFavoritesRevisionChanged);
     _persistenceCoordinator.dispose();
     _playerStateSubscription?.cancel();
     _processingStateSubscription?.cancel();
