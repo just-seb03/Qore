@@ -1,7 +1,7 @@
 /// File: playback_controller.dart
 /// Description: High-performance, zero-jank audio playback controller coordinating
-/// just_audio ExoPlayer backend, AudioSession audio focus, queue management,
-/// and reactive playback states for Project Anima.
+/// just_audio ExoPlayer backend, AudioPlaybackBuffer 0ms gapless buffering, AudioSession
+/// audio focus, queue management, and reactive playback states for Project Anima.
 ///
 /// Components / Classes / Functions:
 /// - PlaybackController: Singleton ChangeNotifier coordinating playback, streams, and queue.
@@ -19,6 +19,7 @@ import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/audio_handler.dart';
+import 'package:project_anima/core/playback/audio_playback_buffer.dart';
 import 'package:project_anima/core/playback/playback_persistence_coordinator.dart';
 
 /// Centralized audio playback coordinator.
@@ -28,6 +29,7 @@ class PlaybackController extends ChangeNotifier {
   final AudioPlayer _player;
   final SongDao _songDao;
   final PlaybackPersistenceCoordinator _persistenceCoordinator;
+  final AudioPlaybackBuffer _audioBuffer;
   AnimaAudioHandler? _audioHandler;
 
   Song? _currentSong;
@@ -39,23 +41,37 @@ class PlaybackController extends ChangeNotifier {
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<ProcessingState>? _processingStateSubscription;
+  StreamSubscription<int?>? _currentIndexSubscription;
 
   PlaybackController({
     AudioPlayer? player,
     SongDao? songDao,
     PlaybackPersistenceCoordinator? persistenceCoordinator,
-  })  : _player = player ?? AudioPlayer(),
-        _songDao = songDao ?? SongDao(),
-        _persistenceCoordinator = persistenceCoordinator ??
-            PlaybackPersistenceCoordinator(songDao: songDao ?? SongDao()) {
-    _initAudioSession();
-    _listenToStreams();
-  }
+    AudioPlaybackBuffer? audioBuffer,
+  }) : this._withPlayer(
+          player ?? AudioPlaybackBuffer.createOptimizedPlayer(),
+          songDao: songDao,
+          persistenceCoordinator: persistenceCoordinator,
+          audioBuffer: audioBuffer,
+        );
 
   PlaybackController._internal()
-      : _player = AudioPlayer(),
-        _songDao = SongDao(),
-        _persistenceCoordinator = PlaybackPersistenceCoordinator() {
+      : this(
+          player: AudioPlaybackBuffer.createOptimizedPlayer(),
+          songDao: SongDao(),
+          persistenceCoordinator: PlaybackPersistenceCoordinator(),
+        );
+
+  PlaybackController._withPlayer(
+    AudioPlayer player, {
+    SongDao? songDao,
+    PlaybackPersistenceCoordinator? persistenceCoordinator,
+    AudioPlaybackBuffer? audioBuffer,
+  })  : _player = player,
+        _songDao = songDao ?? SongDao(),
+        _persistenceCoordinator = persistenceCoordinator ??
+            PlaybackPersistenceCoordinator(songDao: songDao ?? SongDao()),
+        _audioBuffer = audioBuffer ?? AudioPlaybackBuffer(player: player) {
     _initAudioSession();
     _listenToStreams();
   }
@@ -63,6 +79,9 @@ class PlaybackController extends ChangeNotifier {
   /// Reference to persistence coordinator for testing or inspection.
   PlaybackPersistenceCoordinator get persistenceCoordinator =>
       _persistenceCoordinator;
+
+  /// Reference to the gapless audio playback buffer.
+  AudioPlaybackBuffer get audioBuffer => _audioBuffer;
 
   /// Reference to active system notification handler.
   AnimaAudioHandler? get audioHandler => _audioHandler;
@@ -187,15 +206,18 @@ class PlaybackController extends ChangeNotifier {
     _audioHandler?.broadcastCurrentState();
   }
 
-  /// Completely stops audio playback and dismisses the system media notification widget.
+  /// Completely stops audio playback, dismisses notification, and clears buffer.
   Future<void> stopAndClose() async {
     try {
       _stopPersistencePersister();
       await saveCurrentSessionImmediate();
       await _player.stop();
+      await _audioBuffer.clear();
       await _audioHandler?.stop();
       _currentSong = null;
       _activePlaylistId = null;
+      _queue.clear();
+      _currentIndex = -1;
       notifyListeners();
     } catch (e) {
       debugPrint('PlaybackController Error stopping playback: $e');
@@ -247,7 +269,7 @@ class PlaybackController extends ChangeNotifier {
   }
 
   /// Restores the last active playback session from SQLite across app restarts.
-  /// Preloads the audio source at the saved position in a paused state.
+  /// Preloads the audio source queue into the buffer in a paused state.
   Future<bool> restoreLastSession() async {
     final data = await _persistenceCoordinator.restoreSession();
     if (data == null) return false;
@@ -259,7 +281,15 @@ class PlaybackController extends ChangeNotifier {
     try {
       await _player.setShuffleModeEnabled(data.shuffleEnabled);
       await _player.setLoopMode(data.loopMode);
-      await _player.setFilePath(data.song.path, initialPosition: data.position);
+      if (_queue.isNotEmpty) {
+        await _audioBuffer.loadQueue(
+          _queue,
+          initialIndex: data.currentIndex,
+          initialPosition: data.position,
+        );
+      } else {
+        await _player.setFilePath(data.song.path, initialPosition: data.position);
+      }
       await _player.pause();
     } catch (e) {
       debugPrint('PlaybackController Error preloading restored audio file: $e');
@@ -289,9 +319,50 @@ class PlaybackController extends ChangeNotifier {
         _handleTrackCompleted();
       }
     });
+
+    _currentIndexSubscription = _player.currentIndexStream.listen((index) {
+      if (index != null && index >= 0 && index < _queue.length) {
+        _onTrackTransition(index);
+      }
+    });
   }
 
-  /// Auto-advances to next track upon song completion based on queue and loop mode.
+  /// Handles seamless 0ms track transition emitted by the audio buffer engine.
+  void _onTrackTransition(int index) {
+    if (index < 0 || index >= _queue.length) return;
+    if (_currentIndex == index && _currentSong?.mediaStoreId == _queue[index].mediaStoreId) {
+      return;
+    }
+
+    _currentIndex = index;
+    _currentSong = _queue[index];
+
+    _updateSystemNotification(_currentSong!);
+    _persistCurrentSessionImmediate();
+    _recordPlaybackHistory(_currentSong!);
+    notifyListeners();
+  }
+
+  /// Records playback history in SQLite asynchronously without blocking the audio engine.
+  void _recordPlaybackHistory(Song song) {
+    unawaited(() async {
+      try {
+        var songDbId = song.id;
+        if (songDbId == null) {
+          final dbSong = await _songDao.getSongByMediaStoreId(song.mediaStoreId);
+          songDbId = dbSong?.id ?? song.mediaStoreId;
+        }
+        await _songDao.recordPlayback(
+          songId: songDbId,
+          artist: song.artist,
+        );
+      } catch (e) {
+        debugPrint('PlaybackController Error recording playback history: $e');
+      }
+    }());
+  }
+
+  /// Auto-advances or stops when the entire playlist reaches completion.
   void _handleTrackCompleted() {
     if (_player.loopMode == LoopMode.one) {
       _player.seek(Duration.zero);
@@ -299,14 +370,21 @@ class PlaybackController extends ChangeNotifier {
       return;
     }
 
-    if (_queue.isNotEmpty && _currentIndex < _queue.length - 1) {
-      skipToNext();
-    } else if (_player.loopMode == LoopMode.all && _queue.isNotEmpty) {
-      _playIndex(0);
-    } else {
-      _player.pause();
-      _player.seek(Duration.zero);
+    if (_player.loopMode == LoopMode.all && _queue.isNotEmpty) {
+      if (_audioBuffer.hasSource) {
+        _audioBuffer.seekToIndex(0);
+        _player.play();
+      } else {
+        _playIndex(0);
+      }
+      return;
     }
+
+    // Natural end of queue with LoopMode.off
+    _player.pause();
+    _player.seek(Duration.zero);
+    _persistCurrentSessionImmediate(overridePosition: Duration.zero);
+    notifyListeners();
   }
 
   /// Resolves the filesystem URI or MediaStore content URI for notification artwork.
@@ -369,14 +447,51 @@ class PlaybackController extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// Checks whether a new queue matches the currently active queue in memory and buffer.
+  bool _isSameQueue(List<Song>? newQueue) {
+    if (newQueue == null || newQueue.isEmpty) return false;
+    if (!_audioBuffer.hasSource || _queue.length != newQueue.length) return false;
+    if (_queue.first.mediaStoreId != newQueue.first.mediaStoreId ||
+        _queue.last.mediaStoreId != newQueue.last.mediaStoreId) {
+      return false;
+    }
+    for (int i = 0; i < _queue.length; i++) {
+      if (_queue[i].mediaStoreId != newQueue[i].mediaStoreId) return false;
+    }
+    return true;
+  }
+
   /// Plays a specific [Song] and optionally initializes or replaces the active [queue].
-  /// Optionally tracks the originating [playlistId] for active playlist state highlighting.
+  /// Utilizes the gapless [AudioPlaybackBuffer] with lookahead pre-buffering for 0ms transitions.
+  /// If the track belongs to the already active queue, seeks instantly without rebuilding the buffer.
   Future<void> playSong(Song song, {List<Song>? queue, int? playlistId}) async {
     unawaited(_checkNotificationPermission());
 
     _activePlaylistId = playlistId;
 
-    // 1. Update queue
+    // Fast-path: If the queue is identical to what's already buffered, seek instantly in 0ms!
+    if (_isSameQueue(queue)) {
+      final targetIndex = _queue.indexWhere((s) => s.id == song.id || s.mediaStoreId == song.mediaStoreId);
+      if (targetIndex != -1) {
+        _currentIndex = targetIndex;
+        _currentSong = _queue[targetIndex];
+        notifyListeners();
+
+        try {
+          await _audioBuffer.seekToIndex(targetIndex);
+          await _player.play();
+
+          _persistCurrentSessionImmediate();
+          _updateSystemNotification(_currentSong!);
+          _recordPlaybackHistory(_currentSong!);
+        } catch (e) {
+          debugPrint('PlaybackController Error seeking to track in active buffer: $e');
+        }
+        return;
+      }
+    }
+
+    // 1. Update queue in memory
     if (queue != null && queue.isNotEmpty) {
       _queue = List<Song>.from(queue);
       _currentIndex = _queue.indexWhere((s) => s.id == song.id || s.mediaStoreId == song.mediaStoreId);
@@ -392,32 +507,24 @@ class PlaybackController extends ChangeNotifier {
     _currentSong = song;
     notifyListeners();
 
-    // 2. Load audio file and start playback
+    // 2. Load queue into the 0ms pre-buffering engine and start playback
     try {
-      await _player.setFilePath(song.path);
+      await _audioBuffer.loadQueue(
+        _queue,
+        initialIndex: _currentIndex,
+        initialPosition: Duration.zero,
+      );
       await _player.play();
 
       _persistCurrentSessionImmediate();
-
-      // 3. Update system notification widget metadata
       _updateSystemNotification(song);
-
-      // 4. Record playback history asynchronously in SQLite
-      var songDbId = song.id;
-      if (songDbId == null) {
-        final dbSong = await _songDao.getSongByMediaStoreId(song.mediaStoreId);
-        songDbId = dbSong?.id ?? song.mediaStoreId;
-      }
-      _songDao.recordPlayback(
-        songId: songDbId,
-        artist: song.artist,
-      );
+      _recordPlaybackHistory(song);
     } catch (e) {
-      debugPrint('PlaybackController Error loading audio file: $e');
+      debugPrint('PlaybackController Error loading audio queue: $e');
     }
   }
 
-  /// Internal helper to play a track by queue index.
+  /// Internal helper to play a track by queue index using the buffer.
   Future<void> _playIndex(int index) async {
     if (index < 0 || index >= _queue.length) return;
     try {
@@ -425,24 +532,18 @@ class PlaybackController extends ChangeNotifier {
       _currentSong = _queue[index];
       notifyListeners();
 
-      await _player.setFilePath(_currentSong!.path);
+      if (_audioBuffer.hasSource) {
+        await _audioBuffer.seekToIndex(index);
+      } else {
+        await _audioBuffer.loadQueue(_queue, initialIndex: index);
+      }
       await _player.play();
 
       _persistCurrentSessionImmediate();
-
       _updateSystemNotification(_currentSong!);
-
-      var songDbId = _currentSong!.id;
-      if (songDbId == null) {
-        final dbSong = await _songDao.getSongByMediaStoreId(_currentSong!.mediaStoreId);
-        songDbId = dbSong?.id ?? _currentSong!.mediaStoreId;
-      }
-      _songDao.recordPlayback(
-        songId: songDbId,
-        artist: _currentSong!.artist,
-      );
+      _recordPlaybackHistory(_currentSong!);
     } catch (e) {
-      debugPrint('PlaybackController Error loading audio file at index $index: $e');
+      debugPrint('PlaybackController Error loading audio buffer at index $index: $e');
     }
   }
 
@@ -475,14 +576,20 @@ class PlaybackController extends ChangeNotifier {
     _persistCurrentSessionImmediate(overridePosition: position);
   }
 
-  /// Skips to the next track in the queue.
+  /// Skips to the next track in the queue with instantaneous 0ms transition.
   Future<void> skipToNext() async {
     if (_queue.isEmpty) return;
 
-    if (_currentIndex < _queue.length - 1) {
+    if (_audioBuffer.hasSource && _player.hasNext) {
+      await _audioBuffer.seekToNext();
+    } else if (_currentIndex < _queue.length - 1) {
       await _playIndex(_currentIndex + 1);
     } else if (_player.loopMode == LoopMode.all && _queue.isNotEmpty) {
-      await _playIndex(0);
+      if (_audioBuffer.hasSource) {
+        await _audioBuffer.seekToIndex(0);
+      } else {
+        await _playIndex(0);
+      }
     } else {
       await _player.seek(Duration.zero);
       _persistCurrentSessionImmediate(overridePosition: Duration.zero);
@@ -499,10 +606,16 @@ class PlaybackController extends ChangeNotifier {
       return;
     }
 
-    if (_currentIndex > 0) {
+    if (_audioBuffer.hasSource && _player.hasPrevious) {
+      await _audioBuffer.seekToPrevious();
+    } else if (_currentIndex > 0) {
       await _playIndex(_currentIndex - 1);
     } else if (_player.loopMode == LoopMode.all && _queue.isNotEmpty) {
-      await _playIndex(_queue.length - 1);
+      if (_audioBuffer.hasSource) {
+        await _audioBuffer.seekToIndex(_queue.length - 1);
+      } else {
+        await _playIndex(_queue.length - 1);
+      }
     } else {
       await _player.seek(Duration.zero);
       _persistCurrentSessionImmediate(overridePosition: Duration.zero);
@@ -539,13 +652,18 @@ class PlaybackController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Adds a song to the beginning of the active queue (next up to play) without triggering playback.
+  /// Adds a song to the beginning of the active queue (next up to play) without interrupting playback.
+  /// Dynamically inserts the track into the pre-buffering engine so it is preloaded next.
   void addToQueue(Song song) {
     if (_queue.isEmpty || _currentIndex < 0) {
       _queue.insert(0, song);
+      _currentIndex = 0;
+      _currentSong = song;
+      unawaited(_audioBuffer.insert(0, song));
     } else {
       final insertIndex = (_currentIndex + 1).clamp(0, _queue.length);
       _queue.insert(insertIndex, song);
+      unawaited(_audioBuffer.insert(insertIndex, song));
     }
     notifyListeners();
   }
@@ -555,7 +673,7 @@ class PlaybackController extends ChangeNotifier {
     await _playIndex(index);
   }
 
-  /// Reorders items in the queue from [oldIndex] to [newIndex].
+  /// Reorders items in the queue from [oldIndex] to [newIndex] and updates the buffer.
   void reorderQueue(int oldIndex, int newIndex) {
     if (oldIndex < 0 || oldIndex >= _queue.length) return;
     final currentPlaying = _currentSong;
@@ -566,10 +684,11 @@ class PlaybackController extends ChangeNotifier {
     if (currentPlaying != null) {
       _currentIndex = _queue.indexOf(currentPlaying);
     }
+    unawaited(_audioBuffer.move(oldIndex, targetIndex));
     notifyListeners();
   }
 
-  /// Removes the song at [index] from the queue.
+  /// Removes the song at [index] from the queue and updates the buffer.
   void removeFromQueue(int index) {
     if (index < 0 || index >= _queue.length) return;
     final currentPlaying = _currentSong;
@@ -578,6 +697,7 @@ class PlaybackController extends ChangeNotifier {
     if (currentPlaying != null) {
       _currentIndex = _queue.indexOf(currentPlaying);
     }
+    unawaited(_audioBuffer.removeAt(index));
     notifyListeners();
   }
 
@@ -586,9 +706,11 @@ class PlaybackController extends ChangeNotifier {
     if (_currentSong != null) {
       _queue = [_currentSong!];
       _currentIndex = 0;
+      unawaited(_audioBuffer.clearUpcoming(0));
     } else {
       _queue.clear();
       _currentIndex = -1;
+      unawaited(_audioBuffer.clear());
     }
     notifyListeners();
   }
@@ -612,6 +734,8 @@ class PlaybackController extends ChangeNotifier {
     _persistenceCoordinator.dispose();
     _playerStateSubscription?.cancel();
     _processingStateSubscription?.cancel();
+    _currentIndexSubscription?.cancel();
+    _audioBuffer.dispose();
     _player.dispose();
     super.dispose();
   }
