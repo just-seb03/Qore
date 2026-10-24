@@ -92,6 +92,7 @@ class FavoriteSongsDao {
             duration: (r['duration'] as int?) ?? 0,
             path: (r['path'] as String?) ?? '',
             trackNumber: r['track_number'] as int?,
+            discNumber: r['disc_number'] as int?,
             dateModified: (r['date_modified'] as int?) ?? 0,
           ),
         );
@@ -134,6 +135,7 @@ class FavoriteSongsDao {
             'path': song.path,
             'date_modified': song.dateModified,
             'track_number': song.trackNumber,
+            'disc_number': song.discNumber,
             'favorited_at': DateTime.now().millisecondsSinceEpoch,
           },
           conflictAlgorithm: ConflictAlgorithm.replace,

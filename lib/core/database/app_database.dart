@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 9;
+  static const int databaseVersion = 10;
 
   Database? _db;
 
@@ -231,6 +231,20 @@ class AppDatabase {
         );
       } catch (_) {}
     }
+
+    if (oldVersion < 10) {
+      try {
+        await db.execute('ALTER TABLE songs ADD COLUMN disc_number INTEGER');
+      } catch (_) {}
+      try {
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_songs_album_disc_track ON songs (album COLLATE NOCASE, disc_number ASC, track_number ASC)',
+        );
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE favorite_songs ADD COLUMN disc_number INTEGER');
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
@@ -252,6 +266,21 @@ class AppDatabase {
           'CREATE INDEX IF NOT EXISTS idx_songs_album_track ON songs (album COLLATE NOCASE, track_number ASC)',
         );
       }
+      final hasDiscNumber = columns.any((col) => col['name'] == 'disc_number');
+      if (!hasDiscNumber) {
+        await db.execute('ALTER TABLE songs ADD COLUMN disc_number INTEGER');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_songs_album_disc_track ON songs (album COLLATE NOCASE, disc_number ASC, track_number ASC)',
+        );
+      }
+
+      // Backfill disc_number and track_number for tracks encoded as disc * 1000 + track (e.g. 1001 -> disc 1, track 1)
+      await db.execute('''
+        UPDATE songs SET
+          disc_number = track_number / 1000,
+          track_number = track_number % 1000
+        WHERE track_number >= 1000 AND (disc_number IS NULL OR disc_number <= 0);
+      ''');
       await db.execute('''
         CREATE TABLE IF NOT EXISTS app_metadata (
           key TEXT PRIMARY KEY,
@@ -353,6 +382,7 @@ class AppDatabase {
           path TEXT NOT NULL,
           date_modified INTEGER,
           track_number INTEGER,
+          disc_number INTEGER,
           favorited_at INTEGER NOT NULL
         )
       ''');
@@ -377,6 +407,7 @@ class AppDatabase {
         duration INTEGER,
         path TEXT NOT NULL,
         track_number INTEGER,
+        disc_number INTEGER,
         date_modified INTEGER,
         date_added INTEGER,
         size INTEGER
@@ -471,6 +502,9 @@ class AppDatabase {
       'CREATE INDEX IF NOT EXISTS idx_songs_album_track ON songs (album COLLATE NOCASE, track_number ASC)',
     );
     await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_songs_album_disc_track ON songs (album COLLATE NOCASE, disc_number ASC, track_number ASC)',
+    );
+    await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_songs_title ON songs (title COLLATE NOCASE)',
     );
     await db.execute(
@@ -525,6 +559,7 @@ class AppDatabase {
         path TEXT NOT NULL,
         date_modified INTEGER,
         track_number INTEGER,
+        disc_number INTEGER,
         favorited_at INTEGER NOT NULL
       )
     ''');

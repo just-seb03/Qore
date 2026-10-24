@@ -38,6 +38,9 @@ class Song {
   /// Track position or index inside the album (e.g. 1, 2, 3).
   final int? trackNumber;
 
+  /// Physical disc or volume number within a multi-disc album (e.g. 1, 2).
+  final int? discNumber;
+
   /// Last modification timestamp in seconds.
   final int dateModified;
 
@@ -58,6 +61,7 @@ class Song {
     required this.duration,
     required this.path,
     this.trackNumber,
+    this.discNumber,
     required this.dateModified,
     this.dateAdded,
     this.size,
@@ -76,6 +80,7 @@ class Song {
       'duration': duration,
       'path': path,
       'track_number': trackNumber,
+      'disc_number': discNumber,
       'date_modified': dateModified,
       'date_added': dateAdded,
       'size': size,
@@ -95,6 +100,7 @@ class Song {
       duration: (map['duration'] as int?) ?? 0,
       path: map['path'] as String,
       trackNumber: (map['track_number'] as num?)?.toInt(),
+      discNumber: (map['disc_number'] as num?)?.toInt(),
       dateModified: (map['date_modified'] as int?) ?? 0,
       dateAdded: map['date_added'] as int?,
       size: map['size'] as int?,
@@ -113,6 +119,7 @@ class Song {
     int? duration,
     String? path,
     int? trackNumber,
+    int? discNumber,
     int? dateModified,
     int? dateAdded,
     int? size,
@@ -128,6 +135,7 @@ class Song {
       duration: duration ?? this.duration,
       path: path ?? this.path,
       trackNumber: trackNumber ?? this.trackNumber,
+      discNumber: discNumber ?? this.discNumber,
       dateModified: dateModified ?? this.dateModified,
       dateAdded: dateAdded ?? this.dateAdded,
       size: size ?? this.size,

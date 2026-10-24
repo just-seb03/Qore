@@ -256,16 +256,30 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
               songs.isNotEmpty) {
             _resolvedRepresentativeId = songs.first.mediaStoreId;
           }
-          if ((_resolvedArtist == null ||
-                  _resolvedArtist!.trim().isEmpty ||
-                  _resolvedArtist == '<Desconocido>' ||
-                  _resolvedArtist == 'Unknown Artist') &&
-              songs.isNotEmpty) {
-            final firstArtist = songs.first.albumArtist ?? songs.first.artist;
-            if (firstArtist != null &&
-                firstArtist.trim().isNotEmpty &&
-                firstArtist != '<Desconocido>') {
-              _resolvedArtist = AlbumDetailScreen.sanitizeArtist(firstArtist);
+          if (songs.isNotEmpty) {
+            String? definitiveAlbumArtist;
+            for (final s in songs) {
+              if (s.albumArtist != null &&
+                  s.albumArtist!.trim().isNotEmpty &&
+                  s.albumArtist != '<Desconocido>' &&
+                  s.albumArtist != 'Unknown Artist') {
+                definitiveAlbumArtist = s.albumArtist!.trim();
+                break;
+              }
+            }
+
+            if (definitiveAlbumArtist != null) {
+              _resolvedArtist = AlbumDetailScreen.sanitizeArtist(definitiveAlbumArtist);
+            } else if (_resolvedArtist == null ||
+                _resolvedArtist!.trim().isEmpty ||
+                _resolvedArtist == '<Desconocido>' ||
+                _resolvedArtist == 'Unknown Artist') {
+              final firstArtist = songs.first.artist;
+              if (firstArtist != null &&
+                  firstArtist.trim().isNotEmpty &&
+                  firstArtist != '<Desconocido>') {
+                _resolvedArtist = AlbumDetailScreen.sanitizeArtist(firstArtist);
+              }
             }
           }
           _isLoading = false;

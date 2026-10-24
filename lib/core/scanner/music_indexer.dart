@@ -50,6 +50,7 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
     String? albumArtist = item.fallbackAlbumArtist;
     int duration = item.duration;
     int? trackNumber = item.trackNumber;
+    int? discNumber = item.discNumber;
 
     try {
       final file = File(item.path);
@@ -72,6 +73,9 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
         }
         if (metadata.trackNumber != null && metadata.trackNumber! > 0) {
           trackNumber = metadata.trackNumber;
+        }
+        if (metadata.discNumber != null && metadata.discNumber! > 0) {
+          discNumber = metadata.discNumber;
         }
       }
     } catch (_) {
@@ -117,6 +121,38 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
       }
     }
 
+    // Multi-disc track numbers encoded in trackNumber (e.g. 1001 -> disc 1, track 1)
+    if (trackNumber != null && trackNumber >= 1000) {
+      final inferredDisc = trackNumber ~/ 1000;
+      final inferredTrack = trackNumber % 1000;
+      if (inferredDisc >= 1 && inferredDisc <= 99 && inferredTrack >= 1 && inferredTrack <= 999) {
+        discNumber ??= inferredDisc;
+        trackNumber = inferredTrack;
+      }
+    }
+
+    // Multi-disc pattern from filename (e.g. "1-02 Title.mp3", "1.02 Title.flac")
+    if (discNumber == null || discNumber <= 0) {
+      final fileName = item.path.split(Platform.pathSeparator).last;
+      final discTrackMatch = RegExp(r'^(\d{1,2})[-.](\d{1,3})[\s._-]+').firstMatch(fileName);
+      if (discTrackMatch != null) {
+        final parsedDisc = int.tryParse(discTrackMatch.group(1)!);
+        final parsedTrack = int.tryParse(discTrackMatch.group(2)!);
+        if (parsedDisc != null && parsedDisc > 0 && parsedDisc < 10) {
+          discNumber = parsedDisc;
+          trackNumber ??= parsedTrack;
+        }
+      }
+    }
+
+    // Multi-disc directory pattern (e.g. ".../Album/Disc 1/01.mp3", ".../CD 2/...")
+    if (discNumber == null || discNumber <= 0) {
+      final folderDiscMatch = RegExp(r'[/\\](?:cd|disc|disk)\s*(\d+)', caseSensitive: false).firstMatch(item.path);
+      if (folderDiscMatch != null) {
+        discNumber = int.tryParse(folderDiscMatch.group(1)!);
+      }
+    }
+
     // Fallback track number extraction from filename/title if tag reader had none
     if (trackNumber == null || trackNumber <= 0) {
       final fileName = item.path.split(Platform.pathSeparator).last;
@@ -141,6 +177,7 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
       duration: duration,
       path: item.path,
       trackNumber: trackNumber,
+      discNumber: discNumber,
       dateModified: item.dateModified,
       dateAdded: item.dateAdded,
       size: item.size,
@@ -263,6 +300,20 @@ class MusicIndexer {
         await _songDao.markTrackNumberBackfilled();
       }
 
+      // Check if one-time disc_number backfill is needed for cached songs
+      final bool needsDiscNumberBackfill = !await _songDao.isDiscNumberBackfilled();
+      if (needsDiscNumberBackfill) {
+        final Map<int, int> discBackfillMap = {
+          for (final item in deviceItems)
+            if (item.discNumber != null && item.discNumber! > 0)
+              item.mediaStoreId: item.discNumber!,
+        };
+        if (discBackfillMap.isNotEmpty) {
+          await _songDao.backfillDiscNumbers(discBackfillMap);
+        }
+        await _songDao.markDiscNumberBackfilled();
+      }
+
       // Check if one-time physical album_artist tag backfill is needed for cached songs
       final bool needsPhysicalBackfill = !await _songDao.isPhysicalAlbumArtistBackfilled();
       if (needsPhysicalBackfill) {
@@ -382,6 +433,7 @@ class MusicIndexer {
           fallbackAlbumArtist: raw['albumArtist'] as String?,
           albumId: (raw['albumId'] as num?)?.toInt(),
           trackNumber: (raw['trackNumber'] as num?)?.toInt(),
+          discNumber: (raw['discNumber'] as num?)?.toInt(),
         ));
       }
       return items;
@@ -413,9 +465,22 @@ class MusicIndexer {
           final fileName = path.split(Platform.pathSeparator).last;
           final title = fileName.replaceAll(RegExp(r'\.[a-zA-Z0-9]+$'), '');
           int? trackNumber;
-          final trackMatch = RegExp(r'^(\d+)[\s._-]+').firstMatch(fileName);
-          if (trackMatch != null) {
-            trackNumber = int.tryParse(trackMatch.group(1)!);
+          int? discNumber;
+
+          final discTrackMatch = RegExp(r'^(\d{1,2})[-.](\d{1,3})[\s._-]+').firstMatch(fileName);
+          if (discTrackMatch != null) {
+            discNumber = int.tryParse(discTrackMatch.group(1)!);
+            trackNumber = int.tryParse(discTrackMatch.group(2)!);
+          } else {
+            final trackMatch = RegExp(r'^(\d+)[\s._-]+').firstMatch(fileName);
+            if (trackMatch != null) {
+              trackNumber = int.tryParse(trackMatch.group(1)!);
+            }
+          }
+
+          final folderDiscMatch = RegExp(r'[/\\](?:cd|disc|disk)\s*(\d+)', caseSensitive: false).firstMatch(path);
+          if (folderDiscMatch != null) {
+            discNumber ??= int.tryParse(folderDiscMatch.group(1)!);
           }
 
           items.add(LightweightAudioItem(
@@ -430,6 +495,7 @@ class MusicIndexer {
             fallbackAlbum: '<Desconocido>',
             albumId: null,
             trackNumber: trackNumber,
+            discNumber: discNumber,
           ));
         } catch (_) {
           // Skip inaccessible file
@@ -441,33 +507,47 @@ class MusicIndexer {
     return items;
   }
 
-  /// Inspects physical audio file tags on-demand for tracks lacking track numbers.
-  /// Automatically writes resolved track numbers into SQLite in a single transaction
-  /// and returns the songs with updated trackNumber attributes.
+  /// Inspects physical audio file tags on-demand for tracks lacking track or disc numbers.
+  /// Automatically writes resolved track and disc numbers into SQLite in a single transaction
+  /// and returns the songs with updated attributes.
   Future<List<Song>> resolveMissingTrackNumbers(List<Song> songs) async {
     final missing = songs
-        .where((s) => s.trackNumber == null || s.trackNumber! <= 0)
+        .where((s) => (s.trackNumber == null || s.trackNumber! <= 0) || (s.discNumber == null || s.discNumber! <= 0))
         .toList();
     if (missing.isEmpty) return songs;
 
-    final Map<int, int> resolvedMap = {};
+    final Map<int, int> resolvedTracks = {};
+    final Map<int, int> resolvedDiscs = {};
     for (final s in missing) {
       try {
         final file = File(s.path);
         if (file.existsSync()) {
           final metadata = readMetadata(file, getImage: false);
           if (metadata.trackNumber != null && metadata.trackNumber! > 0) {
-            resolvedMap[s.mediaStoreId] = metadata.trackNumber!;
+            resolvedTracks[s.mediaStoreId] = metadata.trackNumber!;
+          }
+          if (metadata.discNumber != null && metadata.discNumber! > 0) {
+            resolvedDiscs[s.mediaStoreId] = metadata.discNumber!;
           }
         }
       } catch (_) {}
     }
 
-    if (resolvedMap.isNotEmpty) {
-      await _songDao.backfillTrackNumbers(resolvedMap);
+    if (resolvedTracks.isNotEmpty) {
+      await _songDao.backfillTrackNumbers(resolvedTracks);
+    }
+    if (resolvedDiscs.isNotEmpty) {
+      await _songDao.backfillDiscNumbers(resolvedDiscs);
+    }
+
+    if (resolvedTracks.isNotEmpty || resolvedDiscs.isNotEmpty) {
       return songs.map((s) {
-        final newTrack = resolvedMap[s.mediaStoreId];
-        return newTrack != null ? s.copyWith(trackNumber: newTrack) : s;
+        final newTrack = resolvedTracks[s.mediaStoreId];
+        final newDisc = resolvedDiscs[s.mediaStoreId];
+        return s.copyWith(
+          trackNumber: newTrack ?? s.trackNumber,
+          discNumber: newDisc ?? s.discNumber,
+        );
       }).toList();
     }
 

@@ -264,6 +264,7 @@ class MainActivity : AudioServiceActivity() {
         )
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
             projectionList.add(MediaStore.Audio.AudioColumns.ALBUM_ARTIST)
+            projectionList.add(MediaStore.Audio.AudioColumns.DISC_NUMBER)
         }
         val projection = projectionList.toTypedArray()
 
@@ -289,6 +290,11 @@ class MainActivity : AudioServiceActivity() {
             } else {
                 c.getColumnIndex("album_artist")
             }
+            val discCol = if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.R) {
+                c.getColumnIndex(MediaStore.Audio.AudioColumns.DISC_NUMBER)
+            } else {
+                c.getColumnIndex("disc_number")
+            }
             val albumIdCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
             val trackCol = c.getColumnIndex(MediaStore.Audio.Media.TRACK)
             val durationCol = c.getColumnIndexOrThrow(MediaStore.Audio.Media.DURATION)
@@ -303,7 +309,13 @@ class MainActivity : AudioServiceActivity() {
 
                 val albumArtist = if (albumArtistCol != -1) c.getString(albumArtistCol) else null
                 val rawTrack = if (trackCol != -1) c.getInt(trackCol) else 0
-                val trackNumber = if (rawTrack > 0) rawTrack else null
+
+                var discNumber: Int? = if (rawTrack >= 1000) rawTrack / 1000 else null
+                if (discNumber == null && discCol != -1) {
+                    val d = c.getInt(discCol)
+                    if (d > 0) discNumber = d
+                }
+                val trackNumber = if (rawTrack >= 1000) rawTrack % 1000 else if (rawTrack > 0) rawTrack else null
 
                 val songMap = mapOf(
                     "id" to c.getLong(idCol),
@@ -314,6 +326,7 @@ class MainActivity : AudioServiceActivity() {
                     "albumArtist" to albumArtist,
                     "albumId" to c.getLong(albumIdCol),
                     "trackNumber" to trackNumber,
+                    "discNumber" to discNumber,
                     "duration" to duration,
                     "dateModified" to c.getLong(dateModifiedCol),
                     "dateAdded" to c.getLong(dateAddedCol),

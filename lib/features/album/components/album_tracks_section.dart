@@ -1,9 +1,11 @@
 /// File: album_tracks_section.dart
-/// Description: Section component rendering the TRACKS header and the ordered
-/// list of album songs using AlbumTrackTile.
+/// Description: Section component rendering the album tracklist.
+/// Automatically partitions tracks by disc numbers ("DISC 1", "DISC 2", etc.)
+/// when the album contains more than one disc, while preserving a unified
+/// playback queue across the entire album.
 ///
 /// Components / Classes / Functions:
-/// - AlbumTracksSection: Cohesive tracklist section for album views.
+/// - AlbumTracksSection: Cohesive tracklist section with multi-disc support.
 library;
 
 import 'package:flutter/material.dart';
@@ -12,7 +14,9 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/components/album_track_tile.dart';
 
-/// Cohesive tracks section displaying the 'TRACKS' header and ordered track tiles.
+/// Cohesive tracks section displaying the tracklist, automatically segmented
+/// into English disc headers ('DISC 1', 'DISC 2') if and only if the album
+/// contains multiple discs.
 class AlbumTracksSection extends StatelessWidget {
   /// Ordered list of album songs.
   final List<Song> songs;
@@ -28,41 +32,116 @@ class AlbumTracksSection extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
+    // Determine unique disc numbers across all album songs
+    final Set<int> uniqueDiscs = {};
+    for (final song in songs) {
+      uniqueDiscs.add((song.discNumber != null && song.discNumber! > 0)
+          ? song.discNumber!
+          : 1);
+    }
+
+    final bool hasMultipleDiscs = uniqueDiscs.length > 1;
+
+    // Single-disc album: Render standard flat tracklist with "TRACKS" header
+    if (!hasMultipleDiscs) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Text(
+              'TRACKS',
+              style: GoogleFonts.inconsolata(
+                fontSize: 13.0,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.4,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+          ),
+          const SizedBox(height: 8.0),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 14.0),
+            itemCount: songs.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 2.0),
+            itemBuilder: (context, index) {
+              final song = songs[index];
+              return AlbumTrackTile(
+                song: song,
+                trackIndex: index + 1,
+                allAlbumSongs: songs,
+              );
+            },
+          ),
+        ],
+      );
+    }
+
+    // Multi-disc album: Partition songs by disc number in ascending order
+    final List<int> sortedDiscs = uniqueDiscs.toList()..sort();
+    final Map<int, List<Song>> songsByDisc = {
+      for (final disc in sortedDiscs) disc: <Song>[],
+    };
+
+    for (final song in songs) {
+      final disc = (song.discNumber != null && song.discNumber! > 0)
+          ? song.discNumber!
+          : 1;
+      songsByDisc[disc]!.add(song);
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Section Header
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0),
-          child: Text(
-            'TRACKS',
-            style: GoogleFonts.inconsolata(
-              fontSize: 13.0,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 1.4,
-              color: AppColors.onSurfaceVariant,
+        for (final disc in sortedDiscs) ...[
+          Padding(
+            padding: EdgeInsets.only(
+              left: 20.0,
+              right: 20.0,
+              top: disc == sortedDiscs.first ? 0.0 : 20.0,
+              bottom: 8.0,
+            ),
+            child: Row(
+              children: [
+                Text(
+                  'DISC $disc',
+                  style: GoogleFonts.inconsolata(
+                    fontSize: 13.0,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(width: 12.0),
+                Expanded(
+                  child: Container(
+                    height: 1.0,
+                    color: AppColors.surfaceContainerHigh.withValues(alpha: 0.35),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        const SizedBox(height: 8.0),
-
-        // Tracklist
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 14.0),
-          itemCount: songs.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 2.0),
-          itemBuilder: (context, index) {
-            final song = songs[index];
-            return AlbumTrackTile(
-              song: song,
-              trackIndex: index + 1,
-              allAlbumSongs: songs,
-            );
-          },
-        ),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            padding: const EdgeInsets.symmetric(horizontal: 14.0),
+            itemCount: songsByDisc[disc]!.length,
+            separatorBuilder: (_, _) => const SizedBox(height: 2.0),
+            itemBuilder: (context, index) {
+              final song = songsByDisc[disc]![index];
+              return AlbumTrackTile(
+                song: song,
+                trackIndex: index + 1,
+                allAlbumSongs: songs,
+              );
+            },
+          ),
+        ],
       ],
     );
   }

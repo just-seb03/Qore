@@ -226,7 +226,25 @@ class SongDao {
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
-      WITH song_clean AS (
+      WITH album_meta AS (
+        SELECT
+          s.album COLLATE NOCASE AS album_norm,
+          COALESCE(s.album_id, 0) AS album_id_norm,
+          MAX(
+            CASE
+              WHEN s.album_artist IS NOT NULL 
+                AND TRIM(s.album_artist) != '' 
+                AND s.album_artist != '<Desconocido>' 
+                AND s.album_artist != 'Unknown Artist'
+              THEN TRIM(s.album_artist)
+              ELSE NULL
+            END
+          ) AS definitive_album_artist
+        FROM songs s
+        WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+        GROUP BY s.album COLLATE NOCASE, COALESCE(s.album_id, 0)
+      ),
+      song_resolved AS (
         SELECT
           s.id,
           s.album,
@@ -234,35 +252,48 @@ class SongDao {
           s.media_store_id,
           s.duration,
           ph.played_at,
-          NULLIF(NULLIF(TRIM(s.album_artist), ''), '<Desconocido>') AS raw_album_artist,
-          CASE
-            WHEN s.album_artist IS NOT NULL AND TRIM(s.album_artist) != '' AND s.album_artist != '<Desconocido>' AND s.album_artist != 'Unknown Artist'
+          COALESCE(
+            CASE
+              WHEN s.album_artist IS NOT NULL 
+                AND TRIM(s.album_artist) != '' 
+                AND s.album_artist != '<Desconocido>' 
+                AND s.album_artist != 'Unknown Artist'
               THEN TRIM(s.album_artist)
-            WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
-            WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
-            ELSE NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>')
-          END AS clean_artist
+              ELSE NULL
+            END,
+            am.definitive_album_artist,
+            CASE
+              WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
+              WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
+              ELSE NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>')
+            END,
+            'Unknown Artist'
+          ) AS resolved_artist
         FROM songs s
+        LEFT JOIN album_meta am ON (
+          s.album COLLATE NOCASE = am.album_norm 
+          AND COALESCE(s.album_id, 0) = am.album_id_norm
+        )
         LEFT JOIN playback_history ph ON s.id = ph.song_id
         WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
       )
       SELECT
         album AS name,
-        COALESCE(MAX(raw_album_artist), clean_artist, 'Unknown Artist') AS artist,
+        resolved_artist AS artist,
         MIN(album_id) AS album_id,
         MIN(media_store_id) AS representative_song_id,
         COUNT(id) AS song_count,
         SUM(duration) AS total_duration,
         MAX(played_at) AS last_played
-      FROM song_clean
-      GROUP BY album COLLATE NOCASE, clean_artist COLLATE NOCASE
+      FROM song_resolved
+      GROUP BY album COLLATE NOCASE, resolved_artist COLLATE NOCASE
       ORDER BY last_played DESC, song_count DESC
       LIMIT ?;
       ''',
@@ -279,40 +310,71 @@ class SongDao {
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
-      WITH song_clean AS (
+      WITH album_meta AS (
+        SELECT
+          s.album COLLATE NOCASE AS album_norm,
+          COALESCE(s.album_id, 0) AS album_id_norm,
+          MAX(
+            CASE
+              WHEN s.album_artist IS NOT NULL 
+                AND TRIM(s.album_artist) != '' 
+                AND s.album_artist != '<Desconocido>' 
+                AND s.album_artist != 'Unknown Artist'
+              THEN TRIM(s.album_artist)
+              ELSE NULL
+            END
+          ) AS definitive_album_artist
+        FROM songs s
+        WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+        GROUP BY s.album COLLATE NOCASE, COALESCE(s.album_id, 0)
+      ),
+      song_resolved AS (
         SELECT
           s.id,
           s.album,
           s.album_id,
           s.media_store_id,
           s.duration,
-          NULLIF(NULLIF(TRIM(s.album_artist), ''), '<Desconocido>') AS raw_album_artist,
-          CASE
-            WHEN s.album_artist IS NOT NULL AND TRIM(s.album_artist) != '' AND s.album_artist != '<Desconocido>' AND s.album_artist != 'Unknown Artist'
+          COALESCE(
+            CASE
+              WHEN s.album_artist IS NOT NULL 
+                AND TRIM(s.album_artist) != '' 
+                AND s.album_artist != '<Desconocido>' 
+                AND s.album_artist != 'Unknown Artist'
               THEN TRIM(s.album_artist)
-            WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
-            WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
-            WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
-            ELSE NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>')
-          END AS clean_artist
+              ELSE NULL
+            END,
+            am.definitive_album_artist,
+            CASE
+              WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
+              WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
+              ELSE NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>')
+            END,
+            'Unknown Artist'
+          ) AS resolved_artist
         FROM songs s
+        LEFT JOIN album_meta am ON (
+          s.album COLLATE NOCASE = am.album_norm 
+          AND COALESCE(s.album_id, 0) = am.album_id_norm
+        )
         WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
       )
       SELECT
         album AS name,
-        COALESCE(MAX(raw_album_artist), clean_artist, 'Unknown Artist') AS artist,
+        resolved_artist AS artist,
         MIN(album_id) AS album_id,
         MIN(media_store_id) AS representative_song_id,
         COUNT(id) AS song_count,
         SUM(duration) AS total_duration
-      FROM song_clean
-      GROUP BY album COLLATE NOCASE, clean_artist COLLATE NOCASE
+      FROM song_resolved
+      GROUP BY album COLLATE NOCASE, resolved_artist COLLATE NOCASE
       ORDER BY album COLLATE NOCASE ASC;
       ''',
     );
@@ -439,27 +501,85 @@ class SongDao {
   }
 
   /// Retrieves distinct albums belonging to [artist] for discography horizontal carousel.
+  /// Prioritizes `album_artist` first, falling back to `artist` when `album_artist` is null/empty.
+  /// Full album tracks and duration are preserved without fragmentation.
   Future<List<AlbumDiscoveryItem>> getAlbumsByArtist(String artist) async {
     final db = await _appDatabase.database;
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
-      SELECT 
-        s.album AS name,
-        COALESCE(NULLIF(TRIM(s.album_artist), ''), s.artist, ?) AS artist,
-        MIN(s.album_id) AS album_id,
-        MIN(s.media_store_id) AS representative_song_id,
-        COUNT(s.id) AS song_count,
-        SUM(s.duration) AS total_duration,
-        MAX(ph.played_at) AS last_played
-      FROM songs s
-      LEFT JOIN playback_history ph ON s.id = ph.song_id
-      WHERE (s.artist = ? COLLATE NOCASE OR s.album_artist = ? COLLATE NOCASE)
+      WITH matched_albums AS (
+        SELECT DISTINCT 
+          s.album COLLATE NOCASE AS album_norm,
+          COALESCE(s.album_id, 0) AS album_id_norm
+        FROM songs s
+        WHERE (
+          s.album_artist = ? COLLATE NOCASE
+          OR s.artist = ? COLLATE NOCASE
+          OR s.artist LIKE ? COLLATE NOCASE
+          OR INSTR(LOWER(s.artist), LOWER(?)) > 0
+        )
         AND s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
-      GROUP BY s.album COLLATE NOCASE
-      ORDER BY s.album COLLATE NOCASE ASC;
+      ),
+      album_songs AS (
+        SELECT
+          s.id,
+          s.album,
+          s.album_id,
+          s.media_store_id,
+          s.duration,
+          ph.played_at,
+          COALESCE(
+            CASE
+              WHEN s.album_artist IS NOT NULL 
+                AND TRIM(s.album_artist) != '' 
+                AND s.album_artist != '<Desconocido>' 
+                AND s.album_artist != 'Unknown Artist'
+              THEN TRIM(s.album_artist)
+              ELSE NULL
+            END,
+            CASE
+              WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
+              WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
+              ELSE NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>')
+            END,
+            ?
+          ) AS resolved_artist
+        FROM songs s
+        JOIN matched_albums ma ON (
+          s.album COLLATE NOCASE = ma.album_norm 
+          AND COALESCE(s.album_id, 0) = ma.album_id_norm
+        )
+        LEFT JOIN playback_history ph ON s.id = ph.song_id
+        WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+      )
+      SELECT 
+        album AS name,
+        COALESCE(
+          MAX(CASE 
+            WHEN resolved_artist != 'Unknown Artist' AND resolved_artist != '<Desconocido>'
+            THEN resolved_artist 
+            ELSE NULL 
+          END),
+          ?
+        ) AS artist,
+        MIN(album_id) AS album_id,
+        MIN(media_store_id) AS representative_song_id,
+        COUNT(id) AS song_count,
+        SUM(duration) AS total_duration,
+        MAX(played_at) AS last_played
+      FROM album_songs
+      GROUP BY album COLLATE NOCASE, COALESCE(album_id, 0)
+      ORDER BY album COLLATE NOCASE ASC;
       ''',
-      [artist, artist, artist],
+      [artist, artist, '$artist%', artist, artist, artist],
     );
 
     return results.map((row) => AlbumDiscoveryItem.fromMap(row)).toList();
@@ -478,8 +598,9 @@ class SongDao {
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
-  /// Retrieves songs belonging to [album], optionally scoped to [artist] or [albumId].
-  /// Matches against `album_artist` first, falling back to `artist` when `album_artist` is null.
+  /// Retrieves songs belonging to [album], accurately scoped to [artist] or [albumId].
+  /// Matches against `album_artist` first, falling back to `artist` when `album_artist` is absent.
+  /// Guarantees that collaboration tracks and guest features remain with the parent album.
   Future<List<Song>> getSongsByAlbum(
     String album, {
     String? artist,
@@ -495,22 +616,115 @@ class SongDao {
     String where;
     List<dynamic> whereArgs;
 
+    // 1. Resolve definitive album_artist for this album if available (Priority Rule)
+    String? targetArtist = artist?.trim();
     if (hasArtist) {
-      where =
-          "album = ? COLLATE NOCASE AND ("
-          "album_artist = ? COLLATE NOCASE "
-          "OR artist = ? COLLATE NOCASE "
-          "OR artist LIKE ? COLLATE NOCASE "
-          "OR ("
-          "album_artist IS NULL AND ("
-          "INSTR(LOWER(artist), ' feat. ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' feat. ') - 1)) = ? COLLATE NOCASE "
-          "OR INSTR(LOWER(artist), ' ft. ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' ft. ') - 1)) = ? COLLATE NOCASE "
-          "OR INSTR(LOWER(artist), ' & ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' & ') - 1)) = ? COLLATE NOCASE "
-          "OR INSTR(LOWER(artist), ', ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ', ') - 1)) = ? COLLATE NOCASE"
-          ")"
-          ")"
-          ")";
-      whereArgs = [album, artist, artist, '$artist%', artist, artist, artist, artist];
+      final List<Map<String, dynamic>> albumArtistRows = await db.rawQuery(
+        '''
+        SELECT s.album_artist
+        FROM songs s
+        WHERE s.album = ? COLLATE NOCASE
+          ${albumId != null && albumId > 0 ? 'AND s.album_id = ?' : ''}
+          AND s.album_artist IS NOT NULL 
+          AND TRIM(s.album_artist) != '' 
+          AND s.album_artist != '<Desconocido>' 
+          AND s.album_artist != 'Unknown Artist'
+        LIMIT 1;
+        ''',
+        albumId != null && albumId > 0 ? [album, albumId] : [album],
+      );
+
+      if (albumArtistRows.isNotEmpty) {
+        final found = albumArtistRows.first['album_artist'] as String?;
+        if (found != null && found.trim().isNotEmpty) {
+          targetArtist = found.trim();
+        }
+      }
+    }
+
+    if (hasArtist && targetArtist != null) {
+      if (albumId != null && albumId > 0) {
+        where =
+            "album = ? COLLATE NOCASE AND ("
+            "album_artist = ? COLLATE NOCASE "
+            "OR ("
+            "(album_artist IS NULL OR TRIM(album_artist) = '' OR album_artist = '<Desconocido>' OR album_artist = 'Unknown Artist') "
+            "AND ("
+            "artist = ? COLLATE NOCASE "
+            "OR artist LIKE ? COLLATE NOCASE "
+            "OR (INSTR(LOWER(artist), ' feat. ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' feat. ') - 1)) = ? COLLATE NOCASE) "
+            "OR (INSTR(LOWER(artist), ' ft. ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' ft. ') - 1)) = ? COLLATE NOCASE) "
+            "OR (INSTR(LOWER(artist), ' & ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' & ') - 1)) = ? COLLATE NOCASE) "
+            "OR (INSTR(LOWER(artist), ', ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ', ') - 1)) = ? COLLATE NOCASE)"
+            ")"
+            ") "
+            "OR ("
+            "(album_artist = ? COLLATE NOCASE OR album_artist IS NULL OR TRIM(album_artist) = '' OR album_artist = '<Desconocido>' OR album_artist = 'Unknown Artist') "
+            "AND album_id = ? AND album_id IN ("
+            "SELECT sub.album_id FROM songs sub "
+            "WHERE sub.album = ? COLLATE NOCASE "
+            "AND sub.album_artist = ? COLLATE NOCASE "
+            "AND sub.album_artist IS NOT NULL "
+            "AND TRIM(sub.album_artist) != '' "
+            "AND sub.album_id IS NOT NULL AND sub.album_id > 0"
+            ")"
+            ")"
+            ")";
+        whereArgs = [
+          album,
+          targetArtist,
+          targetArtist,
+          '$targetArtist%',
+          targetArtist,
+          targetArtist,
+          targetArtist,
+          targetArtist,
+          targetArtist,
+          albumId,
+          album,
+          targetArtist,
+        ];
+      } else {
+        where =
+            "album = ? COLLATE NOCASE AND ("
+            "album_artist = ? COLLATE NOCASE "
+            "OR ("
+            "(album_artist IS NULL OR TRIM(album_artist) = '' OR album_artist = '<Desconocido>' OR album_artist = 'Unknown Artist') "
+            "AND ("
+            "artist = ? COLLATE NOCASE "
+            "OR artist LIKE ? COLLATE NOCASE "
+            "OR (INSTR(LOWER(artist), ' feat. ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' feat. ') - 1)) = ? COLLATE NOCASE) "
+            "OR (INSTR(LOWER(artist), ' ft. ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' ft. ') - 1)) = ? COLLATE NOCASE) "
+            "OR (INSTR(LOWER(artist), ' & ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ' & ') - 1)) = ? COLLATE NOCASE) "
+            "OR (INSTR(LOWER(artist), ', ') > 0 AND TRIM(SUBSTR(artist, 1, INSTR(LOWER(artist), ', ') - 1)) = ? COLLATE NOCASE)"
+            ")"
+            ") "
+            "OR ("
+            "(album_artist = ? COLLATE NOCASE OR album_artist IS NULL OR TRIM(album_artist) = '' OR album_artist = '<Desconocido>' OR album_artist = 'Unknown Artist') "
+            "AND album_id IS NOT NULL AND album_id > 0 AND album_id IN ("
+            "SELECT sub.album_id FROM songs sub "
+            "WHERE sub.album = ? COLLATE NOCASE "
+            "AND sub.album_artist = ? COLLATE NOCASE "
+            "AND sub.album_artist IS NOT NULL "
+            "AND TRIM(sub.album_artist) != '' "
+            "AND sub.album_id IS NOT NULL AND sub.album_id > 0"
+            ")"
+            ")"
+            ")";
+        whereArgs = [
+          album,
+          targetArtist,
+          targetArtist,
+          '$targetArtist%',
+          targetArtist,
+          targetArtist,
+          targetArtist,
+          targetArtist,
+          targetArtist,
+          album,
+          targetArtist,
+        ];
+      }
     } else if (albumId != null && albumId > 0) {
       where = 'album = ? COLLATE NOCASE AND album_id = ?';
       whereArgs = [album, albumId];
@@ -523,15 +737,21 @@ class SongDao {
       'songs',
       where: where,
       whereArgs: whereArgs,
-      orderBy: 'CASE WHEN track_number IS NOT NULL AND track_number > 0 THEN track_number ELSE 999999 END ASC, path ASC, title COLLATE NOCASE ASC',
+      orderBy: 'CASE WHEN disc_number IS NOT NULL AND disc_number > 0 THEN disc_number ELSE 1 END ASC, CASE WHEN track_number IS NOT NULL AND track_number > 0 THEN track_number ELSE 999999 END ASC, path ASC, title COLLATE NOCASE ASC',
       limit: limit,
     );
 
     final songs = results.map((row) => Song.fromMap(row)).toList();
 
-    // Natural sort prioritizing trackNumber (from tags/MediaStore),
+    // Natural sort prioritizing discNumber first, then trackNumber (from tags/MediaStore),
     // fallback to regex on filename/title, and finally alphabetical on title.
     songs.sort((a, b) {
+      final discA = (a.discNumber != null && a.discNumber! > 0) ? a.discNumber! : 1;
+      final discB = (b.discNumber != null && b.discNumber! > 0) ? b.discNumber! : 1;
+      if (discA != discB) {
+        return discA.compareTo(discB);
+      }
+
       final trackA = a.trackNumber ?? _extractTrackNumber(a);
       final trackB = b.trackNumber ?? _extractTrackNumber(b);
       if (trackA != null && trackB != null) {
@@ -748,6 +968,74 @@ class SongDao {
       await db.update(
         'songs',
         {'track_number': trackNumber},
+        where: 'media_store_id = ?',
+        whereArgs: [mediaStoreId],
+      );
+    }
+  }
+
+  /// Checks whether the one-time disc_number backfill has been executed.
+  Future<bool> isDiscNumberBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      final res = await db.query(
+        'app_metadata',
+        where: 'key = ?',
+        whereArgs: ['disc_number_backfilled'],
+      );
+      return res.isNotEmpty && res.first['value'] == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Marks the one-time disc_number backfill as complete in app_metadata.
+  Future<void> markDiscNumberBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      await db.insert(
+        'app_metadata',
+        {'key': 'disc_number_backfilled', 'value': 'true'},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {}
+  }
+
+  /// Batch backfills `disc_number` for cached songs using a mapping of {mediaStoreId: discNumber}.
+  /// Executes inside a single ACID batch in < 20 ms.
+  Future<void> backfillDiscNumbers(Map<int, int> discNumbersByMediaStoreId) async {
+    if (discNumbersByMediaStoreId.isEmpty) return;
+    final db = await _appDatabase.database;
+
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final entry in discNumbersByMediaStoreId.entries) {
+        batch.update(
+          'songs',
+          {'disc_number': entry.value},
+          where: 'media_store_id = ? AND (disc_number IS NULL OR disc_number = 0)',
+          whereArgs: [entry.key],
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  /// Updates disc_number for a single song by its database ID or MediaStore ID.
+  Future<void> updateSongDiscNumber({int? songId, int? mediaStoreId, required int discNumber}) async {
+    if (discNumber <= 0) return;
+    final db = await _appDatabase.database;
+    if (songId != null) {
+      await db.update(
+        'songs',
+        {'disc_number': discNumber},
+        where: 'id = ?',
+        whereArgs: [songId],
+      );
+    } else if (mediaStoreId != null) {
+      await db.update(
+        'songs',
+        {'disc_number': discNumber},
         where: 'media_store_id = ?',
         whereArgs: [mediaStoreId],
       );

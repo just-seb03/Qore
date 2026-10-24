@@ -20,6 +20,7 @@ class LightweightAudioItem {
   final String? fallbackAlbumArtist;
   final int? albumId;
   final int? trackNumber;
+  final int? discNumber;
 
   const LightweightAudioItem({
     required this.mediaStoreId,
@@ -34,5 +35,6 @@ class LightweightAudioItem {
     this.fallbackAlbumArtist,
     this.albumId,
     this.trackNumber,
+    this.discNumber,
   });
 }

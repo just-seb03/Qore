@@ -60,6 +60,14 @@ class PlayerMetadataView extends StatelessWidget {
         song!.album != 'Unknown Album';
     final album = hasAlbum ? song!.album! : 'Unknown Album';
 
+    final hasAlbumArtist = song?.albumArtist != null &&
+        song!.albumArtist!.trim().isNotEmpty &&
+        song!.albumArtist != '<Desconocido>' &&
+        song!.albumArtist != 'Unknown Artist';
+    final albumArtist = hasAlbumArtist
+        ? song!.albumArtist!.trim()
+        : (hasArtist ? song!.artist!.trim() : null);
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: Column(
@@ -111,7 +119,7 @@ class PlayerMetadataView extends StatelessWidget {
                         Navigator.of(context).push(
                           AlbumDetailScreen.route(
                             albumName: album,
-                            artistName: hasArtist ? artist : null,
+                            artistName: albumArtist,
                             albumId: song?.albumId,
                             representativeSongId: song?.mediaStoreId,
                           ),
