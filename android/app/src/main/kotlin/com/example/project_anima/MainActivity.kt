@@ -1,11 +1,17 @@
 package com.example.project_anima
 
 import android.content.ContentResolver
+import android.database.ContentObserver
 import android.database.Cursor
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.MediaStore
+import android.provider.Settings
+import android.util.DisplayMetrics
+import android.view.DisplayCutout
 import android.view.WindowManager
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
@@ -13,29 +19,180 @@ import io.flutter.plugin.common.MethodChannel
 
 class MainActivity : AudioServiceActivity() {
     private val CHANNEL = "project_anima/media_store"
+    private val DIMENSIONS_CHANNEL = "project_anima/system_dimensions"
+    private var notchObserver: ContentObserver? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Communicate with notch/display cutouts: extend into the cutout area without system letterbox
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            window.attributes.layoutInDisplayCutoutMode =
-                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-        }
+        // Automatically determine cutout mode based on notch concealment setting
+        applyAdaptiveCutoutMode()
 
         // Disable automatic system contrast scrims/shadows on status and navigation bars (Android 10+)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             window.isStatusBarContrastEnforced = false
             window.isNavigationBarContrastEnforced = false
         }
+
+        registerNotchObserver()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        applyAdaptiveCutoutMode()
     }
 
     override fun onDestroy() {
+        unregisterNotchObserver()
         if (isFinishing) {
             val intent = android.content.Intent(this, com.ryanheise.audioservice.AudioService::class.java)
             stopService(intent)
         }
         super.onDestroy()
+    }
+
+    /**
+     * Detects whether the user or system has enabled "Hide Notch" / "Hide Camera Cutout"
+     * on Xiaomi (MIUI/HyperOS), Samsung (One UI), or generic Android letterboxing.
+     */
+    private fun isNotchHidden(): Boolean {
+        // Xiaomi / MIUI / HyperOS check via global settings database
+        try {
+            val forceBlack = Settings.Global.getInt(contentResolver, "force_black", 0)
+            val forceBlackV2 = Settings.Global.getInt(contentResolver, "force_black_v2", 0)
+            if (forceBlack == 1 || forceBlackV2 == 1) return true
+        } catch (_: Exception) {}
+
+        return false
+    }
+
+    /**
+     * Sets LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER if notch is hidden so the window
+     * begins cleanly below the simulated black bezel without being cut off,
+     * or LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES when normal.
+     */
+    private fun applyAdaptiveCutoutMode() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val hidden = isNotchHidden()
+            val targetMode = if (hidden) {
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
+            } else {
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            }
+            if (window.attributes.layoutInDisplayCutoutMode != targetMode) {
+                val params = window.attributes
+                params.layoutInDisplayCutoutMode = targetMode
+                window.attributes = params
+            }
+        }
+    }
+
+    private fun registerNotchObserver() {
+        try {
+            val uri = Settings.Global.getUriFor("force_black")
+            if (uri != null) {
+                notchObserver = object : ContentObserver(Handler(Looper.getMainLooper())) {
+                    override fun onChange(selfChange: Boolean) {
+                        super.onChange(selfChange)
+                        applyAdaptiveCutoutMode()
+                    }
+                }
+                contentResolver.registerContentObserver(uri, false, notchObserver!!)
+            }
+        } catch (_: Exception) {}
+    }
+
+    private fun unregisterNotchObserver() {
+        notchObserver?.let {
+            try {
+                contentResolver.unregisterContentObserver(it)
+            } catch (_: Exception) {}
+            notchObserver = null
+        }
+    }
+
+    private fun getSystemDimensionsMap(): Map<String, Any?> {
+        val density = resources.displayMetrics.density
+        val notchHidden = isNotchHidden()
+
+        var statusBarPx = 0
+        val statusBarResId = resources.getIdentifier("status_bar_height", "dimen", "android")
+        if (statusBarResId > 0) {
+            statusBarPx = resources.getDimensionPixelSize(statusBarResId)
+        }
+        val statusBarDp = if (density > 0) statusBarPx / density else 24.0f
+
+        var navBarPx = 0
+        val navBarResId = resources.getIdentifier("navigation_bar_height", "dimen", "android")
+        if (navBarResId > 0) {
+            navBarPx = resources.getDimensionPixelSize(navBarResId)
+        }
+        val navBarDp = if (density > 0) navBarPx / density else 48.0f
+
+        var physicalWidthPx = 0
+        var physicalHeightPx = 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val maxMetrics = windowManager.maximumWindowMetrics
+            physicalWidthPx = maxMetrics.bounds.width()
+            physicalHeightPx = maxMetrics.bounds.height()
+        } else {
+            val dm = DisplayMetrics()
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getRealMetrics(dm)
+            physicalWidthPx = dm.widthPixels
+            physicalHeightPx = dm.heightPixels
+        }
+        val physicalWidthDp = if (density > 0) physicalWidthPx / density else 0.0f
+        val physicalHeightDp = if (density > 0) physicalHeightPx / density else 0.0f
+
+        var usableWidthPx = 0
+        var usableHeightPx = 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val currentMetrics = windowManager.currentWindowMetrics
+            usableWidthPx = currentMetrics.bounds.width()
+            usableHeightPx = currentMetrics.bounds.height()
+        } else {
+            val dm = DisplayMetrics()
+            @Suppress("DEPRECATION")
+            windowManager.defaultDisplay.getMetrics(dm)
+            usableWidthPx = dm.widthPixels
+            usableHeightPx = dm.heightPixels
+        }
+        val usableWidthDp = if (density > 0) usableWidthPx / density else 0.0f
+        val usableHeightDp = if (density > 0) usableHeightPx / density else 0.0f
+
+        var hasCutout = false
+        var cutoutTopPx = 0
+        var cutoutBottomPx = 0
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val cutout = window.decorView.rootWindowInsets?.displayCutout
+            if (cutout != null) {
+                hasCutout = true
+                cutoutTopPx = cutout.safeInsetTop
+                cutoutBottomPx = cutout.safeInsetBottom
+            }
+        }
+        val cutoutTopDp = if (density > 0) cutoutTopPx / density else 0.0f
+        val cutoutBottomDp = if (density > 0) cutoutBottomPx / density else 0.0f
+
+        val notchHeightDp = if (cutoutTopDp > 0) cutoutTopDp else statusBarDp
+
+        return mapOf(
+            "isNotchHidden" to notchHidden,
+            "hasCutout" to hasCutout,
+            "notchHeight" to notchHeightDp,
+            "statusBarHeight" to statusBarDp,
+            "navigationBarHeight" to navBarDp,
+            "physicalWidth" to physicalWidthDp,
+            "physicalHeight" to physicalHeightDp,
+            "usableWidth" to usableWidthDp,
+            "usableHeight" to usableHeightDp,
+            "cutoutTop" to cutoutTopDp,
+            "cutoutBottom" to cutoutBottomDp,
+            "density" to density,
+            "manufacturer" to Build.MANUFACTURER,
+            "model" to Build.MODEL
+        )
     }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
@@ -57,6 +214,31 @@ class MainActivity : AudioServiceActivity() {
                 }.start()
             } else {
                 result.notImplemented()
+            }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, DIMENSIONS_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "getSystemDimensions" -> {
+                    result.success(getSystemDimensionsMap())
+                }
+                "setCutoutMode" -> {
+                    val mode = call.argument<String>("mode") ?: "auto"
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                        val params = window.attributes
+                        when (mode) {
+                            "never" -> params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_NEVER
+                            "shortEdges" -> params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+                            "default" -> params.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT
+                            else -> applyAdaptiveCutoutMode()
+                        }
+                        window.attributes = params
+                        result.success(true)
+                    } else {
+                        result.success(false)
+                    }
+                }
+                else -> result.notImplemented()
             }
         }
     }

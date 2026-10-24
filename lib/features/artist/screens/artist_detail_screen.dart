@@ -311,7 +311,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Downward Animated Dismiss Chevron
-                        const SizedBox(height: 14.0),
+                        const SizedBox(height: 4.0),
                         Center(
                           child: ModalDismissIndicator(
                             onDismiss: _handleDismiss,
@@ -325,7 +325,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                             ),
                           ),
                         ),
-                        const SizedBox(height: 12.0),
+                        const SizedBox(height: 8.0),
 
                         // 1. Top Avatar with Glow, Pencil Badge & Artist Name
                         ArtistHeaderView(

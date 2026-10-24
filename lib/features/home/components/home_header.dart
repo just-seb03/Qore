@@ -44,7 +44,7 @@ class HomeHeader extends StatelessWidget {
     this.title = 'WELCOME',
     this.padding = const EdgeInsets.only(
       left: 24.0,
-      top: 32.0,
+      top: 8.0,
       right: 24.0,
       bottom: 12.0,
     ),

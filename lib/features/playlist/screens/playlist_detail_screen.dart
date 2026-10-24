@@ -352,7 +352,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
                             // 1. Universal Animated Dismiss Chevron
-                            const SizedBox(height: 10.0),
+                            const SizedBox(height: 4.0),
                             ModalDismissIndicator(
                               onDismiss: _handleDismiss,
                               onDragUpdate: _handleDragUpdate,
@@ -365,7 +365,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                                 horizontal: 36.0,
                               ),
                             ),
-                            const SizedBox(height: 14.0),
+                            const SizedBox(height: 8.0),
 
                             // 2. Cohesive Playlist Header: Artwork + Controls (Shuffle | Info | Play)
                             PlaylistDetailHeader(

@@ -32,8 +32,8 @@ class LibraryHeader extends StatelessWidget {
     super.key,
     this.title = 'Library',
     this.padding = const EdgeInsets.only(
-      top: 24.0,
-      bottom: 20.0,
+      top: 6.0,
+      bottom: 12.0,
     ),
   });
 

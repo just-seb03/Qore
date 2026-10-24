@@ -333,7 +333,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         // 1. Universal Animated Dismiss Chevron (identical to player and artist)
-                        const SizedBox(height: 10.0),
+                        const SizedBox(height: 4.0),
                         ModalDismissIndicator(
                           onDismiss: _handleDismiss,
                           onDragUpdate: _handleDragUpdate,
@@ -346,7 +346,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
                             horizontal: 36.0,
                           ),
                         ),
-                        const SizedBox(height: 14.0),
+                        const SizedBox(height: 8.0),
 
                         // 2. Cohesive Album Header: Large Sharp Cover + Title + Artist + Duration + Heart
                         AlbumHeaderView(

@@ -1,17 +1,20 @@
 /// File: main.dart
 /// Description: Root entry point for the Project Anima Flutter application.
 /// Initializes the application with the custom Material Design 3 Expressive
-/// monochromatic dark theme and mounts the initial Home screen.
+/// monochromatic dark theme, adaptive system boundary management for cutout/notch
+/// masking (e.g. Xiaomi MIUI / Samsung One UI "Hide Notch"), and mounts the initial Home screen.
 ///
 /// Components / Classes / Functions:
 /// - main(): Application execution entry point.
-/// - AnimaApp: Root StatelessWidget configuring global theme and routing.
+/// - AnimaApp: Root StatefulWidget configuring global theme, lifecycle, and adaptive boundaries.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_anima/controls/menu_transition_controller.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/dimensions/adaptive_system_boundary.dart';
+import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -23,6 +26,12 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSize = 600;
 
   ArtworkService.instance.initialize();
+
+  try {
+    await SystemDimensionsCoordinator.instance.init();
+  } catch (e) {
+    debugPrint('SystemDimensions init warning: $e');
+  }
 
   try {
     await PlaybackController.instance.initAudioService();
@@ -76,6 +85,10 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // Re-detect system dimensions and notch concealment in case user modified device settings
+      SystemDimensionsCoordinator.instance.refresh();
+    }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
@@ -93,6 +106,11 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
       title: 'Project Anima',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.darkTheme,
+      builder: (context, child) {
+        return AdaptiveSystemBoundary(
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       home: const MenuTransitionControl(),
     );
   }
