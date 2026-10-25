@@ -14,6 +14,7 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/core/localization/app_locale.dart';
 import 'package:project_anima/core/localization/contracts/app_strings.dart';
 import 'package:project_anima/core/localization/translations/en/en_strings.dart';
+import 'package:project_anima/core/localization/translations/es/es_strings.dart';
 
 export 'package:project_anima/core/localization/app_locale.dart';
 export 'package:project_anima/core/localization/contracts/app_strings.dart';
@@ -51,9 +52,7 @@ class AppLocalizations {
       case AppLocale.en:
         return AppLocalizations(locale, const EnStrings());
       case AppLocale.es:
-        // Spanish strings will be plugged in here once implemented.
-        // Falls back to EnStrings safely to ensure zero crash or missing key risks.
-        return AppLocalizations(locale, const EnStrings());
+        return AppLocalizations(locale, const EsStrings());
     }
   }
 

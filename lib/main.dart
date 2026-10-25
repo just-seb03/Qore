@@ -29,6 +29,7 @@ Future<void> main() async {
   PaintingBinding.instance.imageCache.maximumSize = 600;
 
   ArtworkService.instance.initialize();
+  LocalizationController.instance.init();
 
   try {
     await SystemDimensionsCoordinator.instance.init();
