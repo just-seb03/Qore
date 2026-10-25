@@ -419,6 +419,7 @@ class MusicIndexer {
         if (raw is! Map) continue;
         final path = raw['path'] as String? ?? '';
         if (path.isEmpty || isExcludedPath(path)) continue;
+        if (!isSupportedAudioFile(path)) continue;
 
         items.add(LightweightAudioItem(
           mediaStoreId: (raw['id'] as num).toInt(),

@@ -268,7 +268,7 @@ class MainActivity : AudioServiceActivity() {
         }
         val projection = projectionList.toTypedArray()
 
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 AND ${MediaStore.Audio.Media.DURATION} >= 30000"
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
         val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
 
         val cursor: Cursor? = contentResolver.query(
@@ -304,8 +304,11 @@ class MainActivity : AudioServiceActivity() {
 
             while (c.moveToNext()) {
                 val path = c.getString(dataCol) ?: continue
-                val duration = c.getLong(durationCol)
-                if (duration < 30000) continue
+                val size = c.getLong(sizeCol)
+                if (size <= 0) continue
+
+                val rawDuration = c.getLong(durationCol)
+                val duration = if (rawDuration > 0) rawDuration else 0L
 
                 val albumArtist = if (albumArtistCol != -1) c.getString(albumArtistCol) else null
                 val rawTrack = if (trackCol != -1) c.getInt(trackCol) else 0
