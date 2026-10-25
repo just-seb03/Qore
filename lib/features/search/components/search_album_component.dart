@@ -25,6 +25,9 @@ class SearchAlbumComponent extends StatelessWidget {
   /// Callback when an album card is tapped.
   final ValueChanged<AlbumDiscoveryItem>? onAlbumTap;
 
+  /// Callback when the play button is tapped.
+  final ValueChanged<AlbumDiscoveryItem>? onPlayTap;
+
   /// Whether to render only as the Top Result card.
   final bool isTopResultOnly;
 
@@ -33,6 +36,7 @@ class SearchAlbumComponent extends StatelessWidget {
     this.topResultAlbum,
     this.secondaryAlbums = const [],
     this.onAlbumTap,
+    this.onPlayTap,
     this.isTopResultOnly = false,
   });
 
@@ -42,6 +46,7 @@ class SearchAlbumComponent extends StatelessWidget {
       return SearchTopResultCard.album(
         album: topResultAlbum!,
         onTap: () => onAlbumTap?.call(topResultAlbum!),
+        onPlayTap: () => onPlayTap?.call(topResultAlbum!),
       );
     }
 
@@ -57,6 +62,7 @@ class SearchAlbumComponent extends StatelessWidget {
           SearchTopResultCard.album(
             album: topResultAlbum!,
             onTap: () => onAlbumTap?.call(topResultAlbum!),
+            onPlayTap: () => onPlayTap?.call(topResultAlbum!),
           ),
           const SizedBox(height: 24.0),
         ],

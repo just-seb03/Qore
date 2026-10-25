@@ -34,6 +34,9 @@ class SearchTopResultCard extends StatelessWidget {
   /// Tap callback when card is activated.
   final VoidCallback? onTap;
 
+  /// Callback when the floating play button is activated.
+  final VoidCallback? onPlayTap;
+
   /// Whether to render the section header ("TOP RESULT") above the card.
   final bool showHeader;
 
@@ -44,6 +47,7 @@ class SearchTopResultCard extends StatelessWidget {
     this.subtitle,
     this.secondarySubtitle,
     this.onTap,
+    this.onPlayTap,
     this.showHeader = true,
   });
 
@@ -52,6 +56,7 @@ class SearchTopResultCard extends StatelessWidget {
     Key? key,
     required Song song,
     VoidCallback? onTap,
+    VoidCallback? onPlayTap,
     bool showHeader = true,
   }) {
     final artistStr = (song.artist != null &&
@@ -76,6 +81,7 @@ class SearchTopResultCard extends StatelessWidget {
       subtitle: artistStr,
       secondarySubtitle: null,
       onTap: onTap,
+      onPlayTap: onPlayTap,
       showHeader: showHeader,
     );
   }
@@ -85,6 +91,7 @@ class SearchTopResultCard extends StatelessWidget {
     Key? key,
     required AlbumDiscoveryItem album,
     VoidCallback? onTap,
+    VoidCallback? onPlayTap,
     bool showHeader = true,
   }) {
     final songCountStr =
@@ -112,6 +119,7 @@ class SearchTopResultCard extends StatelessWidget {
       subtitle: artistStr,
       secondarySubtitle: songCountStr,
       onTap: onTap,
+      onPlayTap: onPlayTap,
       showHeader: showHeader,
     );
   }
@@ -121,6 +129,7 @@ class SearchTopResultCard extends StatelessWidget {
     Key? key,
     required ArtistDiscoveryItem artist,
     VoidCallback? onTap,
+    VoidCallback? onPlayTap,
     bool showHeader = true,
   }) {
     return SearchTopResultCard(
@@ -133,6 +142,7 @@ class SearchTopResultCard extends StatelessWidget {
       subtitle: null,
       secondarySubtitle: null,
       onTap: onTap,
+      onPlayTap: onPlayTap,
       showHeader: showHeader,
     );
   }
@@ -222,7 +232,9 @@ class SearchTopResultCard extends StatelessWidget {
                       const SizedBox(width: 14.0),
 
                       // 3. Floating Play Button
-                      const SearchPlayButton(),
+                      SearchPlayButton(
+                        onTap: onPlayTap,
+                      ),
                     ],
                   ),
                 ),

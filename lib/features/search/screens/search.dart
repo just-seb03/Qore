@@ -104,8 +104,31 @@ class _SearchScreenState extends State<SearchScreen>
     deferTouch();
   }
 
+  final SongDao _songDao = SongDao();
+
   void _handleArtistTap(ArtistDiscoveryItem artist) {
     Navigator.of(context).push(ArtistDetailScreen.route(artist.name));
+  }
+
+  Future<void> _handleArtistPlayTap(ArtistDiscoveryItem artist) async {
+    try {
+      final songs = await _songDao.getSongsByArtist(artist.name);
+      if (songs.isNotEmpty) {
+        final shuffled = List<Song>.from(songs)..shuffle();
+        await PlaybackController.instance.playSong(
+          shuffled.first,
+          queue: shuffled,
+        );
+        if (!PlaybackController.instance.isShuffleEnabled) {
+          await PlaybackController.instance.toggleShuffle();
+        }
+        if (mounted) {
+          Navigator.of(context).push(PlayerScreen.route());
+        }
+      }
+    } catch (e) {
+      debugPrint('Error playing artist songs on shuffle: $e');
+    }
   }
 
   void _handleAlbumTap(AlbumDiscoveryItem album) {
@@ -119,6 +142,37 @@ class _SearchScreenState extends State<SearchScreen>
     );
   }
 
+  Future<void> _handleAlbumPlayTap(AlbumDiscoveryItem album) async {
+    try {
+      var songs = await _songDao.getSongsByAlbum(
+        album.name,
+        artist: album.artist,
+        albumId: album.albumId,
+      );
+      if (songs.isEmpty) {
+        songs = await _songDao.getSongsByAlbum(
+          album.name,
+          albumId: album.albumId,
+        );
+      }
+      if (songs.isNotEmpty) {
+        // Play songs in sequential album tracklist order
+        if (PlaybackController.instance.isShuffleEnabled) {
+          await PlaybackController.instance.toggleShuffle();
+        }
+        await PlaybackController.instance.playSong(
+          songs.first,
+          queue: songs,
+        );
+        if (mounted) {
+          Navigator.of(context).push(PlayerScreen.route());
+        }
+      }
+    } catch (e) {
+      debugPrint('Error playing album songs in order: $e');
+    }
+  }
+
   void _handleSongTap(Song song) {
     PlaybackController.instance.playSong(
       song,
@@ -127,6 +181,23 @@ class _SearchScreenState extends State<SearchScreen>
           : [song],
     );
     Navigator.of(context).push(PlayerScreen.route());
+  }
+
+  void _handleTopSongCardTap(Song song) {
+    final albumName = (song.album != null &&
+            song.album!.trim().isNotEmpty &&
+            song.album != '<Desconocido>')
+        ? song.album!.trim()
+        : 'Unknown Album';
+
+    Navigator.of(context).push(
+      AlbumDetailScreen.route(
+        albumName: albumName,
+        artistName: song.artist,
+        albumId: song.albumId,
+        representativeSongId: song.mediaStoreId,
+      ),
+    );
   }
 
   /// Resets search query, engine results, and scroll offset back to initial state.
@@ -184,8 +255,12 @@ class _SearchScreenState extends State<SearchScreen>
                 controller: _searchEngine,
                 scrollController: _scrollController,
                 onSongTap: _handleSongTap,
+                onSongPlayTap: _handleSongTap,
+                onTopSongCardTap: _handleTopSongCardTap,
                 onAlbumTap: _handleAlbumTap,
+                onAlbumPlayTap: _handleAlbumPlayTap,
                 onArtistTap: _handleArtistTap,
+                onArtistPlayTap: _handleArtistPlayTap,
                 onRecentItemTap: _handleRecentItemTap,
               ),
             ),

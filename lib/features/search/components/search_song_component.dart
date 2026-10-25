@@ -25,6 +25,12 @@ class SearchSongComponent extends StatelessWidget {
   /// Callback when a song item or top card is tapped.
   final ValueChanged<Song>? onSongTap;
 
+  /// Callback when the play button is tapped on top result song.
+  final ValueChanged<Song>? onPlayTap;
+
+  /// Callback when the card body of top result song is tapped.
+  final ValueChanged<Song>? onCardTap;
+
   /// Whether to render only as the Top Result card.
   final bool isTopResultOnly;
 
@@ -33,6 +39,8 @@ class SearchSongComponent extends StatelessWidget {
     this.topResultSong,
     this.songs = const [],
     this.onSongTap,
+    this.onPlayTap,
+    this.onCardTap,
     this.isTopResultOnly = false,
   });
 
@@ -41,7 +49,8 @@ class SearchSongComponent extends StatelessWidget {
     if (isTopResultOnly && topResultSong != null) {
       return SearchTopResultCard.song(
         song: topResultSong!,
-        onTap: () => onSongTap?.call(topResultSong!),
+        onTap: () => (onCardTap ?? onSongTap)?.call(topResultSong!),
+        onPlayTap: () => onPlayTap?.call(topResultSong!),
       );
     }
 
@@ -56,7 +65,8 @@ class SearchSongComponent extends StatelessWidget {
         if (topResultSong != null) ...[
           SearchTopResultCard.song(
             song: topResultSong!,
-            onTap: () => onSongTap?.call(topResultSong!),
+            onTap: () => (onCardTap ?? onSongTap)?.call(topResultSong!),
+            onPlayTap: () => onPlayTap?.call(topResultSong!),
           ),
           const SizedBox(height: 24.0),
         ],

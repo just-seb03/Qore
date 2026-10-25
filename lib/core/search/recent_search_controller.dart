@@ -15,7 +15,18 @@ import 'package:project_anima/core/search/models/recent_search_item.dart';
 
 /// Reactive coordinator for the Recent Searches feature.
 class RecentSearchController extends ChangeNotifier {
-  static final RecentSearchController instance = RecentSearchController._internal();
+  static RecentSearchController _instance = RecentSearchController._internal();
+
+  /// Global singleton instance.
+  static RecentSearchController get instance => _instance;
+
+  /// Injects a custom or mock instance for testing.
+  @visibleForTesting
+  static set instance(RecentSearchController custom) => _instance = custom;
+
+  /// Resets instance to default singleton.
+  @visibleForTesting
+  static void resetInstance() => _instance = RecentSearchController._internal();
 
   RecentSearchController._internal({RecentSearchDao? dao})
       : _dao = dao ?? RecentSearchDao();

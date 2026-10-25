@@ -36,30 +36,79 @@ class SearchResultsList extends StatelessWidget {
   /// Callback when a song is tapped.
   final ValueChanged<Song>? onSongTap;
 
+  /// Callback when the Play button on a Top Result song is tapped.
+  final ValueChanged<Song>? onSongPlayTap;
+
+  /// Callback when the card body of a Top Result song is tapped.
+  final ValueChanged<Song>? onTopSongCardTap;
+
   /// Callback when an album is tapped.
   final ValueChanged<AlbumDiscoveryItem>? onAlbumTap;
+
+  /// Callback when the Play button on a Top Result album is tapped.
+  final ValueChanged<AlbumDiscoveryItem>? onAlbumPlayTap;
 
   /// Callback when an artist is tapped.
   final ValueChanged<ArtistDiscoveryItem>? onArtistTap;
 
+  /// Callback when the Play button on a Top Result artist is tapped.
+  final ValueChanged<ArtistDiscoveryItem>? onArtistPlayTap;
+
   /// Callback when a recent search item is tapped.
   final ValueChanged<RecentSearchItem>? onRecentItemTap;
+
+  /// Optional injected RecentSearchController for testing and customization.
+  final RecentSearchController? recentSearchController;
 
   const SearchResultsList({
     super.key,
     required this.controller,
     this.scrollController,
     this.onSongTap,
+    this.onSongPlayTap,
+    this.onTopSongCardTap,
     this.onAlbumTap,
+    this.onAlbumPlayTap,
     this.onArtistTap,
+    this.onArtistPlayTap,
     this.onRecentItemTap,
+    this.recentSearchController,
   });
+
+  RecentSearchController get _recentSearchController =>
+      recentSearchController ?? RecentSearchController.instance;
 
   void _handleSongTap(Song song) {
     onSongTap?.call(song);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 400), () {
-        RecentSearchController.instance.addSong(song);
+        _recentSearchController.addSong(song);
+      });
+    });
+  }
+
+  void _handleSongPlayTap(Song song) {
+    if (onSongPlayTap != null) {
+      onSongPlayTap!.call(song);
+    } else {
+      _handleSongTap(song);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _recentSearchController.addSong(song);
+      });
+    });
+  }
+
+  void _handleTopSongCardTap(Song song) {
+    if (onTopSongCardTap != null) {
+      onTopSongCardTap!.call(song);
+    } else {
+      _handleSongTap(song);
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _recentSearchController.addSong(song);
       });
     });
   }
@@ -68,7 +117,16 @@ class SearchResultsList extends StatelessWidget {
     onAlbumTap?.call(album);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 400), () {
-        RecentSearchController.instance.addAlbum(album);
+        _recentSearchController.addAlbum(album);
+      });
+    });
+  }
+
+  void _handleAlbumPlayTap(AlbumDiscoveryItem album) {
+    onAlbumPlayTap?.call(album);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _recentSearchController.addAlbum(album);
       });
     });
   }
@@ -77,7 +135,16 @@ class SearchResultsList extends StatelessWidget {
     onArtistTap?.call(artist);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 400), () {
-        RecentSearchController.instance.addArtist(artist);
+        _recentSearchController.addArtist(artist);
+      });
+    });
+  }
+
+  void _handleArtistPlayTap(ArtistDiscoveryItem artist) {
+    onArtistPlayTap?.call(artist);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Future.delayed(const Duration(milliseconds: 400), () {
+        _recentSearchController.addArtist(artist);
       });
     });
   }
@@ -159,6 +226,7 @@ class SearchResultsList extends StatelessWidget {
         SearchTopResultCard.artist(
           artist: topArtist,
           onTap: () => _handleArtistTap(topArtist),
+          onPlayTap: () => _handleArtistPlayTap(topArtist),
         ),
       );
     } else if (primaryType == SearchEntityType.album && topAlbum != null) {
@@ -166,13 +234,15 @@ class SearchResultsList extends StatelessWidget {
         SearchTopResultCard.album(
           album: topAlbum,
           onTap: () => _handleAlbumTap(topAlbum),
+          onPlayTap: () => _handleAlbumPlayTap(topAlbum),
         ),
       );
     } else if (topSong != null) {
       widgets.add(
         SearchTopResultCard.song(
           song: topSong,
-          onTap: () => _handleSongTap(topSong),
+          onTap: () => _handleTopSongCardTap(topSong),
+          onPlayTap: () => _handleSongPlayTap(topSong),
         ),
       );
     }

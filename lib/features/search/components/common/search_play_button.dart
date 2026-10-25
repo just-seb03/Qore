@@ -7,6 +7,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Reusable floating circular play button.
@@ -65,7 +66,10 @@ class SearchPlayButton extends StatelessWidget {
     }
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: () {
+        HapticFeedback.lightImpact();
+        onTap?.call();
+      },
       behavior: HitTestBehavior.opaque,
       child: button,
     );

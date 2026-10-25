@@ -26,6 +26,9 @@ class SearchArtistComponent extends StatelessWidget {
   /// Callback when an artist card is tapped.
   final ValueChanged<ArtistDiscoveryItem>? onArtistTap;
 
+  /// Callback when the play button is tapped.
+  final ValueChanged<ArtistDiscoveryItem>? onPlayTap;
+
   /// Whether to render only as the Top Result card.
   final bool isTopResultOnly;
 
@@ -34,6 +37,7 @@ class SearchArtistComponent extends StatelessWidget {
     this.topResultArtist,
     this.secondaryArtists = const [],
     this.onArtistTap,
+    this.onPlayTap,
     this.isTopResultOnly = false,
   });
 
@@ -43,6 +47,7 @@ class SearchArtistComponent extends StatelessWidget {
       return SearchTopResultCard.artist(
         artist: topResultArtist!,
         onTap: () => onArtistTap?.call(topResultArtist!),
+        onPlayTap: () => onPlayTap?.call(topResultArtist!),
       );
     }
 
@@ -58,6 +63,7 @@ class SearchArtistComponent extends StatelessWidget {
           SearchTopResultCard.artist(
             artist: topResultArtist!,
             onTap: () => onArtistTap?.call(topResultArtist!),
+            onPlayTap: () => onPlayTap?.call(topResultArtist!),
           ),
           const SizedBox(height: 24.0),
         ],
