@@ -21,6 +21,7 @@ import 'package:project_anima/features/home/components/home_artist_card.dart';
 import 'package:project_anima/features/home/components/home_header.dart';
 import 'package:project_anima/features/home/components/home_pinned_section.dart';
 import 'package:project_anima/features/home/components/today_selection_hero_card.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/playlist/components/playlist_detail_header.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
@@ -351,42 +352,23 @@ void main() {
     });
   });
 
-  group('HomeScreen Integration & Pinned Favorites Tests', () {
-    testWidgets('HomeScreen renders Welcome, Today Selection, and Pinned Section', (tester) async {
-      final now = DateTime.now();
-      final samplePinned = [
-        PinnedFavorite(
-          itemType: PinnedItemType.album,
-          itemKey: 'album::dark side::pink floyd',
-          title: 'The Dark Side of the Moon',
-          subtitle: 'Pink Floyd',
-          pinnedAt: now,
-        ),
-        PinnedFavorite(
-          itemType: PinnedItemType.artist,
-          itemKey: 'artist::led zeppelin',
-          title: 'Led Zeppelin',
-          subtitle: 'Artist',
-          pinnedAt: now,
-        ),
-      ];
-
+  group('HomeScreen Integration & Space Tests', () {
+    testWidgets('HomeScreen renders Space header and AmbientParticlesCanvas without Welcome or Today Selection', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        const MaterialApp(
           home: HomeScreen(
             showBottomNav: false,
-            initialTodaySongs: const [],
-            initialPinnedItems: samplePinned,
           ),
         ),
       );
-      await tester.pumpAndSettle();
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.text('WELCOME'), findsOneWidget);
-      expect(find.text('Today Selection'), findsOneWidget);
-      expect(find.text('PINNED FAVORITES'), findsNothing);
-      expect(find.text('The Dark Side of the Moon'), findsOneWidget);
-      expect(find.text('Led Zeppelin'), findsOneWidget);
+      expect(find.text('Space'), findsOneWidget);
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+      expect(find.text('WELCOME'), findsNothing);
+      expect(find.text('Today Selection'), findsNothing);
+      expect(find.text('Favorites'), findsNothing);
     });
 
     testWidgets('HomeArtistCard renders circular avatar and centered artist name', (tester) async {

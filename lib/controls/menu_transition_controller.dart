@@ -16,6 +16,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
+import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/screens/library.dart';
 import 'package:project_anima/features/search/screens/search.dart';
@@ -71,8 +72,8 @@ class MenuTransitionController extends ChangeNotifier {
 
   factory MenuTransitionController() => instance;
 
-  int _currentIndex = 0;
-  int _previousIndex = 0;
+  int _currentIndex = 1;
+  int _previousIndex = 1;
   MenuTransitionDirection _direction = MenuTransitionDirection.forward;
   bool _isAnimating = false;
 
@@ -129,10 +130,10 @@ class MenuTransitionController extends ChangeNotifier {
     }
   }
 
-  /// Resets controller state to the initial Home tab without animating.
-  void reset() {
-    _currentIndex = 0;
-    _previousIndex = 0;
+  /// Resets controller state to the initial Search tab without animating.
+  void reset({int initialIndex = 1}) {
+    _currentIndex = initialIndex;
+    _previousIndex = initialIndex;
     _direction = MenuTransitionDirection.forward;
     _isAnimating = false;
     notifyListeners();
@@ -365,7 +366,7 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
     }
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bottomNavBackground,
       body: animatedContent,
       bottomNavigationBar: ListenableBuilder(
         listenable: _controller,

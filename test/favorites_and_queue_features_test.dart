@@ -325,8 +325,8 @@ void main() {
     });
   });
 
-  group('HomeScreen Integration with Favorites Hero Tests', () {
-    testWidgets('HomeScreen renders both Today Selection and Favorites hero banners', (tester) async {
+  group('HomeScreen Integration with Space Screen Tests', () {
+    testWidgets('HomeScreen renders Space header and no legacy hero banners', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: HomeScreen(
@@ -339,10 +339,12 @@ void main() {
       );
 
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.text('WELCOME'), findsOneWidget);
-      expect(find.text('Today Selection'), findsOneWidget);
-      expect(find.text('Favorites'), findsOneWidget);
+      expect(find.text('Space'), findsOneWidget);
+      expect(find.text('WELCOME'), findsNothing);
+      expect(find.text('Today Selection'), findsNothing);
+      expect(find.text('Favorites'), findsNothing);
     });
   });
 }

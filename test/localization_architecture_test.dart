@@ -115,6 +115,7 @@ void main() {
     });
 
     test('Home strings provide greetings, section titles, and subtitles', () {
+      expect(strings.home.spaceTitle, equals('Space'));
       expect(strings.home.welcomeTitle, equals('WELCOME'));
       expect(strings.home.doneButtonTooltip, equals('Done'));
       expect(strings.home.favoritesHeroTitle, equals('Favorites'));
@@ -255,8 +256,8 @@ void main() {
     });
 
     test('Navigation strings return valid English text', () {
-      expect(strings.navigation.homeTab, equals('Home'));
-      expect(strings.navigation.homeTabTooltip, equals('Home'));
+      expect(strings.navigation.homeTab, equals('Space'));
+      expect(strings.navigation.homeTabTooltip, equals('Space'));
       expect(strings.navigation.searchTab, equals('Search'));
       expect(strings.navigation.searchTabTooltip, equals('Search'));
       expect(strings.navigation.libraryTab, equals('Library'));
@@ -306,6 +307,7 @@ void main() {
     });
 
     test('Home and Library strings return valid Spanish text', () {
+      expect(es.home.spaceTitle, equals('Space'));
       expect(es.home.welcomeTitle, equals('BIENVENIDO'));
       expect(es.home.doneButtonTooltip, equals('Listo'));
       expect(es.home.favoritesHeroTitle, equals('Favoritos'));
@@ -321,7 +323,7 @@ void main() {
     });
 
     test('Navigation and Player strings return valid Spanish text', () {
-      expect(es.navigation.homeTab, equals('Inicio'));
+      expect(es.navigation.homeTab, equals('Space'));
       expect(es.navigation.searchTab, equals('Buscar'));
       expect(es.navigation.libraryTab, equals('Biblioteca'));
       expect(es.player.nowPlayingHeader, equals('EN REPRODUCCIÓN'));
@@ -510,7 +512,7 @@ void main() {
 
       await tester.pumpAndSettle();
 
-      expect(find.text('Home'), findsOneWidget);
+      expect(find.text('Space'), findsOneWidget);
       expect(find.text('Search'), findsOneWidget);
       expect(find.text('Library'), findsOneWidget);
     });
@@ -560,7 +562,7 @@ void main() {
       expect(find.text('LISTA'), findsOneWidget);
       expect(find.text('Buscar'), findsNWidgets(2)); // in body and bottom nav
       expect(find.text('PROJECT ANIMA'), findsOneWidget);
-      expect(find.text('Inicio'), findsOneWidget); // bottom nav home tab
+      expect(find.text('Space'), findsOneWidget); // bottom nav home tab
     });
   });
 }

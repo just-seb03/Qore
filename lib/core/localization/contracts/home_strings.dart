@@ -8,6 +8,9 @@ library;
 
 /// Contract defining localized strings for the Home feature.
 abstract class HomeStrings {
+  /// Header title for the space screen (e.g. 'Space').
+  String get spaceTitle;
+
   /// Header title for the home screen (e.g. 'WELCOME').
   String get welcomeTitle;
 

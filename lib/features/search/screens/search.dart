@@ -20,6 +20,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
+import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/core/search/music_search_controller.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
@@ -239,7 +240,7 @@ class _SearchScreenState extends State<SearchScreen>
     super.build(context);
 
     return Scaffold(
-      backgroundColor: Colors.transparent,
+      backgroundColor: AppColors.bottomNavBackground,
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,

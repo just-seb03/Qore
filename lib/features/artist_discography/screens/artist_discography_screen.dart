@@ -16,7 +16,6 @@ import 'package:project_anima/components/scroll_edge_fade_mask.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/theme/theme.dart';
-import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist_discography/components/artist_discography_grid.dart';
 import 'package:project_anima/features/artist_discography/components/artist_discography_header.dart';
 import 'package:project_anima/features/artist_discography/controls/artist_discography_controller.dart';
@@ -169,12 +168,8 @@ class _ArtistDiscographyScreenState extends State<ArtistDiscographyScreen>
   Widget build(BuildContext context) {
     return Container(
       color: AppColors.background,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const AmbientParticlesCanvas(),
-          Scaffold(
-            backgroundColor: Colors.transparent,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
         bottomNavigationBar: SafeArea(
           top: false,
           child: Column(
@@ -244,8 +239,6 @@ class _ArtistDiscographyScreenState extends State<ArtistDiscographyScreen>
           ),
         ),
       ),
-    ],
-  ),
-);
+    );
   }
 }

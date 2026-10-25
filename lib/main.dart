@@ -129,9 +129,7 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
           ],
           builder: (context, child) {
             return AdaptiveSystemBoundary(
-              child: AmbientParticlesBackground(
-                child: child ?? const SizedBox.shrink(),
-              ),
+              child: child ?? const SizedBox.shrink(),
             );
           },
           home: const StartupLoadingScreen(),

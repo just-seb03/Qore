@@ -69,7 +69,7 @@ class AppBottomNav extends StatelessWidget {
 
   const AppBottomNav({
     super.key,
-    this.currentIndex = 0,
+    this.currentIndex = 1,
     this.onDestinationSelected,
     this.grainIntensity = 0.035,
     this.showMiniPlayer = true,
@@ -109,8 +109,8 @@ class AppBottomNav extends StatelessWidget {
                 elevation: 0,
                 destinations: [
                   NavigationDestination(
-                    icon: const Icon(Icons.home_outlined),
-                    selectedIcon: const Icon(Icons.home_rounded),
+                    icon: const Icon(Icons.favorite_border_rounded),
+                    selectedIcon: const Icon(Icons.favorite_rounded),
                     label: context.l10n.navigation.homeTab,
                     tooltip: context.l10n.navigation.homeTabTooltip,
                   ),

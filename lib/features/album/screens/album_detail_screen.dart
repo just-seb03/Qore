@@ -21,7 +21,6 @@ import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/components/album_header_view.dart';
 import 'package:project_anima/features/album/components/album_tracks_section.dart';
-import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
 
 /// Full album presentation view with large square artwork, metadata, and ordered tracklist.
@@ -325,12 +324,8 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
       duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
       curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
       color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          const AmbientParticlesCanvas(),
-          Scaffold(
-            backgroundColor: Colors.transparent,
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
         bottomNavigationBar: const SafeArea(
           top: false,
           child: MiniPlayer(),
@@ -388,10 +383,8 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
                     ],
                   ),
                 ),
-              ),
-            ),
           ),
-        ],
+        ),
       ),
     );
   }

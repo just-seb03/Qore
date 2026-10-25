@@ -12,10 +12,10 @@ class EnNavigationStrings implements NavigationStrings {
   const EnNavigationStrings();
 
   @override
-  String get homeTab => 'Home';
+  String get homeTab => 'Space';
 
   @override
-  String get homeTabTooltip => 'Home';
+  String get homeTabTooltip => 'Space';
 
   @override
   String get searchTab => 'Search';

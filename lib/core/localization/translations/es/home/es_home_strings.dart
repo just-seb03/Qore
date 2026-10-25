@@ -12,6 +12,9 @@ class EsHomeStrings implements HomeStrings {
   const EsHomeStrings();
 
   @override
+  String get spaceTitle => 'Space';
+
+  @override
   String get welcomeTitle => 'BIENVENIDO';
 
   @override

@@ -1,0 +1,225 @@
+/// File: space_and_navigation_update_test.dart
+/// Description: Comprehensive test suite validating the Space screen migration,
+/// Search tab startup default, heart iconography, and exclusive ambient particle scoping.
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/components/bottom_nav.dart';
+import 'package:project_anima/controls/menu_transition_controller.dart';
+import 'package:project_anima/controls/navigation_controller.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
+import 'package:project_anima/features/home/components/space_header.dart';
+import 'package:project_anima/features/home/screens/home.dart';
+import 'package:project_anima/features/library/components/library_header.dart';
+import 'package:project_anima/features/library/screens/library.dart';
+import 'package:project_anima/features/search/components/search_header.dart';
+import 'package:project_anima/features/search/screens/search.dart';
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
+
+  setUp(() {
+    NavigationController.instance.reset();
+    MenuTransitionController.instance.reset();
+  });
+
+  group('SpaceHeader Typography & Alignment Tests', () {
+    testWidgets('SpaceHeader matches exact font, size, and layout of LibraryHeader and SearchHeader',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: Column(
+              children: [
+                SpaceHeader(),
+                SearchHeader(),
+                LibraryHeader(),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final spaceTextFinder = find.text('Space');
+      final searchTextFinder = find.text('Search');
+      final libraryTextFinder = find.text('Library');
+
+      expect(spaceTextFinder, findsOneWidget);
+      expect(searchTextFinder, findsOneWidget);
+      expect(libraryTextFinder, findsOneWidget);
+
+      final Text spaceText = tester.widget(spaceTextFinder);
+      final Text searchText = tester.widget(searchTextFinder);
+      final Text libraryText = tester.widget(libraryTextFinder);
+
+      expect(spaceText.textAlign, TextAlign.center);
+      expect(searchText.textAlign, TextAlign.center);
+      expect(libraryText.textAlign, TextAlign.center);
+
+      expect(spaceText.style?.fontSize, equals(24.0));
+      expect(spaceText.style?.fontWeight, equals(FontWeight.w700));
+      expect(spaceText.style?.letterSpacing, equals(1.5));
+
+      expect(searchText.style?.fontSize, equals(24.0));
+      expect(searchText.style?.fontWeight, equals(FontWeight.w700));
+      expect(searchText.style?.letterSpacing, equals(1.5));
+
+      expect(libraryText.style?.fontSize, equals(24.0));
+      expect(libraryText.style?.fontWeight, equals(FontWeight.w700));
+      expect(libraryText.style?.letterSpacing, equals(1.5));
+    });
+  });
+
+  group('HomeScreen (Space) Isolation Tests', () {
+    testWidgets('HomeScreen renders empty with Space header and AmbientParticlesCanvas',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: HomeScreen(
+            showBottomNav: false,
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.text('Space'), findsOneWidget);
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+
+      // Verify absence of legacy content
+      expect(find.text('WELCOME'), findsNothing);
+      expect(find.text('Today Selection'), findsNothing);
+      expect(find.text('Favoritos'), findsNothing);
+      expect(find.text('Favorites'), findsNothing);
+      expect(find.text('PINNED FAVORITES'), findsNothing);
+    });
+
+    testWidgets('SearchScreen and LibraryScreen do not contain AmbientParticlesCanvas',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: Column(
+              children: [
+                Expanded(child: SearchScreen(showBottomNav: false)),
+                Expanded(child: LibraryScreen(showBottomNav: false)),
+              ],
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byType(AmbientParticlesCanvas), findsNothing);
+    });
+  });
+
+  group('AppBottomNav Heart Icon and Space Naming Tests', () {
+    testWidgets('AppBottomNav renders native heart icon and Space label in English and Spanish',
+        (tester) async {
+      // English test
+      await tester.pumpWidget(
+        const MaterialApp(
+          locale: Locale('en'),
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            bottomNavigationBar: AppBottomNav(
+              currentIndex: 1,
+              showMiniPlayer: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Space'), findsOneWidget);
+      expect(find.text('Home'), findsNothing);
+      expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.home_outlined), findsNothing);
+
+      // Spanish test
+      await tester.pumpWidget(
+        const MaterialApp(
+          locale: Locale('es'),
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            bottomNavigationBar: AppBottomNav(
+              currentIndex: 0,
+              showMiniPlayer: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // "Space" remains "Space" in Spanish as requested
+      expect(find.text('Space'), findsOneWidget);
+      expect(find.text('Inicio'), findsNothing);
+      expect(find.byIcon(Icons.favorite_rounded), findsOneWidget);
+    });
+  });
+
+  group('Startup Destination to Search Screen Tests', () {
+    test('NavigationController and MenuTransitionController default to index 1 (Search)', () {
+      expect(NavigationController.instance.currentIndex, equals(1));
+      expect(MenuTransitionController.instance.currentIndex, equals(1));
+    });
+
+    testWidgets('MenuTransitionControl mounts with Search screen active by default',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: MenuTransitionControl(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // MenuTransitionControl should show Search header
+      expect(find.byType(SearchScreen), findsOneWidget);
+      expect(find.text('Search'), findsNWidgets(2)); // Header + bottom nav tab
+    });
+  });
+}

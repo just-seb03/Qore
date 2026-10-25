@@ -12,10 +12,10 @@ class EsNavigationStrings implements NavigationStrings {
   const EsNavigationStrings();
 
   @override
-  String get homeTab => 'Inicio';
+  String get homeTab => 'Space';
 
   @override
-  String get homeTabTooltip => 'Inicio';
+  String get homeTabTooltip => 'Space';
 
   @override
   String get searchTab => 'Buscar';

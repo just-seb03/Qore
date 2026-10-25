@@ -12,6 +12,9 @@ class EnHomeStrings implements HomeStrings {
   const EnHomeStrings();
 
   @override
+  String get spaceTitle => 'Space';
+
+  @override
   String get welcomeTitle => 'WELCOME';
 
   @override
