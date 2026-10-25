@@ -1,0 +1,221 @@
+/// File: artist_track_tile.dart
+/// Description: Ultra-high performance track tile component for the Artist Tracks feature.
+/// Features a strict fixed-height layout (64dp) for O(1) ListView virtualization,
+/// isolated GPU RepaintBoundary boundaries, scoped local state listening for playback
+/// and favorite events, and smooth monochromatic dark aesthetic styling.
+///
+/// Components / Classes / Functions:
+/// - ArtistTrackTile: High-performance virtualized track row widget.
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
+import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
+import 'package:project_anima/core/theme/theme.dart';
+
+/// Highly optimized track tile rendering artwork thumbnail, title, album, duration, and favorite toggle.
+class ArtistTrackTile extends StatelessWidget {
+  /// The song represented by this tile.
+  final Song song;
+
+  /// Full queue of artist songs to enqueue when this track is selected.
+  final List<Song> allArtistSongs;
+
+  /// Standard tile height matching the virtualized list itemExtent.
+  static const double tileHeight = 64.0;
+
+  const ArtistTrackTile({
+    super.key,
+    required this.song,
+    required this.allArtistSongs,
+  });
+
+  String _formatDuration(int? ms) {
+    if (ms == null || ms <= 0) return '';
+    final totalSeconds = ms ~/ 1000;
+    final minutes = totalSeconds ~/ 60;
+    final seconds = totalSeconds % 60;
+    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final activeController = PlaybackController.instance;
+
+    return RepaintBoundary(
+      child: SizedBox(
+        height: tileHeight,
+        child: ListenableBuilder(
+          listenable: Listenable.merge([
+            activeController,
+            FavoriteSongsDao.instance.favoritesRevision,
+          ]),
+          builder: (context, _) {
+            final isCurrentTrack =
+                activeController.currentSong?.mediaStoreId == song.mediaStoreId;
+            final isPlaying = isCurrentTrack && activeController.isPlaying;
+            final isFav = FavoriteSongsDao.instance.isFavorite(song.mediaStoreId);
+            final durationStr = _formatDuration(song.duration);
+
+            void handleTap() {
+              if (isCurrentTrack) {
+                activeController.togglePlayPause();
+              } else {
+                activeController.playSong(song, queue: allArtistSongs);
+              }
+            }
+
+            return Material(
+              color: isCurrentTrack
+                  ? AppColors.surfaceContainerHigh.withValues(alpha: 0.5)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(10.0),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10.0),
+                onTap: handleTap,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
+                  child: Row(
+                    children: [
+                      // 1. Artwork Thumbnail (48x48)
+                      Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          AnimaArtworkImage(
+                            mediaStoreId: song.mediaStoreId,
+                            albumId: song.albumId,
+                            width: 48.0,
+                            height: 48.0,
+                            borderRadius: 10.0,
+                            isThumbnail: true,
+                          ),
+                          if (isPlaying)
+                            Container(
+                              width: 48.0,
+                              height: 48.0,
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.45),
+                                borderRadius: BorderRadius.circular(10.0),
+                              ),
+                              child: const Icon(
+                                Icons.equalizer_rounded,
+                                color: Colors.white,
+                                size: 22.0,
+                              ),
+                            ),
+                        ],
+                      ),
+                      const SizedBox(width: 14.0),
+
+                      // 2. Title & Album Info
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Text(
+                              song.title,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.outfit(
+                                fontSize: 14.5,
+                                fontWeight: isCurrentTrack
+                                    ? FontWeight.w600
+                                    : FontWeight.w500,
+                                color: isCurrentTrack
+                                    ? Colors.white
+                                    : Colors.white.withValues(alpha: 0.92),
+                              ),
+                            ),
+                            const SizedBox(height: 2.0),
+                            Text(
+                              song.album ?? 'Unknown Album',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inconsolata(
+                                fontSize: 11.5,
+                                color: AppColors.onSurfaceVariant,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      // 3. Favorite Toggle Button
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20.0),
+                          onTap: () {
+                            HapticFeedback.lightImpact();
+                            FavoriteSongsDao.instance.toggleFavorite(song);
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: Icon(
+                              isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                              size: 19.0,
+                              color: isFav ? Colors.white : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 2.0),
+
+                      // 4. Add to Queue Button
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(20.0),
+                          onTap: () {
+                            activeController.addToQueue(song);
+                            HapticFeedback.lightImpact();
+                          },
+                          child: Padding(
+                            padding: const EdgeInsets.all(6.0),
+                            child: Icon(
+                              Icons.playlist_add_rounded,
+                              size: 20.0,
+                              color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8.0),
+
+                      // 5. Duration at the very end (or active play/pause indicator)
+                      if (durationStr.isNotEmpty && !isCurrentTrack)
+                        SizedBox(
+                          width: 36.0,
+                          child: Text(
+                            durationStr,
+                            textAlign: TextAlign.end,
+                            style: GoogleFonts.inconsolata(
+                              fontSize: 12.0,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                        ),
+                      if (isCurrentTrack)
+                        SizedBox(
+                          width: 36.0,
+                          child: Icon(
+                            isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                            color: Colors.white,
+                            size: 20.0,
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+}

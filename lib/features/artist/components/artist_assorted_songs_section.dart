@@ -12,6 +12,8 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/components/artist_compact_track_tile.dart';
 
+import 'package:project_anima/features/artist_tracks/screens/artist_tracks_screen.dart';
+
 /// Chronological assorted tracks section showing up to 5 songs without covers, compact styling.
 class ArtistAssortedSongsSection extends StatelessWidget {
   /// Assorted songs list to display.
@@ -20,10 +22,18 @@ class ArtistAssortedSongsSection extends StatelessWidget {
   /// Full queue of artist songs to enqueue when a track is tapped.
   final List<Song> allArtistSongs;
 
+  /// Optional name of the artist for navigation to the full tracks view.
+  final String? artistName;
+
+  /// Optional custom callback when viewing all tracks.
+  final VoidCallback? onViewAll;
+
   const ArtistAssortedSongsSection({
     super.key,
     required this.songs,
     required this.allArtistSongs,
+    this.artistName,
+    this.onViewAll,
   });
 
   @override
@@ -46,12 +56,20 @@ class ArtistAssortedSongsSection extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Dummy navigation arrow indicating full songs view
+              // Navigation arrow indicating full songs view
               Material(
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12.0),
-                  onTap: () {},
+                  onTap: () {
+                    if (onViewAll != null) {
+                      onViewAll!();
+                    } else if (artistName != null && artistName!.isNotEmpty) {
+                      Navigator.of(context).push(
+                        ArtistTracksScreen.route(artistName: artistName!),
+                      );
+                    }
+                  },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
                     child: Icon(

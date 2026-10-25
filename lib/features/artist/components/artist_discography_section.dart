@@ -13,14 +13,24 @@ import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 
-/// Discography horizontal scrolling list showing albums with dummy navigation arrow.
+import 'package:project_anima/features/artist_discography/screens/artist_discography_screen.dart';
+
+/// Discography horizontal scrolling list showing albums with navigation arrow.
 class ArtistDiscographySection extends StatelessWidget {
   /// List of distinct albums released by the artist.
   final List<AlbumDiscoveryItem> albums;
 
+  /// Optional name of the artist for discography navigation.
+  final String? artistName;
+
+  /// Optional custom callback when viewing all albums.
+  final VoidCallback? onViewAll;
+
   const ArtistDiscographySection({
     super.key,
     required this.albums,
+    this.artistName,
+    this.onViewAll,
   });
 
   @override
@@ -43,12 +53,20 @@ class ArtistDiscographySection extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              // Dummy navigation arrow indicating full albums view
+              // Navigation arrow indicating full albums view
               Material(
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(12.0),
-                  onTap: () {},
+                  onTap: () {
+                    if (onViewAll != null) {
+                      onViewAll!();
+                    } else if (artistName != null && artistName!.isNotEmpty) {
+                      Navigator.of(context).push(
+                        ArtistDiscographyScreen.route(artistName: artistName!),
+                      );
+                    }
+                  },
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 4.0),
                     child: Icon(

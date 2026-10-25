@@ -349,7 +349,10 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
 
                         // 3. Discography Horizontal Carousel
                         if (_albums.isNotEmpty) ...[
-                          ArtistDiscographySection(albums: _albums),
+                          ArtistDiscographySection(
+                            albums: _albums,
+                            artistName: _resolvedArtistName,
+                          ),
                           const SizedBox(height: 30.0),
                         ],
 
@@ -358,6 +361,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                           ArtistAssortedSongsSection(
                             songs: _assortedSongs,
                             allArtistSongs: _assortedSongs,
+                            artistName: _resolvedArtistName,
                           ),
                         ],
 
