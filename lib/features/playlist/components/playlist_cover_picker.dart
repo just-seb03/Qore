@@ -131,7 +131,7 @@ class PlaylistCoverPicker extends StatelessWidget {
                       width: 2.0,
                     ),
                   ),
-                  child: const Center(
+                  child: Center(
                     child: Icon(
                       Icons.camera_alt_rounded,
                       size: 19.0,

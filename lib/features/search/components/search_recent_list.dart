@@ -14,6 +14,7 @@ import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
+import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 
 /// Renders the list of recently clicked search entities.
@@ -29,17 +30,17 @@ class SearchRecentList extends StatelessWidget {
     this.controller,
   });
 
-  static final TextStyle _headerStyle = GoogleFonts.inconsolata(
+  static TextStyle get _headerStyle => GoogleFonts.inconsolata(
     fontSize: 14.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
-    color: Colors.white,
+    color: AppColors.onBackground,
   );
 
-  static final TextStyle _clearAllStyle = GoogleFonts.inconsolata(
+  static TextStyle get _clearAllStyle => GoogleFonts.inconsolata(
     fontSize: 13.0,
     fontWeight: FontWeight.w600,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
   @override
@@ -114,16 +115,16 @@ class _RecentSearchTile extends StatelessWidget {
     required this.onRemove,
   });
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 15.0,
     fontWeight: FontWeight.w600,
-    color: Colors.white,
+    color: AppColors.onSurface,
   );
 
-  static final TextStyle _subtitleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _subtitleStyle => GoogleFonts.inconsolata(
     fontSize: 13.0,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
   @override
@@ -132,8 +133,8 @@ class _RecentSearchTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        splashColor: const Color(0xFF282828),
-        highlightColor: const Color(0xFF1E1E1E),
+        splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+        highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(
@@ -168,10 +169,10 @@ class _RecentSearchTile extends StatelessWidget {
               // 3. Remove Button ('X')
               IconButton(
                 onPressed: onRemove,
-                icon: const Icon(
+                icon: Icon(
                   Icons.close_rounded,
                   size: 20.0,
-                  color: Color(0xFF8E8E8E),
+                  color: AppColors.onSurfaceVariant,
                 ),
                 splashRadius: 18.0,
                 tooltip: context.l10n.search.removeRecentTooltip,

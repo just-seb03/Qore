@@ -335,10 +335,10 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
           child: Transform.translate(
             offset: Offset(0.0, _dragOffset),
             child: _isLoading
-                ? const Center(
+                ? Center(
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: AppColors.accent,
                     ),
                   )
                 : SingleChildScrollView(

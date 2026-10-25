@@ -84,18 +84,11 @@ class PlaylistDetailHeader extends StatelessWidget {
 
     final titleStyle = getPlaylistTitleFont(
       playlist.fontFamily,
-      baseStyle: const TextStyle(
+      baseStyle: TextStyle(
         fontSize: 24.0,
         fontWeight: FontWeight.w700,
-        color: Colors.white,
+        color: AppColors.onBackground,
         letterSpacing: -0.3,
-        shadows: [
-          Shadow(
-            color: Colors.black54,
-            blurRadius: 8.0,
-            offset: Offset(0, 2),
-          ),
-        ],
       ),
     );
 
@@ -178,7 +171,7 @@ class PlaylistDetailHeader extends StatelessWidget {
                 Icons.shuffle_rounded,
                 size: 26.0,
                 color: isShuffleEnabled
-                    ? AppColors.futuristicWhite
+                    ? AppColors.accent
                     : AppColors.onSurfaceVariant.withValues(alpha: 0.4),
               ),
               tooltip: isShuffleEnabled
@@ -199,7 +192,7 @@ class PlaylistDetailHeader extends StatelessWidget {
                     ? Icons.pause_rounded
                     : Icons.play_arrow_rounded,
                 size: 38.0,
-                color: AppColors.futuristicWhite,
+                color: AppColors.accent,
               ),
               tooltip: playlist.id != null &&
                       PlaybackController.instance.activePlaylistId == playlist.id &&
@@ -250,14 +243,14 @@ class PlaylistDetailHeader extends StatelessWidget {
     }
 
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF242436),
-            Color(0xFF161622),
-            Color(0xFF101018),
+            AppColors.surfaceContainerHigh,
+            AppColors.surfaceContainer,
+            AppColors.background,
           ],
         ),
       ),
@@ -268,7 +261,7 @@ class PlaylistDetailHeader extends StatelessWidget {
             Icon(
               Symbols.crop_landscape_rounded,
               size: 52.0,
-              color: AppColors.futuristicWhite.withValues(alpha: 0.35),
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
             ),
             const SizedBox(height: 6.0),
             Text(
@@ -277,7 +270,7 @@ class PlaylistDetailHeader extends StatelessWidget {
                 fontSize: 12.0,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.4,
-                color: AppColors.futuristicWhite.withValues(alpha: 0.40),
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.70),
               ),
             ),
           ],

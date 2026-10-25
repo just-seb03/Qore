@@ -10,6 +10,7 @@ library;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/theme/theme.dart';
 
 /// Reusable circular Material Design avatar for artists.
 /// Dynamically renders custom artist photos persisted in [ArtworkService],
@@ -18,11 +19,11 @@ class MaterialArtistAvatar extends StatelessWidget {
   /// Radius of the avatar circle.
   final double radius;
 
-  /// Background color of the avatar. Defaults to dark grey (#282828).
-  final Color backgroundColor;
+  /// Background color of the avatar. Defaults to dynamic [AppColors.surfaceContainerHigh].
+  final Color? backgroundColor;
 
-  /// Foreground icon color. Defaults to light grey (#B3B3B3).
-  final Color iconColor;
+  /// Foreground icon color. Defaults to dynamic [AppColors.onSurfaceVariant].
+  final Color? iconColor;
 
   /// Optional custom icon. Defaults to [Icons.person_rounded].
   final IconData icon;
@@ -33,14 +34,17 @@ class MaterialArtistAvatar extends StatelessWidget {
   const MaterialArtistAvatar({
     super.key,
     this.radius = 24.0,
-    this.backgroundColor = const Color(0xFF282828),
-    this.iconColor = const Color(0xFFB3B3B3),
+    this.backgroundColor,
+    this.iconColor,
     this.icon = Icons.person_rounded,
     this.artistName,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBg = backgroundColor ?? AppColors.surfaceContainerHigh;
+    final effectiveIconColor = iconColor ?? AppColors.onSurfaceVariant;
+
     return ListenableBuilder(
       listenable: ArtworkService.instance,
       builder: (context, _) {
@@ -48,18 +52,18 @@ class MaterialArtistAvatar extends StatelessWidget {
         if (customPath != null) {
           return CircleAvatar(
             radius: radius,
-            backgroundColor: backgroundColor,
+            backgroundColor: effectiveBg,
             backgroundImage: FileImage(File(customPath)),
           );
         }
 
         return CircleAvatar(
           radius: radius,
-          backgroundColor: backgroundColor,
+          backgroundColor: effectiveBg,
           child: Icon(
             icon,
             size: radius * 1.15,
-            color: iconColor,
+            color: effectiveIconColor,
           ),
         );
       },

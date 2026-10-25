@@ -25,16 +25,16 @@ class PlaylistDiscardDialog extends StatelessWidget {
     return result ?? false;
   }
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 18.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.2,
-    color: AppColors.futuristicWhite,
+    color: AppColors.onSurface,
   );
 
-  static final TextStyle _contentStyle = GoogleFonts.inconsolata(
+  static TextStyle get _contentStyle => GoogleFonts.inconsolata(
     fontSize: 14.0,
-    color: const Color(0xFFCCCCCC),
+    color: AppColors.onSurfaceVariant,
     height: 1.4,
   );
 
@@ -83,7 +83,7 @@ class PlaylistDiscardDialog extends StatelessWidget {
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
           style: TextButton.styleFrom(
-            foregroundColor: const Color(0xFFB3B3B3),
+            foregroundColor: AppColors.onSurfaceVariant,
           ),
           child: Text(l10n.keepEditingAction, style: _actionStyle),
         ),

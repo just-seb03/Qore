@@ -141,7 +141,7 @@ class ArtistDiscographySection extends StatelessWidget {
                         style: GoogleFonts.outfit(
                           fontSize: 14.0,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: AppColors.onSurface,
                         ),
                       ),
                       const SizedBox(height: 2.0),

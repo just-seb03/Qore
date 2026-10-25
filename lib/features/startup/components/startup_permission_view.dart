@@ -61,7 +61,7 @@ class StartupPermissionView extends StatelessWidget {
                   ),
                 ],
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.music_note_rounded,
                 size: 38.0,
                 color: AppColors.futuristicWhite,
@@ -108,11 +108,11 @@ class StartupPermissionView extends StatelessWidget {
                     vertical: 14.0,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.futuristicWhite,
+                    color: AppColors.accent,
                     borderRadius: BorderRadius.circular(28.0),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.white.withValues(alpha: 0.15),
+                        color: AppColors.accent.withValues(alpha: 0.28),
                         blurRadius: 12.0,
                         offset: const Offset(0, 4),
                       ),
@@ -127,14 +127,14 @@ class StartupPermissionView extends StatelessWidget {
                           fontSize: 14.0,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.6,
-                          color: AppColors.background,
+                          color: AppColors.onAccent,
                         ),
                       ),
                       const SizedBox(width: 8.0),
                       Icon(
                         Icons.arrow_forward_rounded,
                         size: 16.0,
-                        color: AppColors.background,
+                        color: AppColors.onAccent,
                       ),
                     ],
                   ),

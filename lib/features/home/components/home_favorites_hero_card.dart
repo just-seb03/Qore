@@ -181,7 +181,7 @@ class HomeFavoritesHeroCard extends StatelessWidget {
   Widget _buildCollage(List<Song> collageSongs) {
     if (collageSongs.isEmpty) {
       return Container(
-        color: const Color(0xFF141416),
+        color: AppColors.surfaceContainer,
       );
     }
 

@@ -114,7 +114,7 @@ class _LibraryArtistsListState extends State<LibraryArtistsList> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
+      return Center(
         child: CircularProgressIndicator(
           strokeWidth: 2.5,
           color: AppColors.navIndicator,

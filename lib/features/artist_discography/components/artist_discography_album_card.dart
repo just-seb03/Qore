@@ -29,14 +29,14 @@ class ArtistDiscographyAlbumCard extends StatelessWidget {
     this.onTap,
   });
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
-    color: Colors.white,
+    color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
-  static final TextStyle _metaStyle = GoogleFonts.inconsolata(
+  static TextStyle get _metaStyle => GoogleFonts.inconsolata(
     fontSize: 12.0,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,
@@ -62,8 +62,8 @@ class ArtistDiscographyAlbumCard extends StatelessWidget {
                 ),
               );
             },
-        splashColor: const Color(0xFF282828),
-        highlightColor: const Color(0xFF1E1E1E),
+        splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+        highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

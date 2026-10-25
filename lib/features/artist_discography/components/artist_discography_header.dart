@@ -50,7 +50,7 @@ class ArtistDiscographyHeader extends StatelessWidget {
             style: GoogleFonts.inconsolata(
               fontSize: 24.0,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: AppColors.onBackground,
               letterSpacing: -0.3,
             ),
           ),

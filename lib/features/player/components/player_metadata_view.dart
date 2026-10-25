@@ -27,21 +27,21 @@ class PlayerMetadataView extends StatelessWidget {
     this.onAlbumTap,
   });
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 22.0,
     fontWeight: FontWeight.w700,
     color: AppColors.futuristicWhite,
     letterSpacing: -0.2,
   );
 
-  static final TextStyle _artistStyle = GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
     fontSize: 16.0,
     fontWeight: FontWeight.w500,
     color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );
 
-  static final TextStyle _albumStyle = GoogleFonts.inconsolata(
+  static TextStyle get _albumStyle => GoogleFonts.inconsolata(
     fontSize: 13.5,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceDisabled,

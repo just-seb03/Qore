@@ -31,13 +31,13 @@ class HomeHeader extends StatelessWidget {
   /// Callback when the checkmark ticket button is tapped to exit arranging mode.
   final VoidCallback? onDoneTap;
 
-  // Cached TextStyle to eliminate runtime font parsing on build
-  static final TextStyle _titleTextStyle = GoogleFonts.inconsolata(
+  // Dynamic TextStyle to eliminate runtime font parsing on build and respect active theme
+  static TextStyle get _titleTextStyle => GoogleFonts.inconsolata(
     fontSize: 34.0,
     fontWeight: FontWeight.w800,
     height: 1.15,
     letterSpacing: 1.2,
-    color: AppColors.futuristicWhite,
+    color: AppColors.onBackground,
   );
 
   const HomeHeader({
@@ -74,9 +74,9 @@ class HomeHeader extends StatelessWidget {
             const SizedBox(height: 6.0),
             IconButton(
               key: const ValueKey('home_slot_grid_done_button'),
-              icon: const Icon(
+              icon: Icon(
                 Icons.check_rounded,
-                color: AppColors.futuristicWhite,
+                color: AppColors.onBackground,
                 size: 28.0,
               ),
               tooltip: context.l10n.home.doneButtonTooltip,

@@ -148,7 +148,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: M3ELoadingIndicator(
                 size: 24,
-                color: AppColors.futuristicWhite,
+                color: AppColors.accent,
               ),
             )
           else

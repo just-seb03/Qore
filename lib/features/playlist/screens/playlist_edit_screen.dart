@@ -106,25 +106,25 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
   bool _isSearching = false;
   bool _isSaving = false;
 
-  static final TextStyle _nameHintStyle = GoogleFonts.outfit(
+  static TextStyle get _nameHintStyle => GoogleFonts.outfit(
     fontSize: 22.0,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
     letterSpacing: -0.3,
   );
 
-  static final TextStyle _sectionHeaderStyle = GoogleFonts.inconsolata(
+  static TextStyle get _sectionHeaderStyle => GoogleFonts.inconsolata(
     fontSize: 13.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
     color: AppColors.onSurfaceVariant,
   );
 
-  static final TextStyle _saveButtonStyle = GoogleFonts.inconsolata(
+  static TextStyle get _saveButtonStyle => GoogleFonts.inconsolata(
     fontSize: 15.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
-    color: AppColors.futuristicWhite,
+    color: AppColors.onSurface,
   );
 
   @override
@@ -361,14 +361,14 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                         textAlign: TextAlign.center,
                         style: getPlaylistTitleFont(
                           _selectedFontFamily,
-                          baseStyle: const TextStyle(
+                          baseStyle: TextStyle(
                             fontSize: 22.0,
                             fontWeight: FontWeight.w700,
-                            color: Colors.white,
+                            color: AppColors.onSurface,
                             letterSpacing: -0.3,
                           ),
                         ),
-                        cursorColor: AppColors.futuristicWhite,
+                        cursorColor: AppColors.accent,
                         decoration: InputDecoration(
                           hintText: context.l10n.playlist.playlistNameHint,
                           hintStyle: _nameHintStyle,
@@ -406,7 +406,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                               font.id.toLowerCase();
                           return Material(
                             color: isSelected
-                                ? AppColors.navIndicator
+                                ? AppColors.accent
                                 : AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
                             borderRadius: BorderRadius.circular(22.0),
                             child: InkWell(
@@ -422,7 +422,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                                   borderRadius: BorderRadius.circular(22.0),
                                   border: Border.all(
                                     color: isSelected
-                                        ? AppColors.futuristicWhite
+                                        ? AppColors.onAccent
                                         : AppColors.outline.withValues(alpha: 0.35),
                                     width: isSelected ? 1.5 : 1.0,
                                   ),
@@ -435,7 +435,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                                     baseStyle: TextStyle(
                                       fontSize: 13.0,
                                       fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                                      color: isSelected ? Colors.white : AppColors.onSurfaceVariant,
+                                      color: isSelected ? AppColors.onAccent : AppColors.onSurfaceVariant,
                                     ),
                                   ),
                                 ),
@@ -525,12 +525,12 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                         ),
                       ),
                       icon: _isSaving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 18.0,
                               height: 18.0,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.0,
-                                color: Colors.white,
+                                color: AppColors.accent,
                               ),
                             )
                           : const Icon(Icons.check_rounded, size: 20.0),

@@ -14,6 +14,7 @@ import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
+import 'package:project_anima/core/theme/theme.dart';
 
 /// Reusable Spotify-styled song row item.
 class SearchSongTile extends StatelessWidget {
@@ -33,22 +34,22 @@ class SearchSongTile extends StatelessWidget {
     this.onOptionsTap,
   });
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 15.0,
     fontWeight: FontWeight.w600,
-    color: Colors.white,
+    color: AppColors.onSurface,
   );
 
-  static final TextStyle _artistAlbumStyle = GoogleFonts.inconsolata(
+  static TextStyle get _artistAlbumStyle => GoogleFonts.inconsolata(
     fontSize: 13.0,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
-  static final TextStyle _durationStyle = GoogleFonts.inconsolata(
+  static TextStyle get _durationStyle => GoogleFonts.inconsolata(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
   String _formatDuration(int ms) {
@@ -81,8 +82,8 @@ class SearchSongTile extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
-            splashColor: const Color(0xFF282828),
-            highlightColor: const Color(0xFF1E1E1E),
+            splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+            highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
               child: Row(
@@ -125,7 +126,7 @@ class SearchSongTile extends StatelessWidget {
                     icon: Icon(
                       isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                       size: 20.0,
-                      color: isFav ? Colors.white : const Color(0xFFB3B3B3).withValues(alpha: 0.65),
+                      color: isFav ? AppColors.accent : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
@@ -140,10 +141,10 @@ class SearchSongTile extends StatelessWidget {
                   ),
                   // Add to queue icon
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.playlist_add_rounded,
                       size: 20.0,
-                      color: Color(0xFFB3B3B3),
+                      color: AppColors.onSurfaceVariant,
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 28.0, minHeight: 28.0),
@@ -163,10 +164,10 @@ class SearchSongTile extends StatelessWidget {
                   const SizedBox(width: 8.0),
                   // Spotify more-options icon
                   IconButton(
-                    icon: const Icon(
+                    icon: Icon(
                       Icons.more_vert_rounded,
                       size: 20.0,
-                      color: Color(0xFFB3B3B3),
+                      color: AppColors.onSurfaceVariant,
                     ),
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 28.0, minHeight: 28.0),

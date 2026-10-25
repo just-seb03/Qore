@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:project_anima/core/theme/theme.dart';
 
 /// Animated heart toggle button for pinning albums, artists, and playlists to favorites.
 class FavoriteHeartButton extends StatefulWidget {
@@ -21,11 +22,11 @@ class FavoriteHeartButton extends StatefulWidget {
   /// Icon size (defaults to 28.0).
   final double size;
 
-  /// Color when active/pinned (defaults to white).
-  final Color activeColor;
+  /// Color when active/pinned (defaults to dynamic [AppColors.accent]).
+  final Color? activeColor;
 
-  /// Color when inactive/unpinned (defaults to translucent white).
-  final Color inactiveColor;
+  /// Color when inactive/unpinned (defaults to dynamic [AppColors.onSurfaceVariant]).
+  final Color? inactiveColor;
 
   /// Whether to render a translucent dark glass circular container (ideal for artwork overlays).
   final bool showBackground;
@@ -35,8 +36,8 @@ class FavoriteHeartButton extends StatefulWidget {
     required this.isPinned,
     required this.onToggle,
     this.size = 28.0,
-    this.activeColor = Colors.white,
-    this.inactiveColor = const Color(0xB3FFFFFF),
+    this.activeColor,
+    this.inactiveColor,
     this.showBackground = false,
   });
 
@@ -95,13 +96,17 @@ class _FavoriteHeartButtonState extends State<FavoriteHeartButton>
 
   @override
   Widget build(BuildContext context) {
+    final effectiveActiveColor = widget.activeColor ?? AppColors.accent;
+    final effectiveInactiveColor =
+        widget.inactiveColor ?? AppColors.onSurfaceVariant;
+
     final iconWidget = ScaleTransition(
       scale: _scaleAnimation,
       child: Icon(
         widget.isPinned ? Icons.favorite_rounded : Icons.favorite_border_rounded,
         size: widget.size,
-        color: widget.isPinned ? widget.activeColor : widget.inactiveColor,
-        shadows: widget.isPinned
+        color: widget.isPinned ? effectiveActiveColor : effectiveInactiveColor,
+        shadows: (widget.isPinned && widget.showBackground)
             ? [
                 BoxShadow(
                   color: Colors.black.withValues(alpha: 0.45),
@@ -120,16 +125,16 @@ class _FavoriteHeartButtonState extends State<FavoriteHeartButton>
         child: InkWell(
           customBorder: const CircleBorder(),
           onTap: _handleTap,
-          splashColor: Colors.white.withValues(alpha: 0.20),
-          highlightColor: Colors.white.withValues(alpha: 0.10),
+          splashColor: effectiveActiveColor.withValues(alpha: 0.20),
+          highlightColor: effectiveActiveColor.withValues(alpha: 0.10),
           child: Container(
             width: 44.0,
             height: 44.0,
             decoration: BoxDecoration(
-              color: Colors.black.withValues(alpha: 0.60),
+              color: AppColors.surfaceContainerHigh.withValues(alpha: 0.70),
               shape: BoxShape.circle,
               border: Border.all(
-                color: Colors.white.withValues(alpha: 0.25),
+                color: AppColors.outline.withValues(alpha: 0.35),
                 width: 1.2,
               ),
               boxShadow: [
@@ -154,8 +159,8 @@ class _FavoriteHeartButtonState extends State<FavoriteHeartButton>
       child: InkWell(
         customBorder: const CircleBorder(),
         onTap: _handleTap,
-        splashColor: Colors.white.withValues(alpha: 0.15),
-        highlightColor: Colors.white.withValues(alpha: 0.08),
+        splashColor: effectiveActiveColor.withValues(alpha: 0.20),
+        highlightColor: effectiveActiveColor.withValues(alpha: 0.10),
         child: Padding(
           padding: const EdgeInsets.all(10.0),
           child: iconWidget,

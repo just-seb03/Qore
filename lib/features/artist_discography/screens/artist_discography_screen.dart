@@ -204,10 +204,10 @@ class _ArtistDiscographyScreenState extends State<ArtistDiscographyScreen>
               listenable: _controller,
               builder: (context, _) {
                 if (_controller.isLoading) {
-                  return const Center(
+                  return Center(
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: AppColors.accent,
                     ),
                   );
                 }

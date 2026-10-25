@@ -65,7 +65,7 @@ class StartupPermissionCardView extends StatelessWidget {
                         width: 1.0,
                       ),
                     ),
-                    child: const Icon(
+                    child: Icon(
                       Icons.security_rounded,
                       size: 20.0,
                       color: AppColors.futuristicWhite,
@@ -121,11 +121,11 @@ class StartupPermissionCardView extends StatelessWidget {
                   child: Ink(
                     height: 52.0,
                     decoration: BoxDecoration(
-                      color: AppColors.futuristicWhite,
+                      color: AppColors.accent,
                       borderRadius: BorderRadius.circular(16.0),
                       boxShadow: [
                         BoxShadow(
-                          color: AppColors.futuristicWhite.withValues(alpha: 0.15),
+                          color: AppColors.accent.withValues(alpha: 0.28),
                           blurRadius: 12.0,
                           offset: const Offset(0, 4),
                         ),
@@ -138,7 +138,7 @@ class StartupPermissionCardView extends StatelessWidget {
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 2.2,
-                          color: AppColors.background,
+                          color: AppColors.onAccent,
                         ),
                       ),
                     ),

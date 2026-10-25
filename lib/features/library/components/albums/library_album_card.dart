@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/theme/theme.dart';
 
 /// Card widget rendering an album in the Library grid (2 per row).
 class LibraryAlbumCard extends StatelessWidget {
@@ -26,17 +27,17 @@ class LibraryAlbumCard extends StatelessWidget {
     this.onTap,
   });
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
-    color: Colors.white,
+    color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
-  static final TextStyle _artistStyle = GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );
 
@@ -46,8 +47,8 @@ class LibraryAlbumCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        splashColor: const Color(0xFF282828),
-        highlightColor: const Color(0xFF1E1E1E),
+        splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+        highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/theme/theme.dart';
 
 /// Reusable Spotify-styled square album card for horizontal carousels.
 class SearchAlbumCard extends StatelessWidget {
@@ -29,16 +30,16 @@ class SearchAlbumCard extends StatelessWidget {
     this.width = 130.0,
   });
 
-  static final TextStyle _albumTitleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _albumTitleStyle => GoogleFonts.inconsolata(
     fontSize: 14.0,
     fontWeight: FontWeight.w600,
-    color: Colors.white,
+    color: AppColors.onSurface,
   );
 
-  static final TextStyle _artistStyle = GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
   @override
@@ -51,8 +52,8 @@ class SearchAlbumCard extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(8.0),
-          splashColor: const Color(0xFF282828),
-          highlightColor: const Color(0xFF1E1E1E),
+          splashColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.4),
+          highlightColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.2),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,

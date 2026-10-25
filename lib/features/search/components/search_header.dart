@@ -21,12 +21,12 @@ class SearchHeader extends StatelessWidget {
   /// Custom padding around the header text.
   final EdgeInsetsGeometry padding;
 
-  /// Cached text style for the Inconsolata title to avoid resolving font map on rebuilds.
-  static final TextStyle _titleTextStyle = GoogleFonts.inconsolata(
+  /// Dynamic text style for the Inconsolata title matching active theme.
+  static TextStyle get _titleTextStyle => GoogleFonts.inconsolata(
     fontSize: 24.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.5,
-    color: AppColors.futuristicWhite,
+    color: AppColors.onBackground,
   );
 
   const SearchHeader({

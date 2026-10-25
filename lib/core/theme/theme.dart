@@ -12,146 +12,72 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/theme/contracts/app_theme_palette.dart';
+import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 
-/// Centralized monochromatic dark color palette.
+/// Centralized design tokens palette.
 ///
-/// Designed with deep charcoal/black tones, subtle surface elevations,
-/// and high contrast text hierarchy for an expressive, film-like aesthetic.
+/// Provides dynamic runtime access to the active [ThemeController.instance.currentPalette].
 abstract final class AppColors {
   // Prevent instantiation
   const AppColors._();
 
+  static AppThemePalette get _current => ThemeController.instance.currentPalette;
+
   /// Primary deep background color for screens and bottom navigation.
-  static const Color background = Color(0xFF0E0E10);
+  static Color get background => _current.background;
 
   /// Bottom navigation background color, strictly matching the screen background.
-  static const Color bottomNavBackground = background;
+  static Color get bottomNavBackground => _current.bottomNavBackground;
 
   /// Elevated surface colors for cards, sheets, and dialogs.
-  static const Color surface = Color(0xFF141417);
-  static const Color surfaceContainer = Color(0xFF1A1A1E);
-  static const Color surfaceContainerHigh = Color(0xFF242429);
-  static const Color surfaceContainerHighest = Color(0xFF2E2E34);
+  static Color get surface => _current.surface;
+  static Color get surfaceContainer => _current.surfaceContainer;
+  static Color get surfaceContainerHigh => _current.surfaceContainerHigh;
+  static Color get surfaceContainerHighest => _current.surfaceContainerHighest;
 
   /// Border and divider colors.
-  static const Color outline = Color(0xFF2A2A30);
-  static const Color outlineVariant = Color(0xFF1C1C21);
+  static Color get outline => _current.outline;
+  static Color get outlineVariant => _current.outlineVariant;
 
   /// Typography and iconography colors.
-  static const Color onBackground = Color(0xFFF2F2F2);
-  static const Color onSurface = Color(0xFFF2F2F2);
-  static const Color onSurfaceVariant = Color(0xFF8E8E96);
-  static const Color onSurfaceDisabled = Color(0xFF4A4A52);
+  static Color get onBackground => _current.onBackground;
+  static Color get onSurface => _current.onSurface;
+  static Color get onSurfaceVariant => _current.onSurfaceVariant;
+  static Color get onSurfaceDisabled => _current.onSurfaceDisabled;
 
   /// Futuristic off-white with a subtle cool undertone for high-impact typography.
-  static const Color futuristicWhite = Color(0xFFE6E8EC);
+  static Color get futuristicWhite => _current.futuristicWhite;
+
+  /// Primary brand accent color.
+  static Color get accent => _current.accent;
+
+  /// Contrast foreground color for icons and text placed over [accent].
+  static Color get onAccent => _current.onAccent;
 
   /// Bottom navigation indicator and state colors.
-  static const Color navIndicator = Color(0xFF28282E);
-  static const Color navActiveIcon = Color(0xFFFFFFFF);
-  static const Color navInactiveIcon = Color(0xFF7E7E88);
-  static const Color navActiveLabel = Color(0xFFFFFFFF);
-  static const Color navInactiveLabel = Color(0xFF7E7E88);
+  static Color get navIndicator => _current.navIndicator;
+  static Color get navActiveIcon => _current.navActiveIcon;
+  static Color get navInactiveIcon => _current.navInactiveIcon;
+  static Color get navActiveLabel => _current.navActiveLabel;
+  static Color get navInactiveLabel => _current.navInactiveLabel;
 
   /// Subtle dark crimson tinted background and accents for pinned/favorite states.
-  static const Color pinnedRedBackground = Color(0xFF1E0E10);
-  static const Color pinnedRedSurface = Color(0xFF281215);
-  static const Color pinnedRedBorder = Color(0x66E53935);
+  static Color get pinnedRedBackground => _current.pinnedRedBackground;
+  static Color get pinnedRedSurface => _current.pinnedRedSurface;
+  static Color get pinnedRedBorder => _current.pinnedRedBorder;
+
+  /// Active dynamic theme palette provided by [ThemeController].
+  static AppThemePalette get current => _current;
 }
 
 /// Material Design 3 Expressive Theme Provider.
 abstract final class AppTheme {
   const AppTheme._();
 
-  // Pre-cached GoogleFonts text styles to eliminate font-family re-parsing on state updates
-  static final String? _fontFamily = GoogleFonts.inconsolata().fontFamily;
+  /// Dynamically active Material 3 Expressive theme data provided by [ThemeController].
+  static ThemeData get darkTheme => ThemeController.instance.currentThemeData;
 
-  static final TextStyle _selectedNavLabelStyle = GoogleFonts.inconsolata(
-    fontSize: 12.0,
-    fontWeight: FontWeight.w600,
-    color: AppColors.navActiveLabel,
-    letterSpacing: 0.3,
-  );
-
-  static final TextStyle _unselectedNavLabelStyle = GoogleFonts.inconsolata(
-    fontSize: 12.0,
-    fontWeight: FontWeight.w500,
-    color: AppColors.navInactiveLabel,
-    letterSpacing: 0.2,
-  );
-
-  static const IconThemeData _selectedNavIconTheme = IconThemeData(
-    size: 24.0,
-    color: AppColors.navActiveIcon,
-  );
-
-  static const IconThemeData _unselectedNavIconTheme = IconThemeData(
-    size: 24.0,
-    color: AppColors.navInactiveIcon,
-  );
-
-  /// Pre-built, cached Material 3 Expressive dark theme data.
-  /// Constructed exactly once during application runtime to avoid rebuild allocations.
-  static final ThemeData darkTheme = _buildDarkTheme();
-
-  static ThemeData _buildDarkTheme() {
-    return ThemeData(
-      useMaterial3: true,
-      brightness: Brightness.dark,
-      scaffoldBackgroundColor: AppColors.background,
-      colorScheme: const ColorScheme(
-        brightness: Brightness.dark,
-        primary: AppColors.onBackground,
-        onPrimary: AppColors.background,
-        secondary: AppColors.surfaceContainerHigh,
-        onSecondary: AppColors.onBackground,
-        error: Color(0xFFCF6679),
-        onError: AppColors.background,
-        surface: AppColors.surface,
-        onSurface: AppColors.onSurface,
-        onSurfaceVariant: AppColors.onSurfaceVariant,
-        outline: AppColors.outline,
-        outlineVariant: AppColors.outlineVariant,
-      ),
-      fontFamily: _fontFamily,
-      navigationBarTheme: NavigationBarThemeData(
-        height: 68.0,
-        backgroundColor: AppColors.bottomNavBackground,
-        elevation: 0,
-        shadowColor: Colors.transparent,
-        surfaceTintColor: Colors.transparent,
-        indicatorColor: AppColors.navIndicator,
-        indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
-        ),
-        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
-        labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
-          if (states.contains(WidgetState.selected)) {
-            return _selectedNavLabelStyle;
-          }
-          return _unselectedNavLabelStyle;
-        }),
-        iconTheme: WidgetStateProperty.resolveWith<IconThemeData>((states) {
-          if (states.contains(WidgetState.selected)) {
-            return _selectedNavIconTheme;
-          }
-          return _unselectedNavIconTheme;
-        }),
-      ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: AppColors.background,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        centerTitle: false,
-        iconTheme: IconThemeData(color: AppColors.onBackground),
-        titleTextStyle: TextStyle(
-          fontSize: 20.0,
-          fontWeight: FontWeight.w700,
-          color: AppColors.onBackground,
-          letterSpacing: -0.5,
-        ),
-      ),
-    );
-  }
+  /// Dynamically active theme data matching current family and brightness.
+  static ThemeData get theme => ThemeController.instance.currentThemeData;
 }

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 
 /// Row tile presenting an artist in the Library artists list.
@@ -26,17 +27,17 @@ class LibraryArtistTile extends StatelessWidget {
     this.onTap,
   });
 
-  static final TextStyle _nameStyle = GoogleFonts.inconsolata(
+  static TextStyle get _nameStyle => GoogleFonts.inconsolata(
     fontSize: 15.5,
     fontWeight: FontWeight.w600,
-    color: Colors.white,
+    color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
-  static final TextStyle _subtitleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _subtitleStyle => GoogleFonts.inconsolata(
     fontSize: 13.0,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );
 
@@ -46,8 +47,8 @@ class LibraryArtistTile extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        splashColor: const Color(0xFF282828),
-        highlightColor: const Color(0xFF1E1E1E),
+        splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+        highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
           child: Row(

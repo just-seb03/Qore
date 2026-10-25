@@ -144,7 +144,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                     style: GoogleFonts.outfit(
                                       fontSize: 15.0,
                                       fontWeight: FontWeight.w600,
-                                      color: Colors.white,
+                                      color: AppColors.onSurface,
                                     ),
                                   ),
                                   const SizedBox(height: 2.0),
@@ -165,7 +165,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                 controller.isPlaying
                                     ? Icons.pause_rounded
                                     : Icons.play_arrow_rounded,
-                                color: Colors.white,
+                                color: AppColors.accent,
                                 size: 28.0,
                               ),
                               onPressed: () => controller.togglePlayPause(),
@@ -251,10 +251,10 @@ class PlaybackQueueSheet extends StatelessWidget {
                                       SizedBox(
                                         width: 24.0,
                                         child: isCurrent && controller.isPlaying
-                                            ? const Icon(
+                                            ? Icon(
                                                 Icons.equalizer_rounded,
                                                 size: 16.0,
-                                                color: Colors.white,
+                                                color: AppColors.accent,
                                               )
                                             : Text(
                                                 '${index + 1}',
@@ -263,7 +263,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                                   fontSize: 12.0,
                                                   fontWeight: FontWeight.w600,
                                                   color: isCurrent
-                                                      ? Colors.white
+                                                      ? AppColors.accent
                                                       : AppColors.onSurfaceVariant,
                                                 ),
                                               ),
@@ -288,7 +288,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                     style: GoogleFonts.outfit(
                                       fontSize: 14.5,
                                       fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                                      color: isCurrent ? Colors.white : const Color(0xFFEEEEEE),
+                                      color: isCurrent ? AppColors.accent : AppColors.onSurface,
                                     ),
                                   ),
                                   subtitle: Text(
@@ -305,7 +305,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                     children: [
                                       // Remove from queue button
                                       IconButton(
-                                        icon: const Icon(
+                                        icon: Icon(
                                           Icons.close_rounded,
                                           size: 18.0,
                                           color: AppColors.onSurfaceVariant,
@@ -321,7 +321,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                       // Drag reorder handle
                                       ReorderableDragStartListener(
                                         index: index,
-                                        child: const Padding(
+                                        child: Padding(
                                           padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
                                           child: Icon(
                                             Icons.drag_handle_rounded,

@@ -96,8 +96,8 @@ class ArtistTopTrackTile extends StatelessWidget {
                               fontSize: 15.0,
                               fontWeight: FontWeight.w600,
                               color: isCurrentTrack
-                                  ? Colors.white
-                                  : Colors.white.withValues(alpha: 0.92),
+                                  ? AppColors.accent
+                                  : AppColors.onSurface,
                             ),
                           ),
                           const SizedBox(height: 2.0),
@@ -119,7 +119,7 @@ class ArtistTopTrackTile extends StatelessWidget {
                       icon: Icon(
                         isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                         size: 19.0,
-                        color: isFav ? Colors.white : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                        color: isFav ? AppColors.accent : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
                       ),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
@@ -135,7 +135,7 @@ class ArtistTopTrackTile extends StatelessWidget {
 
                     // Add to Playback Queue Icon
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.playlist_add_rounded,
                         size: 20.0,
                         color: AppColors.onSurfaceVariant,
@@ -169,7 +169,7 @@ class ArtistTopTrackTile extends StatelessWidget {
                         padding: const EdgeInsets.only(left: 4.0, right: 2.0),
                         child: Icon(
                           isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-                          color: Colors.white,
+                          color: AppColors.accent,
                           size: 22.0,
                         ),
                       ),

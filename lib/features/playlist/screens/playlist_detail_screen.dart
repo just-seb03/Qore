@@ -343,10 +343,10 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
               child: Transform.translate(
                 offset: Offset(0.0, _dragOffset),
                 child: _isLoading
-                    ? const Center(
+                    ? Center(
                         child: CircularProgressIndicator(
                           strokeWidth: 2.5,
-                          color: Colors.white,
+                          color: AppColors.accent,
                         ),
                       )
                     : SingleChildScrollView(
@@ -427,7 +427,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
               if (widget.isEditable)
                 IconButton(
                   key: const ValueKey('playlist_detail_edit_button'),
-                  icon: const Icon(
+                  icon: Icon(
                     Icons.edit_outlined,
                     size: 20.0,
                     color: AppColors.onSurfaceVariant,
@@ -477,8 +477,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                       icon: const Icon(Icons.add_rounded, size: 18.0),
                       label: Text(context.l10n.playlist.addSongsButton),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.futuristicWhite,
-                        side: const BorderSide(color: AppColors.outline),
+                        foregroundColor: AppColors.onSurface,
+                        side: BorderSide(color: AppColors.outline),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16.0),
                         ),

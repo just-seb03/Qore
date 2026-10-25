@@ -26,28 +26,28 @@ class PlaylistReorderableSongList extends StatelessWidget {
     required this.onReorder,
   });
 
-  static final TextStyle _headerStyle = GoogleFonts.inconsolata(
+  static TextStyle get _headerStyle => GoogleFonts.inconsolata(
     fontSize: 13.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
     color: AppColors.onSurfaceVariant,
   );
 
-  static final TextStyle _emptyStyle = GoogleFonts.inconsolata(
+  static TextStyle get _emptyStyle => GoogleFonts.inconsolata(
     fontSize: 13.5,
     color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
   );
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
-    color: AppColors.futuristicWhite,
+    color: AppColors.onSurface,
   );
 
-  static final TextStyle _artistStyle = GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
   @override
@@ -62,7 +62,7 @@ class PlaylistReorderableSongList extends StatelessWidget {
               Icon(
                 Icons.playlist_add_rounded,
                 size: 40.0,
-                color: AppColors.futuristicWhite.withValues(alpha: 0.2),
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.3),
               ),
               const SizedBox(height: 12.0),
               Text(
@@ -121,10 +121,10 @@ class PlaylistReorderableSongList extends StatelessWidget {
                       index: index,
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 12.0),
-                        child: const Icon(
+                        child: Icon(
                           Icons.drag_indicator_rounded,
                           size: 20.0,
-                          color: Color(0xFF757575),
+                          color: AppColors.onSurfaceVariant,
                         ),
                       ),
                     ),
@@ -166,10 +166,10 @@ class PlaylistReorderableSongList extends StatelessWidget {
 
                     // 4. Remove Button ('X')
                     IconButton(
-                      icon: const Icon(
+                      icon: Icon(
                         Icons.close_rounded,
                         size: 18.0,
-                        color: Color(0xFF8E8E8E),
+                        color: AppColors.onSurfaceVariant,
                       ),
                       onPressed: () => onRemove(index),
                       splashRadius: 18.0,

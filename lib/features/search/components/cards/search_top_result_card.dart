@@ -14,6 +14,7 @@ import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 import 'package:project_anima/features/search/components/common/search_play_button.dart';
 import 'package:project_anima/features/search/components/common/search_section_header.dart';
@@ -160,23 +161,23 @@ class SearchTopResultCard extends StatelessWidget {
     );
   }
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 20.0,
     fontWeight: FontWeight.w700,
-    color: Colors.white,
+    color: AppColors.onSurface,
     letterSpacing: -0.2,
   );
 
-  static final TextStyle _subtitleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _subtitleStyle => GoogleFonts.inconsolata(
     fontSize: 14.0,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
-  static final TextStyle _secondarySubtitleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _secondarySubtitleStyle => GoogleFonts.inconsolata(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
   @override
@@ -203,11 +204,11 @@ class SearchTopResultCard extends StatelessWidget {
           child: ClipRRect(
             borderRadius: BorderRadius.circular(12.0),
             child: Material(
-              color: const Color(0xFF181818),
+              color: AppColors.surfaceContainer,
               child: InkWell(
                 onTap: onTap,
-                splashColor: const Color(0xFF282828),
-                highlightColor: const Color(0xFF1E1E1E),
+                splashColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.5),
+                highlightColor: AppColors.surfaceContainerHigh,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
                   child: Row(

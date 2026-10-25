@@ -89,7 +89,7 @@ class _PlayerDismissIndicatorState extends State<PlayerDismissIndicator>
                 child: child,
               );
             },
-            child: const Icon(
+            child: Icon(
               Icons.keyboard_arrow_down_rounded,
               size: 32.0,
               color: AppColors.onSurfaceVariant,

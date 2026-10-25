@@ -70,13 +70,13 @@ class ArtistPhotoOptionsSheet extends StatelessWidget {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.photo_library_outlined, color: Colors.white),
+              leading: Icon(Icons.photo_library_outlined, color: AppColors.onSurface),
               title: Text(
                 context.l10n.artist.changeArtistPhoto,
                 style: GoogleFonts.outfit(
                   fontSize: 15.0,
                   fontWeight: FontWeight.w500,
-                  color: Colors.white,
+                  color: AppColors.onSurface,
                 ),
               ),
               onTap: onChangePhoto,

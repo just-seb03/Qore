@@ -26,16 +26,16 @@ class PlaylistSongSearchResults extends StatelessWidget {
     required this.onSongAdd,
   });
 
-  static final TextStyle _titleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
-    color: AppColors.futuristicWhite,
+    color: AppColors.onSurface,
   );
 
-  static final TextStyle _artistStyle = GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
   );
 
   @override
@@ -106,7 +106,7 @@ class PlaylistSongSearchResults extends StatelessWidget {
               trailing: IconButton(
                 icon: Icon(
                   isAlreadyAdded ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
-                  color: isAlreadyAdded ? AppColors.navIndicator : AppColors.futuristicWhite,
+                  color: isAlreadyAdded ? AppColors.accent : AppColors.onSurfaceVariant,
                   size: 24.0,
                 ),
                 onPressed: () => onSongAdd(song),

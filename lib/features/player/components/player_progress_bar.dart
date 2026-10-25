@@ -33,7 +33,7 @@ class _PlayerProgressBarState extends State<PlayerProgressBar>
   bool _isDragging = false;
   double _dragProgress = 0.0;
 
-  static final TextStyle _timestampStyle = GoogleFonts.inconsolata(
+  static TextStyle get _timestampStyle => GoogleFonts.inconsolata(
     fontSize: 12.5,
     fontWeight: FontWeight.w500,
     color: AppColors.onSurfaceVariant,
@@ -217,7 +217,7 @@ class _WavyTrackPainter extends CustomPainter {
     // 1. Inactive straight track (from thumb to end)
     if (thumbX < trackWidth) {
       final inactivePaint = Paint()
-        ..color = const Color(0xFF2E2E34)
+        ..color = AppColors.surfaceContainerHighest
         ..strokeWidth = trackHeight
         ..strokeCap = StrokeCap.round
         ..style = PaintingStyle.stroke;
@@ -232,7 +232,7 @@ class _WavyTrackPainter extends CustomPainter {
     // 2. Active sinusoidal wavy track (from 0 to thumb)
     if (thumbX > 0) {
       final activePaint = Paint()
-        ..color = AppColors.futuristicWhite
+        ..color = AppColors.accent
         ..strokeWidth = trackHeight
         ..strokeCap = StrokeCap.round
         ..strokeJoin = StrokeJoin.round
@@ -276,7 +276,7 @@ class _WavyTrackPainter extends CustomPainter {
     canvas.drawCircle(Offset(thumbX, cy + 1.0), thumbRadius, thumbShadowPaint);
 
     final thumbPaint = Paint()
-      ..color = AppColors.futuristicWhite
+      ..color = AppColors.accent
       ..style = PaintingStyle.fill;
 
     canvas.drawCircle(Offset(thumbX, cy), thumbRadius, thumbPaint);

@@ -113,10 +113,10 @@ class ArtistHeaderView extends StatelessWidget {
                             ),
                           ],
                         ),
-                        child: const Icon(
+                        child: Icon(
                           Icons.edit_rounded,
                           size: 19.0,
-                          color: Colors.white,
+                          color: AppColors.onSurface,
                         ),
                       ),
                     ),
@@ -138,7 +138,7 @@ class ArtistHeaderView extends StatelessWidget {
               style: GoogleFonts.outfit(
                 fontSize: 27.0,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppColors.onBackground,
                 letterSpacing: -0.4,
               ),
             ),

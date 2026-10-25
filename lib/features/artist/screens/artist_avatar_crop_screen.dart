@@ -158,7 +158,7 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
                 children: [
                   Row(
                     children: [
-                      const Icon(
+                      Icon(
                         Icons.touch_app_outlined,
                         size: 18.0,
                         color: AppColors.onSurfaceVariant,

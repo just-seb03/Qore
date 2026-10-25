@@ -141,7 +141,7 @@ class AlbumHeaderView extends StatelessWidget {
             style: GoogleFonts.outfit(
               fontSize: 24.0,
               fontWeight: FontWeight.w700,
-              color: Colors.white,
+              color: AppColors.onBackground,
               letterSpacing: -0.3,
             ),
           ),
@@ -161,7 +161,7 @@ class AlbumHeaderView extends StatelessWidget {
                     style: GoogleFonts.outfit(
                       fontSize: 16.0,
                       fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.50),
+                      color: AppColors.onSurfaceVariant,
                     ),
                   ),
                 Material(
@@ -180,7 +180,7 @@ class AlbumHeaderView extends StatelessWidget {
                         style: GoogleFonts.outfit(
                           fontSize: 16.0,
                           fontWeight: FontWeight.w500,
-                          color: Colors.white.withValues(alpha: 0.88),
+                          color: AppColors.onSurface,
                         ),
                       ),
                     ),
@@ -211,7 +211,7 @@ class AlbumHeaderView extends StatelessWidget {
                   style: GoogleFonts.outfit(
                     fontSize: 16.0,
                     fontWeight: FontWeight.w500,
-                    color: Colors.white.withValues(alpha: 0.88),
+                    color: AppColors.onSurface,
                   ),
                 ),
               ),

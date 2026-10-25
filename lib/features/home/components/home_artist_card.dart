@@ -29,17 +29,17 @@ class HomeArtistCard extends StatelessWidget {
     this.onTap,
   });
 
-  static final TextStyle _nameStyle = GoogleFonts.inconsolata(
+  static TextStyle get _nameStyle => GoogleFonts.inconsolata(
     fontSize: 15.0,
     fontWeight: FontWeight.w700,
-    color: Colors.white,
+    color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
-  static final TextStyle _subtitleStyle = GoogleFonts.inconsolata(
+  static TextStyle get _subtitleStyle => GoogleFonts.inconsolata(
     fontSize: 12.0,
     fontWeight: FontWeight.w400,
-    color: const Color(0xFFB3B3B3),
+    color: AppColors.onSurfaceVariant,
     letterSpacing: 0.3,
   );
 
@@ -59,8 +59,8 @@ class HomeArtistCard extends StatelessWidget {
       color: Colors.transparent,
       child: InkWell(
         onTap: () => _handleTap(context),
-        splashColor: const Color(0xFF282828),
-        highlightColor: const Color(0xFF1E1E1E),
+        splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+        highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
           mainAxisSize: MainAxisSize.min,

@@ -26,13 +26,13 @@ class PlaylistSongSearchBar extends StatelessWidget {
     this.hintText,
   });
 
-  static final TextStyle _textStyle = GoogleFonts.inconsolata(
+  static TextStyle get _textStyle => GoogleFonts.inconsolata(
     fontSize: 15.0,
     fontWeight: FontWeight.w500,
-    color: AppColors.futuristicWhite,
+    color: AppColors.onSurface,
   );
 
-  static final TextStyle _hintStyle = GoogleFonts.inconsolata(
+  static TextStyle get _hintStyle => GoogleFonts.inconsolata(
     fontSize: 14.5,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
@@ -55,11 +55,11 @@ class PlaylistSongSearchBar extends StatelessWidget {
         controller: controller,
         onChanged: onChanged,
         style: _textStyle,
-        cursorColor: AppColors.futuristicWhite,
+        cursorColor: AppColors.accent,
         decoration: InputDecoration(
           hintText: hintText ?? context.l10n.playlist.searchSongsPlaceholder,
           hintStyle: _hintStyle,
-          prefixIcon: const Icon(
+          prefixIcon: Icon(
             Icons.search_rounded,
             color: AppColors.onSurfaceVariant,
             size: 20.0,
@@ -69,7 +69,7 @@ class PlaylistSongSearchBar extends StatelessWidget {
             builder: (context, value, _) {
               if (value.text.isEmpty) return const SizedBox.shrink();
               return IconButton(
-                icon: const Icon(
+                icon: Icon(
                   Icons.close_rounded,
                   size: 18.0,
                   color: AppColors.onSurfaceVariant,

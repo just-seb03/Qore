@@ -160,14 +160,14 @@ class TodaySelectionHeroCard extends StatelessWidget {
   Widget _buildCollage(List<Song> collageSongs) {
     if (collageSongs.isEmpty) {
       return Container(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              Color(0xFF2C1619),
-              Color(0xFF19191D),
-              Color(0xFF111114),
+              AppColors.surfaceContainerHigh,
+              AppColors.surfaceContainerHighest,
+              AppColors.surfaceContainer,
             ],
           ),
         ),

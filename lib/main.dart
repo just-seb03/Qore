@@ -18,7 +18,7 @@ import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/localization/localization_controller.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
-import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 import 'package:project_anima/features/startup/screens/startup_loading_screen.dart';
 
 Future<void> main() async {
@@ -107,12 +107,15 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: LocalizationController.instance,
+      listenable: Listenable.merge([
+        LocalizationController.instance,
+        ThemeController.instance,
+      ]),
       builder: (context, _) {
         return MaterialApp(
           title: 'Project Anima',
           debugShowCheckedModeBanner: false,
-          theme: AppTheme.darkTheme,
+          theme: ThemeController.instance.currentThemeData,
           locale: LocalizationController.instance.currentLocale,
           supportedLocales: AppLocalizations.supportedLocales,
           localizationsDelegates: const [

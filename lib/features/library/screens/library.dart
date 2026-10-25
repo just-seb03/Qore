@@ -191,7 +191,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   elevation: 6.0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16.0),
-                    side: const BorderSide(
+                    side: BorderSide(
                       color: AppColors.outline,
                       width: 1.0,
                     ),

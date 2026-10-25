@@ -48,7 +48,7 @@ class PlayerControls extends StatelessWidget {
                       Icons.shuffle_rounded,
                       size: 24.0,
                       color: isShuffle
-                          ? AppColors.futuristicWhite
+                          ? AppColors.accent
                           : AppColors.onSurfaceDisabled,
                     ),
                     const SizedBox(height: 3.0),
@@ -58,7 +58,7 @@ class PlayerControls extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isShuffle
-                            ? AppColors.futuristicWhite
+                            ? AppColors.accent
                             : Colors.transparent,
                       ),
                     ),
@@ -100,7 +100,7 @@ class PlayerControls extends StatelessWidget {
                           : Icons.repeat_rounded,
                       size: 24.0,
                       color: isLoopActive
-                          ? AppColors.futuristicWhite
+                          ? AppColors.accent
                           : AppColors.onSurfaceDisabled,
                     ),
                     const SizedBox(height: 3.0),
@@ -110,7 +110,7 @@ class PlayerControls extends StatelessWidget {
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: isLoopActive
-                            ? AppColors.futuristicWhite
+                            ? AppColors.accent
                             : Colors.transparent,
                       ),
                     ),
@@ -199,10 +199,10 @@ class _PlayPauseCenterButton extends StatelessWidget {
         height: _size,
         decoration: BoxDecoration(
           shape: BoxShape.circle,
-          color: AppColors.futuristicWhite,
+          color: AppColors.accent,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.4),
+              color: AppColors.accent.withValues(alpha: 0.28),
               blurRadius: 14.0,
               offset: const Offset(0, 4),
             ),
@@ -219,7 +219,7 @@ class _PlayPauseCenterButton extends StatelessWidget {
               child: Icon(
                 isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
                 size: 38.0,
-                color: AppColors.background,
+                color: AppColors.onAccent,
               ),
             ),
           ),

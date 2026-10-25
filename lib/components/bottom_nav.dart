@@ -82,7 +82,7 @@ class AppBottomNav extends StatelessWidget {
       children: [
         if (showMiniPlayer) const MiniPlayer(),
         Container(
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             color: AppColors.bottomNavBackground,
             border: Border(
               top: BorderSide(

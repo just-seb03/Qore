@@ -69,7 +69,7 @@ class LibraryPlaylistCard extends StatelessWidget {
       aspectRatio: 1920 / 620,
       child: Container(
         decoration: BoxDecoration(
-          color: const Color(0xFF141416),
+          color: AppColors.surfaceContainer,
           borderRadius: BorderRadius.circular(12.0),
           boxShadow: [
             BoxShadow(
@@ -171,14 +171,14 @@ class LibraryPlaylistCard extends StatelessWidget {
 
         return Material(
           color: isThisPlaylistPlaying
-              ? AppColors.navIndicator.withValues(alpha: 0.85)
-              : Colors.white.withValues(alpha: 0.18),
+              ? AppColors.accent
+              : AppColors.surfaceContainerHighest.withValues(alpha: 0.65),
           shape: const CircleBorder(),
           child: InkWell(
             key: ValueKey('library_playlist_play_${playlist.id ?? 0}'),
             customBorder: const CircleBorder(),
             onTap: onPlayTap ?? onTap,
-            splashColor: AppColors.navIndicator.withValues(alpha: 0.4),
+            splashColor: AppColors.accent.withValues(alpha: 0.4),
             child: Container(
               width: 44.0,
               height: 44.0,
@@ -186,7 +186,7 @@ class LibraryPlaylistCard extends StatelessWidget {
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: isThisPlaylistPlaying
-                      ? AppColors.futuristicWhite
+                      ? AppColors.onAccent
                       : Colors.white.withValues(alpha: 0.35),
                   width: 1.2,
                 ),
@@ -204,7 +204,9 @@ class LibraryPlaylistCard extends StatelessWidget {
                       ? Icons.pause_rounded
                       : Icons.play_arrow_rounded,
                   size: 26.0,
-                  color: AppColors.futuristicWhite,
+                  color: isThisPlaylistPlaying
+                      ? AppColors.onAccent
+                      : Colors.white,
                 ),
               ),
             ),
@@ -241,14 +243,14 @@ class LibraryPlaylistCard extends StatelessWidget {
 
     // 3. Artistic Hero Gradient Pattern Fallback
     return Container(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF1E1E2E),
-            Color(0xFF28283E),
-            Color(0xFF14141E),
+            AppColors.surfaceContainerHigh,
+            AppColors.surfaceContainerHighest,
+            AppColors.surfaceContainer,
           ],
         ),
       ),
@@ -256,7 +258,7 @@ class LibraryPlaylistCard extends StatelessWidget {
         child: Icon(
           Symbols.queue_music_rounded,
           size: 56.0,
-          color: Colors.white.withValues(alpha: 0.15),
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.3),
         ),
       ),
     );

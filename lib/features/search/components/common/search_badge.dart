@@ -8,43 +8,47 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/theme/theme.dart';
 
 /// Pill badge displaying category type in Top Result cards.
 class SearchBadge extends StatelessWidget {
   /// Category label text (e.g. 'SONG', 'ALBUM', 'ARTIST').
   final String label;
 
-  /// Background color of the badge. Defaults to #282828.
-  final Color backgroundColor;
+  /// Optional background color of the badge. Defaults to [AppColors.surfaceContainerHigh].
+  final Color? backgroundColor;
 
-  /// Text color. Defaults to white.
-  final Color textColor;
+  /// Optional text color. Defaults to [AppColors.onSurfaceVariant].
+  final Color? textColor;
 
   const SearchBadge({
     super.key,
     required this.label,
-    this.backgroundColor = const Color(0xFF282828),
-    this.textColor = Colors.white,
+    this.backgroundColor,
+    this.textColor,
   });
 
-  static final TextStyle _badgeTextStyle = GoogleFonts.inconsolata(
+  static TextStyle get _badgeTextStyle => GoogleFonts.inconsolata(
     fontSize: 11.5,
     letterSpacing: 1.2,
     fontWeight: FontWeight.w700,
-    color: Colors.white,
+    color: AppColors.onSurfaceVariant,
   );
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBg = backgroundColor ?? AppColors.surfaceContainerHigh;
+    final effectiveTextColor = textColor ?? AppColors.onSurfaceVariant;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: effectiveBg,
         borderRadius: BorderRadius.circular(16.0),
       ),
       child: Text(
         label,
-        style: _badgeTextStyle.copyWith(color: textColor),
+        style: _badgeTextStyle.copyWith(color: effectiveTextColor),
       ),
     );
   }

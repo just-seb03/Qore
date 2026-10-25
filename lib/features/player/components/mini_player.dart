@@ -128,7 +128,7 @@ class MiniPlayer extends StatelessWidget {
                                             currentSong.title,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontFamily: 'Inconsolata',
                                               fontSize: 13.5,
                                               fontWeight: FontWeight.w700,
@@ -141,7 +141,7 @@ class MiniPlayer extends StatelessWidget {
                                             currentSong.artist ?? context.l10n.common.unknownArtist,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               fontFamily: 'Inconsolata',
                                               fontSize: 11.5,
                                               color: AppColors.onSurfaceVariant,
@@ -157,7 +157,7 @@ class MiniPlayer extends StatelessWidget {
                                       children: [
                                         // Previous Track Button
                                         IconButton(
-                                          icon: const Icon(
+                                          icon: Icon(
                                             Icons.skip_previous_rounded,
                                             size: 24.0,
                                             color: AppColors.futuristicWhite,
@@ -188,9 +188,9 @@ class MiniPlayer extends StatelessWidget {
                                                 child: Container(
                                                   width: 38.0,
                                                   height: 38.0,
-                                                  decoration: const BoxDecoration(
+                                                  decoration: BoxDecoration(
                                                     shape: BoxShape.circle,
-                                                    color: AppColors.futuristicWhite,
+                                                    color: AppColors.accent,
                                                   ),
                                                   child: Center(
                                                     child: Icon(
@@ -198,7 +198,7 @@ class MiniPlayer extends StatelessWidget {
                                                           ? Icons.pause_rounded
                                                           : Icons.play_arrow_rounded,
                                                       size: 24.0,
-                                                      color: AppColors.background,
+                                                      color: AppColors.onAccent,
                                                     ),
                                                   ),
                                                 ),
@@ -209,7 +209,7 @@ class MiniPlayer extends StatelessWidget {
 
                                         // Next Track Button
                                         IconButton(
-                                          icon: const Icon(
+                                          icon: Icon(
                                             Icons.skip_next_rounded,
                                             size: 24.0,
                                             color: AppColors.futuristicWhite,
@@ -360,7 +360,7 @@ class _LiquidFillPainter extends CustomPainter {
     backWavePath.close();
 
     final Paint backWavePaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.05)
+      ..color = AppColors.accent.withValues(alpha: 0.12)
       ..style = PaintingStyle.fill;
     canvas.drawPath(backWavePath, backWavePaint);
 
@@ -382,8 +382,8 @@ class _LiquidFillPainter extends CustomPainter {
         begin: Alignment.topCenter,
         end: Alignment.bottomCenter,
         colors: [
-          Colors.white.withValues(alpha: 0.14),
-          const Color(0xFF323242).withValues(alpha: 0.18),
+          AppColors.accent.withValues(alpha: 0.28),
+          AppColors.accent.withValues(alpha: 0.10),
         ],
       ).createShader(liquidRect)
       ..style = PaintingStyle.fill;

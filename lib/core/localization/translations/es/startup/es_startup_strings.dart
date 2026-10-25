@@ -55,6 +55,24 @@ class EsStartupStrings implements StartupStrings {
   String get themeNameMonochrome => 'Monochrome';
 
   @override
+  String get themeNameSolar => 'Solar';
+
+  @override
+  String get themeNameThatPad => 'That Pad';
+
+  @override
+  String get themeNameCorporate => 'Corporate';
+
+  @override
+  String get themeNameNeoTokyo => 'Neo-Tokyo';
+
+  @override
+  String get darkModeLabel => 'Oscuro';
+
+  @override
+  String get lightModeLabel => 'Claro';
+
+  @override
   String get acceptThemeAction => 'ACEPTAR';
 
   @override

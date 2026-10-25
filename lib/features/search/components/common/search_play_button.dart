@@ -18,11 +18,11 @@ class SearchPlayButton extends StatelessWidget {
   /// Icon size. Defaults to 30.0.
   final double iconSize;
 
-  /// Background color. Defaults to [AppColors.futuristicWhite].
-  final Color backgroundColor;
+  /// Background color. Defaults to [AppColors.accent].
+  final Color? backgroundColor;
 
-  /// Icon color. Defaults to dark surface (#121212).
-  final Color iconColor;
+  /// Icon color. Defaults to [AppColors.onAccent].
+  final Color? iconColor;
 
   /// Optional tap callback.
   final VoidCallback? onTap;
@@ -31,18 +31,21 @@ class SearchPlayButton extends StatelessWidget {
     super.key,
     this.size = 48.0,
     this.iconSize = 30.0,
-    this.backgroundColor = AppColors.futuristicWhite,
-    this.iconColor = const Color(0xFF121212),
+    this.backgroundColor,
+    this.iconColor,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final effectiveBg = backgroundColor ?? AppColors.accent;
+    final effectiveIcon = iconColor ?? AppColors.onAccent;
+
     final button = Container(
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: effectiveBg,
         shape: BoxShape.circle,
         boxShadow: [
           BoxShadow(
@@ -55,7 +58,7 @@ class SearchPlayButton extends StatelessWidget {
       child: Center(
         child: Icon(
           Icons.play_arrow_rounded,
-          color: iconColor,
+          color: effectiveIcon,
           size: iconSize,
         ),
       ),

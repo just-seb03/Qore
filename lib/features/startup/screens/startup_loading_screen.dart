@@ -12,6 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/controls/menu_transition_controller.dart';
+import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/startup/components/startup_loading_view.dart';
 import 'package:project_anima/features/startup/components/startup_permission_card_view.dart';
@@ -141,38 +142,48 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: AnimatedBuilder(
-          animation: _controller,
-          builder: (context, _) {
-            final state = _controller.state;
+    return ListenableBuilder(
+      listenable: ThemeController.instance,
+      builder: (context, _) {
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 320),
+          curve: Curves.easeOutCubic,
+          color: AppColors.background,
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              child: AnimatedBuilder(
+                animation: _controller,
+                builder: (context, _) {
+                  final state = _controller.state;
 
-            return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 450),
-              switchInCurve: Curves.easeOutCubic,
-              switchOutCurve: Curves.easeInCubic,
-              transitionBuilder: (child, animation) {
-                return FadeTransition(
-                  opacity: animation,
-                  child: SlideTransition(
-                    position: Tween<Offset>(
-                      begin: const Offset(0.0, 0.04),
-                      end: Offset.zero,
-                    ).animate(CurvedAnimation(
-                      parent: animation,
-                      curve: Curves.easeOutCubic,
-                    )),
-                    child: child,
-                  ),
-                );
-              },
-              child: _buildStepWidget(context, state),
-            );
-          },
-        ),
-      ),
+                  return AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 450),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: const Offset(0.0, 0.04),
+                            end: Offset.zero,
+                          ).animate(CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          )),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _buildStepWidget(context, state),
+                  );
+                },
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 }
