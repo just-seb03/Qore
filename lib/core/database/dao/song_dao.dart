@@ -199,13 +199,18 @@ class SongDao {
       '''
       SELECT 
         s.artist AS name,
-        COUNT(s.id) AS song_count,
+        COUNT(DISTINCT s.id) AS song_count,
         COUNT(DISTINCT s.album) AS album_count,
         MIN(s.media_store_id) AS representative_song_id,
         MIN(s.album_id) AS representative_album_id,
         MAX(ph.played_at) AS last_played
       FROM songs s
-      LEFT JOIN playback_history ph ON s.artist = ph.artist COLLATE NOCASE
+      LEFT JOIN (
+        SELECT artist, MAX(played_at) AS played_at
+        FROM playback_history
+        WHERE artist IS NOT NULL
+        GROUP BY artist COLLATE NOCASE
+      ) ph ON s.artist = ph.artist COLLATE NOCASE
       WHERE s.artist IS NOT NULL AND s.artist != '' AND s.artist != '<Desconocido>'
       GROUP BY s.artist COLLATE NOCASE
       ORDER BY last_played DESC, song_count DESC
@@ -281,7 +286,11 @@ class SongDao {
           s.album COLLATE NOCASE = am.album_norm 
           AND COALESCE(s.album_id, 0) = am.album_id_norm
         )
-        LEFT JOIN playback_history ph ON s.id = ph.song_id
+        LEFT JOIN (
+          SELECT song_id, MAX(played_at) AS played_at
+          FROM playback_history
+          GROUP BY song_id
+        ) ph ON s.id = ph.song_id
         WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
       )
       SELECT
@@ -289,7 +298,7 @@ class SongDao {
         resolved_artist AS artist,
         MIN(album_id) AS album_id,
         MIN(media_store_id) AS representative_song_id,
-        COUNT(id) AS song_count,
+        COUNT(DISTINCT id) AS song_count,
         SUM(duration) AS total_duration,
         MAX(played_at) AS last_played
       FROM song_resolved
@@ -371,7 +380,7 @@ class SongDao {
         resolved_artist AS artist,
         MIN(album_id) AS album_id,
         MIN(media_store_id) AS representative_song_id,
-        COUNT(id) AS song_count,
+        COUNT(DISTINCT id) AS song_count,
         SUM(duration) AS total_duration
       FROM song_resolved
       GROUP BY album COLLATE NOCASE, resolved_artist COLLATE NOCASE
@@ -390,7 +399,7 @@ class SongDao {
       '''
       SELECT 
         s.artist AS name,
-        COUNT(s.id) AS song_count,
+        COUNT(DISTINCT s.id) AS song_count,
         COUNT(DISTINCT s.album) AS album_count,
         MIN(s.media_store_id) AS representative_song_id,
         MIN(s.album_id) AS representative_album_id
@@ -557,7 +566,11 @@ class SongDao {
           s.album COLLATE NOCASE = ma.album_norm 
           AND COALESCE(s.album_id, 0) = ma.album_id_norm
         )
-        LEFT JOIN playback_history ph ON s.id = ph.song_id
+        LEFT JOIN (
+          SELECT song_id, MAX(played_at) AS played_at
+          FROM playback_history
+          GROUP BY song_id
+        ) ph ON s.id = ph.song_id
         WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
       )
       SELECT 
@@ -572,7 +585,7 @@ class SongDao {
         ) AS artist,
         MIN(album_id) AS album_id,
         MIN(media_store_id) AS representative_song_id,
-        COUNT(id) AS song_count,
+        COUNT(DISTINCT id) AS song_count,
         SUM(duration) AS total_duration,
         MAX(played_at) AS last_played
       FROM album_songs
