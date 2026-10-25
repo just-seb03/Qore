@@ -65,7 +65,7 @@ class SearchAlbumCard extends StatelessWidget {
                 artistName: album.artist,
                 width: width,
                 height: width,
-                borderRadius: 6.0,
+                borderRadius: 0.0,
                 fallbackIcon: Icons.album_rounded,
                 isThumbnail: false,
               ),

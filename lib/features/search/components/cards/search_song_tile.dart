@@ -93,7 +93,7 @@ class SearchSongTile extends StatelessWidget {
                     albumId: song.albumId,
                     width: 48.0,
                     height: 48.0,
-                    borderRadius: 4.0,
+                    borderRadius: 0.0,
                     isThumbnail: true,
                   ),
                   const SizedBox(width: 14.0),

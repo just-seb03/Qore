@@ -198,7 +198,7 @@ class _RecentSearchTile extends StatelessWidget {
           artistName: item.cleanArtistName,
           width: 52.0,
           height: 52.0,
-          borderRadius: 6.0,
+          borderRadius: 0.0,
           fallbackIcon: Icons.album_rounded,
           isThumbnail: false,
         );
@@ -208,7 +208,7 @@ class _RecentSearchTile extends StatelessWidget {
           albumId: item.albumId,
           width: 52.0,
           height: 52.0,
-          borderRadius: 6.0,
+          borderRadius: 0.0,
           fallbackIcon: Icons.music_note_rounded,
           isThumbnail: false,
         );

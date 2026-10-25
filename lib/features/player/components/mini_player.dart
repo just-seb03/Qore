@@ -111,7 +111,7 @@ class MiniPlayer extends StatelessWidget {
                                       artistName: currentSong.albumArtist ?? currentSong.artist,
                                       width: 46.0,
                                       height: 46.0,
-                                      borderRadius: 12.0,
+                                      borderRadius: 0.0,
                                       isThumbnail: true,
                                       fit: BoxFit.cover,
                                       fallbackIcon: Icons.music_note_rounded,

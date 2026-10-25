@@ -16,7 +16,12 @@ import 'package:project_anima/features/artist/components/artist_discography_sect
 import 'package:project_anima/features/artist/components/artist_top_track_tile.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/artist_tracks/components/artist_track_tile.dart';
+import 'package:project_anima/features/player/components/mini_player.dart';
 import 'package:project_anima/features/player/components/player_metadata_view.dart';
+import 'package:project_anima/features/search/components/cards/search_album_card.dart';
+import 'package:project_anima/features/search/components/cards/search_song_tile.dart';
+import 'package:project_anima/features/search/components/cards/search_top_result_card.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 void main() {
@@ -611,6 +616,142 @@ void main() {
       expect(artworkFinder, findsOneWidget);
       final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
       expect(artwork.borderRadius, equals(0.0));
+    });
+
+    testWidgets('SearchSongTile renders unrounded cover artwork (borderRadius: 0.0)', (tester) async {
+      final song = Song(
+        mediaStoreId: 4002,
+        title: 'Simulation',
+        artist: 'Virtual Riot',
+        album: 'Simulation',
+        duration: 210000,
+        path: '/music/sim.mp3',
+        dateModified: 100,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SearchSongTile(song: song),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final artworkFinder = find.byType(AnimaArtworkImage);
+      expect(artworkFinder, findsOneWidget);
+      final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
+      expect(artwork.borderRadius, equals(0.0));
+    });
+
+    testWidgets('SearchAlbumCard renders unrounded cover artwork (borderRadius: 0.0)', (tester) async {
+      const album = AlbumDiscoveryItem(
+        name: 'Simulation',
+        artist: 'Virtual Riot',
+        albumId: 5,
+        representativeSongId: 4002,
+        songCount: 10,
+        totalDuration: 2000000,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            body: SearchAlbumCard(album: album),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final artworkFinder = find.byType(AnimaArtworkImage);
+      expect(artworkFinder, findsOneWidget);
+      final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
+      expect(artwork.borderRadius, equals(0.0));
+    });
+
+    testWidgets('SearchTopResultCard renders unrounded cover artwork (borderRadius: 0.0)', (tester) async {
+      final song = Song(
+        mediaStoreId: 4003,
+        title: 'Purple Dragons',
+        artist: 'Virtual Riot',
+        album: 'Simulation',
+        duration: 210000,
+        path: '/music/dragons.mp3',
+        dateModified: 100,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: SearchTopResultCard.song(song: song),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final artworkFinder = find.byType(AnimaArtworkImage);
+      expect(artworkFinder, findsOneWidget);
+      final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
+      expect(artwork.borderRadius, equals(0.0));
+    });
+
+    testWidgets('MiniPlayer renders unrounded cover artwork (borderRadius: 0.0)', (tester) async {
+      final song = Song(
+        mediaStoreId: 4001,
+        title: 'Ghost Voices',
+        artist: 'Virtual Riot',
+        album: 'Simulation',
+        duration: 210000,
+        path: '/music/ghost.mp3',
+        dateModified: 100,
+      );
+
+      PlaybackController.instance.playSong(song);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: const Scaffold(
+            bottomNavigationBar: MiniPlayer(),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      final artworkFinder = find.byType(AnimaArtworkImage);
+      expect(artworkFinder, findsOneWidget);
+      final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
+      expect(artwork.borderRadius, equals(0.0));
+
+      PlaybackController.instance.pause();
     });
   });
 }
