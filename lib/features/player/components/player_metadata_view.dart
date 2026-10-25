@@ -70,6 +70,16 @@ class PlayerMetadataView extends StatelessWidget {
         ? song!.albumArtist!.trim()
         : (hasArtist ? song!.artist!.trim() : null);
 
+    String separator = ', ';
+    if (song?.artist != null) {
+      if (song!.artist!.contains(' / ') || (song!.artist!.contains('/') && !song!.artist!.contains(','))) {
+        separator = ' / ';
+      } else if (song!.artist!.contains(';')) {
+        separator = '; ';
+      }
+    }
+    final individualArtists = song?.artists ?? const [];
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 32.0),
       child: Column(
@@ -83,30 +93,12 @@ class PlayerMetadataView extends StatelessWidget {
             style: _titleStyle,
           ),
           const SizedBox(height: 6.0),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(8.0),
-              onTap: hasArtist
-                  ? () {
-                      if (onArtistTap != null) {
-                        onArtistTap!();
-                      } else {
-                        Navigator.of(context).push(ArtistDetailScreen.route(artist));
-                      }
-                    }
-                  : null,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                child: Text(
-                  artist,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: _artistStyle,
-                ),
-              ),
-            ),
+          _buildArtistSection(
+            context,
+            hasArtist: hasArtist,
+            fallbackArtist: artist,
+            individualArtists: individualArtists,
+            separator: separator,
           ),
           const SizedBox(height: 4.0),
           Material(
@@ -143,6 +135,88 @@ class PlayerMetadataView extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildArtistSection(
+    BuildContext context, {
+    required bool hasArtist,
+    required String fallbackArtist,
+    required List<String> individualArtists,
+    required String separator,
+  }) {
+    if (!hasArtist || individualArtists.isEmpty) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+        child: Text(
+          fallbackArtist,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: _artistStyle,
+        ),
+      );
+    }
+
+    if (individualArtists.length == 1) {
+      final singleArtist = individualArtists.first;
+      return Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8.0),
+          onTap: () {
+            if (onArtistTap != null) {
+              onArtistTap!();
+            } else {
+              Navigator.of(context).push(ArtistDetailScreen.route(singleArtist));
+            }
+          },
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+            child: Text(
+              singleArtist,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: _artistStyle,
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Wrap(
+      alignment: WrapAlignment.center,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        for (int i = 0; i < individualArtists.length; i++) ...[
+          if (i > 0)
+            Text(
+              separator,
+              style: _artistStyle.copyWith(
+                color: AppColors.onSurfaceDisabled,
+              ),
+            ),
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(6.0),
+              onTap: () {
+                Navigator.of(context).push(
+                  ArtistDetailScreen.route(individualArtists[i]),
+                );
+              },
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
+                child: Text(
+                  individualArtists[i],
+                  style: _artistStyle,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 }

@@ -10,6 +10,7 @@ import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/utils/artist_splitter.dart';
 import 'package:sqflite/sqflite.dart';
 
 /// Data Access Object for managing track persistence and querying in SQLite.
@@ -165,6 +166,11 @@ class SongDao {
           where: 'media_store_id = ?',
           whereArgs: [mediaStoreId],
         );
+        batch.delete(
+          'song_artists',
+          where: 'media_store_id = ?',
+          whereArgs: [mediaStoreId],
+        );
       }
 
       // 2. Insert or replace new/updated tracks
@@ -177,12 +183,92 @@ class SongDao {
       }
 
       await batch.commit(noResult: true);
+
+      // 3. Update song_artists relational mapping for new/updated tracks
+      if (toInsertOrUpdate.isNotEmpty) {
+        final placeholders = List.filled(toInsertOrUpdate.length, '?').join(',');
+        final msIds = toInsertOrUpdate.map((s) => s.mediaStoreId).toList();
+        final insertedRows = await txn.rawQuery(
+          'SELECT id, media_store_id, artist FROM songs WHERE media_store_id IN ($placeholders)',
+          msIds,
+        );
+        final saBatch = txn.batch();
+        for (final row in insertedRows) {
+          final sId = row['id'] as int?;
+          final msId = row['media_store_id'] as int?;
+          final rawArt = row['artist'] as String?;
+          if (sId != null && msId != null && rawArt != null) {
+            saBatch.delete('song_artists', where: 'media_store_id = ?', whereArgs: [msId]);
+            final split = ArtistSplitter.split(rawArt);
+            for (final a in split) {
+              saBatch.insert('song_artists', {
+                'song_id': sId,
+                'media_store_id': msId,
+                'artist': a,
+              });
+            }
+          }
+        }
+        await saBatch.commit(noResult: true);
+      }
     });
   }
 
-  /// Wipes all songs from the table (primarily used for unit testing).
+  /// Synchronizes the relational `song_artists` table with `songs` if out of sync.
+  Future<void> syncSongArtistsIfNeeded() async {
+    final db = await _appDatabase.database;
+    try {
+      final songRows = await db.rawQuery(
+        "SELECT COUNT(*) as count FROM songs WHERE artist IS NOT NULL AND TRIM(artist) != '' AND artist != '<Desconocido>'",
+      );
+      final int songCount = (songRows.first['count'] as int?) ?? 0;
+      if (songCount == 0) return;
+
+      final saRows = await db.rawQuery(
+        'SELECT COUNT(DISTINCT song_id) as count FROM song_artists',
+      );
+      final int saSongCount = (saRows.first['count'] as int?) ?? 0;
+
+      if (saSongCount != songCount) {
+        await syncAllSongArtists();
+      }
+    } catch (_) {}
+  }
+
+  /// Rebuilds all entries in the `song_artists` table from `songs`.
+  Future<void> syncAllSongArtists() async {
+    final db = await _appDatabase.database;
+    await db.transaction((txn) async {
+      await txn.delete('song_artists');
+      final songs = await txn.rawQuery(
+        "SELECT id, media_store_id, artist FROM songs WHERE artist IS NOT NULL AND TRIM(artist) != '' AND artist != '<Desconocido>'",
+      );
+      if (songs.isEmpty) return;
+
+      final batch = txn.batch();
+      for (final row in songs) {
+        final id = row['id'] as int?;
+        final mediaStoreId = (row['media_store_id'] as int?) ?? 0;
+        final rawArtist = row['artist'] as String?;
+        if (id != null && rawArtist != null) {
+          final splitArtists = ArtistSplitter.split(rawArtist);
+          for (final artist in splitArtists) {
+            batch.insert('song_artists', {
+              'song_id': id,
+              'media_store_id': mediaStoreId,
+              'artist': artist,
+            });
+          }
+        }
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  /// Wipes all songs and song_artists from tables (primarily used for unit testing).
   Future<void> clearAll() async {
     final db = await _appDatabase.database;
+    await db.delete('song_artists');
     await db.delete('songs');
   }
 
@@ -194,26 +280,27 @@ class SongDao {
   /// Strictly eliminates N+1 loops by joining songs and playback_history in SQLite.
   Future<List<ArtistDiscoveryItem>> getDiscoveryArtists({int limit = 15}) async {
     final db = await _appDatabase.database;
+    await syncSongArtistsIfNeeded();
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
       SELECT 
-        s.artist AS name,
+        sa.artist AS name,
         COUNT(DISTINCT s.id) AS song_count,
         COUNT(DISTINCT s.album) AS album_count,
         MIN(s.media_store_id) AS representative_song_id,
         MIN(s.album_id) AS representative_album_id,
         MAX(ph.played_at) AS last_played
-      FROM songs s
-      LEFT JOIN (
-        SELECT artist, MAX(played_at) AS played_at
-        FROM playback_history
-        WHERE artist IS NOT NULL
-        GROUP BY artist COLLATE NOCASE
-      ) ph ON s.artist = ph.artist COLLATE NOCASE
-      WHERE s.artist IS NOT NULL AND s.artist != '' AND s.artist != '<Desconocido>'
-      GROUP BY s.artist COLLATE NOCASE
-      ORDER BY last_played DESC, song_count DESC
+      FROM song_artists sa
+      JOIN songs s ON sa.song_id = s.id
+      LEFT JOIN playback_history ph ON s.id = ph.song_id
+      WHERE sa.artist IS NOT NULL AND TRIM(sa.artist) != '' AND sa.artist != '<Desconocido>'
+      GROUP BY sa.artist COLLATE NOCASE
+      ORDER BY 
+        CASE WHEN MAX(ph.played_at) IS NOT NULL THEN 0 ELSE 1 END,
+        MAX(ph.played_at) DESC,
+        COUNT(DISTINCT s.id) DESC,
+        sa.artist COLLATE NOCASE ASC
       LIMIT ?;
       ''',
       [limit],
@@ -394,19 +481,21 @@ class SongDao {
   /// Retrieves all distinct artists in the user's library, ordered alphabetically.
   Future<List<ArtistDiscoveryItem>> getLibraryArtists() async {
     final db = await _appDatabase.database;
+    await syncSongArtistsIfNeeded();
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
       SELECT 
-        s.artist AS name,
+        sa.artist AS name,
         COUNT(DISTINCT s.id) AS song_count,
         COUNT(DISTINCT s.album) AS album_count,
         MIN(s.media_store_id) AS representative_song_id,
         MIN(s.album_id) AS representative_album_id
-      FROM songs s
-      WHERE s.artist IS NOT NULL AND s.artist != '' AND s.artist != '<Desconocido>'
-      GROUP BY s.artist COLLATE NOCASE
-      ORDER BY s.artist COLLATE NOCASE ASC;
+      FROM song_artists sa
+      JOIN songs s ON sa.song_id = s.id
+      WHERE sa.artist IS NOT NULL AND TRIM(sa.artist) != '' AND sa.artist != '<Desconocido>'
+      GROUP BY sa.artist COLLATE NOCASE
+      ORDER BY sa.artist COLLATE NOCASE ASC;
       ''',
     );
 
@@ -450,21 +539,50 @@ class SongDao {
 
   /// Retrieves songs belonging to [artist], ordered by title.
   /// When [limit] is null, all songs for the artist are retrieved.
-  /// Matches against artist and album_artist for complete discographical coverage.
+  /// Matches against relational individual artists and album_artist for complete discographical coverage.
   Future<List<Song>> getSongsByArtist(
     String artist, {
     int? limit,
     int? offset,
   }) async {
     final db = await _appDatabase.database;
-    final List<Map<String, dynamic>> results = await db.query(
-      'songs',
-      where: 'artist = ? COLLATE NOCASE OR album_artist = ? COLLATE NOCASE',
-      whereArgs: [artist, artist],
-      orderBy: 'title COLLATE NOCASE ASC',
-      limit: limit,
-      offset: offset,
+    await syncSongArtistsIfNeeded();
+    final clean = artist.trim();
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT DISTINCT s.* FROM songs s
+      JOIN song_artists sa ON s.id = sa.song_id
+      WHERE sa.artist = ?1 COLLATE NOCASE OR s.album_artist = ?1 COLLATE NOCASE
+      ORDER BY s.title COLLATE NOCASE ASC
+      ${limit != null ? 'LIMIT ?2 OFFSET ${offset ?? 0}' : ''}
+      ''',
+      limit != null ? [clean, limit] : [clean],
     );
+
+    if (results.isEmpty) {
+      // Fallback matching against artist delimiters or exact equality
+      final List<Map<String, dynamic>> fallbackResults = await db.rawQuery(
+        '''
+        SELECT DISTINCT s.* FROM songs s
+        WHERE s.artist = ?1 COLLATE NOCASE 
+           OR s.album_artist = ?1 COLLATE NOCASE
+           OR s.artist LIKE ?1 || ', %' COLLATE NOCASE
+           OR s.artist LIKE '%, ' || ?1 COLLATE NOCASE
+           OR s.artist LIKE '%, ' || ?1 || ', %' COLLATE NOCASE
+           OR s.artist LIKE ?1 || ' / %' COLLATE NOCASE
+           OR s.artist LIKE '% / ' || ?1 COLLATE NOCASE
+           OR s.artist LIKE '% / ' || ?1 || ' / %' COLLATE NOCASE
+           OR s.artist LIKE ?1 || '; %' COLLATE NOCASE
+           OR s.artist LIKE '%; ' || ?1 COLLATE NOCASE
+        ORDER BY s.title COLLATE NOCASE ASC
+        ${limit != null ? 'LIMIT ?2 OFFSET ${offset ?? 0}' : ''}
+        ''',
+        limit != null ? [clean, limit] : [clean],
+      );
+      return fallbackResults.map((row) => Song.fromMap(row)).toList();
+    }
+
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
@@ -472,19 +590,23 @@ class SongDao {
   /// Falls back to recent tracks by date if user playback history is sparse.
   Future<List<Song>> getTopSongsByArtist(String artist, {int limit = 3}) async {
     final db = await _appDatabase.database;
+    await syncSongArtistsIfNeeded();
+    final clean = artist.trim();
 
     // 1. Fetch songs with playback history count
     final List<Map<String, dynamic>> historyResults = await db.rawQuery(
       '''
       SELECT s.*, COUNT(ph.id) AS play_count
       FROM songs s
-      JOIN playback_history ph ON s.id = ph.song_id
-      WHERE s.artist = ? COLLATE NOCASE
+      JOIN song_artists sa ON s.id = sa.song_id
+      LEFT JOIN playback_history ph ON s.id = ph.song_id
+      WHERE (sa.artist = ?1 COLLATE NOCASE OR s.album_artist = ?1 COLLATE NOCASE)
+        AND ph.id IS NOT NULL
       GROUP BY s.id
       ORDER BY play_count DESC, s.title COLLATE NOCASE ASC
-      LIMIT ?;
+      LIMIT ?2;
       ''',
-      [artist, limit],
+      [clean, limit],
     );
 
     final List<Song> topSongs =
@@ -494,16 +616,9 @@ class SongDao {
     if (topSongs.length < limit) {
       final existingIds = topSongs.map((s) => s.id ?? s.mediaStoreId).toSet();
 
-      final List<Map<String, dynamic>> fallbackResults = await db.query(
-        'songs',
-        where: 'artist = ? COLLATE NOCASE',
-        whereArgs: [artist],
-        orderBy: 'date_modified DESC, title COLLATE NOCASE ASC',
-        limit: limit * 2,
-      );
+      final List<Song> fallbackSongs = await getSongsByArtist(clean, limit: limit * 2);
 
-      for (final row in fallbackResults) {
-        final song = Song.fromMap(row);
+      for (final song in fallbackSongs) {
         final id = song.id ?? song.mediaStoreId;
         if (!existingIds.contains(id)) {
           topSongs.add(song);
@@ -530,6 +645,7 @@ class SongDao {
     }
 
     final db = await _appDatabase.database;
+    await syncSongArtistsIfNeeded();
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
@@ -543,6 +659,7 @@ class SongDao {
           s.album_artist,
           s.artist
         FROM songs s
+        LEFT JOIN song_artists sa ON s.id = sa.song_id
         WHERE s.album IS NOT NULL 
           AND TRIM(s.album) != '' 
           AND s.album != '<Desconocido>'
@@ -555,6 +672,8 @@ class SongDao {
             OR s.album_artist LIKE '%, ' || ?1 COLLATE NOCASE
             OR s.album_artist LIKE ?1 || ' / %' COLLATE NOCASE
             OR s.album_artist LIKE '% / ' || ?1 COLLATE NOCASE
+            -- Match relational song_artists
+            OR sa.artist = ?1 COLLATE NOCASE
             -- Fallback when album_artist is empty: match track artist
             OR (
               (s.album_artist IS NULL OR TRIM(s.album_artist) = '' OR s.album_artist = '<Desconocido>' OR s.album_artist = 'Unknown Artist')
@@ -570,6 +689,8 @@ class SongDao {
                 OR s.artist LIKE '%, ' || ?1 COLLATE NOCASE
                 OR s.artist LIKE ?1 || ' / %' COLLATE NOCASE
                 OR s.artist LIKE '% / ' || ?1 COLLATE NOCASE
+                OR s.artist LIKE ?1 || '; %' COLLATE NOCASE
+                OR s.artist LIKE '%; ' || ?1 COLLATE NOCASE
               )
             )
           )
@@ -638,13 +759,24 @@ class SongDao {
   /// Retrieves up to [limit] assorted songs for [artist] ordered by modification/addition date.
   Future<List<Song>> getAssortedSongsByArtist(String artist, {int limit = 10}) async {
     final db = await _appDatabase.database;
-    final List<Map<String, dynamic>> results = await db.query(
-      'songs',
-      where: 'artist = ? COLLATE NOCASE',
-      whereArgs: [artist],
-      orderBy: 'date_modified DESC, date_added DESC, title COLLATE NOCASE ASC',
-      limit: limit,
+    await syncSongArtistsIfNeeded();
+    final clean = artist.trim();
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT DISTINCT s.* FROM songs s
+      JOIN song_artists sa ON s.id = sa.song_id
+      WHERE sa.artist = ?1 COLLATE NOCASE OR s.album_artist = ?1 COLLATE NOCASE
+      ORDER BY s.date_modified DESC, s.date_added DESC, s.title COLLATE NOCASE ASC
+      LIMIT ?2;
+      ''',
+      [clean, limit],
     );
+
+    if (results.isEmpty) {
+      return getSongsByArtist(clean, limit: limit);
+    }
+
     return results.map((row) => Song.fromMap(row)).toList();
   }
 

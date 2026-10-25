@@ -14,6 +14,7 @@ import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/artist_splitter.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 
 /// Cohesive album header displaying large sharp artwork, title, artist link, and duration.
@@ -89,6 +90,7 @@ class AlbumHeaderView extends StatelessWidget {
         : unknownArtist;
 
     final hasValidArtist = displayArtist != unknownArtist;
+    final splitArtists = hasValidArtist ? ArtistSplitter.split(displayArtist) : const <String>[];
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -147,33 +149,74 @@ class AlbumHeaderView extends StatelessWidget {
         const SizedBox(height: 6.0),
 
         // 3. Artist Link (Tappable to Artist Profile)
-        Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(8.0),
-            onTap: hasValidArtist
-                ? () {
-                    Navigator.of(context).push(
-                      ArtistDetailScreen.route(displayArtist),
-                    );
-                  }
-                : null,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 3.0),
-              child: Text(
-                displayArtist,
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.outfit(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.white.withValues(alpha: 0.88),
+        if (hasValidArtist && splitArtists.length > 1)
+          Wrap(
+            alignment: WrapAlignment.center,
+            crossAxisAlignment: WrapCrossAlignment.center,
+            children: [
+              for (int i = 0; i < splitArtists.length; i++) ...[
+                if (i > 0)
+                  Text(
+                    ', ',
+                    style: GoogleFonts.outfit(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withValues(alpha: 0.50),
+                    ),
+                  ),
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8.0),
+                    onTap: () {
+                      Navigator.of(context).push(
+                        ArtistDetailScreen.route(splitArtists[i]),
+                      );
+                    },
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 3.0),
+                      child: Text(
+                        splitArtists[i],
+                        style: GoogleFonts.outfit(
+                          fontSize: 16.0,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white.withValues(alpha: 0.88),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          )
+        else
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8.0),
+              onTap: hasValidArtist
+                  ? () {
+                      Navigator.of(context).push(
+                        ArtistDetailScreen.route(displayArtist),
+                      );
+                    }
+                  : null,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 3.0),
+                child: Text(
+                  displayArtist,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.outfit(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.88),
+                  ),
                 ),
               ),
             ),
           ),
-        ),
         const SizedBox(height: 4.0),
 
         // 4. Album Duration & Track Count

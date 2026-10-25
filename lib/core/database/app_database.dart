@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 10;
+  static const int databaseVersion = 11;
 
   Database? _db;
 
@@ -245,6 +245,29 @@ class AppDatabase {
         await db.execute('ALTER TABLE favorite_songs ADD COLUMN disc_number INTEGER');
       } catch (_) {}
     }
+
+    if (oldVersion < 11) {
+      try {
+        await db.execute('''
+          CREATE TABLE IF NOT EXISTS song_artists (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            song_id INTEGER NOT NULL,
+            media_store_id INTEGER NOT NULL,
+            artist TEXT NOT NULL,
+            FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE
+          )
+        ''');
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_song_artists_artist ON song_artists (artist COLLATE NOCASE)',
+        );
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_song_artists_song_id ON song_artists (song_id)',
+        );
+        await db.execute(
+          'CREATE INDEX IF NOT EXISTS idx_song_artists_media_store_id ON song_artists (media_store_id)',
+        );
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
@@ -388,6 +411,27 @@ class AppDatabase {
       ''');
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_favorite_songs_at ON favorite_songs (favorited_at DESC)',
+      );
+    } catch (_) {}
+
+    try {
+      await db.execute('''
+        CREATE TABLE IF NOT EXISTS song_artists (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          song_id INTEGER NOT NULL,
+          media_store_id INTEGER NOT NULL,
+          artist TEXT NOT NULL,
+          FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE
+        )
+      ''');
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_song_artists_artist ON song_artists (artist COLLATE NOCASE)',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_song_artists_song_id ON song_artists (song_id)',
+      );
+      await db.execute(
+        'CREATE INDEX IF NOT EXISTS idx_song_artists_media_store_id ON song_artists (media_store_id)',
       );
     } catch (_) {}
   }
@@ -565,6 +609,26 @@ class AppDatabase {
     ''');
     await db.execute(
       'CREATE INDEX IF NOT EXISTS idx_favorite_songs_at ON favorite_songs (favorited_at DESC)',
+    );
+
+    // Table: song_artists (relational multi-artist mapping)
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS song_artists (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        song_id INTEGER NOT NULL,
+        media_store_id INTEGER NOT NULL,
+        artist TEXT NOT NULL,
+        FOREIGN KEY (song_id) REFERENCES songs (id) ON DELETE CASCADE
+      )
+    ''');
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_song_artists_artist ON song_artists (artist COLLATE NOCASE)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_song_artists_song_id ON song_artists (song_id)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS idx_song_artists_media_store_id ON song_artists (media_store_id)',
     );
   }
 

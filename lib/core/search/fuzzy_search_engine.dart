@@ -218,7 +218,15 @@ class FuzzySearchEngine {
 
     for (final song in _cachedSongs) {
       final titleScore = computeFuzzyScore(query, song.title);
-      final artistScore = song.artist != null ? computeFuzzyScore(query, song.artist!) : 0.0;
+      double artistScore = 0.0;
+      if (song.artists.isNotEmpty) {
+        for (final a in song.artists) {
+          final s = computeFuzzyScore(query, a);
+          if (s > artistScore) artistScore = s;
+        }
+      } else if (song.artist != null) {
+        artistScore = computeFuzzyScore(query, song.artist!);
+      }
       final albumScore = song.album != null ? computeFuzzyScore(query, song.album!) : 0.0;
 
       // Title match takes precedence, but artist/album matches also contribute
@@ -266,9 +274,12 @@ class FuzzySearchEngine {
     // A. Songs: Up to [songLimit] (default 5, strict rule)
     final List<Song> secondarySongs = [];
     if (primaryType == SearchEntityType.artist && bestArtist != null) {
-      // Songs by this artist first
+      // Songs by this artist first (matching single or collaborative artists)
+      final targetArtistLower = bestArtist.name.toLowerCase();
       final artistSongs = _cachedSongs
-          .where((s) => s.artist != null && s.artist!.toLowerCase() == bestArtist!.name.toLowerCase())
+          .where((s) =>
+              s.artists.any((a) => a.toLowerCase() == targetArtistLower) ||
+              (s.artist != null && s.artist!.toLowerCase() == targetArtistLower))
           .take(songLimit)
           .toList();
       secondarySongs.addAll(artistSongs);
@@ -357,20 +368,25 @@ class FuzzySearchEngine {
       if (!secondaryArtists.any((a) => a.name.toLowerCase() == albumArtistName)) {
         secondaryArtists.insert(0, artistMatch);
       }
-    } else if (primaryType == SearchEntityType.song && currentSong != null && currentSong.artist != null) {
-      final songArtist = currentSong.artist!;
-      final songArtistName = songArtist.toLowerCase();
-      final artistMatch = _cachedArtists.firstWhere(
-        (a) => a.name.toLowerCase() == songArtistName,
-        orElse: () => ArtistDiscoveryItem(
-          name: songArtist,
-          songCount: 0,
-          albumCount: 0,
-          representativeSongId: currentSong.mediaStoreId,
-        ),
-      );
-      if (!secondaryArtists.any((a) => a.name.toLowerCase() == songArtistName)) {
-        secondaryArtists.insert(0, artistMatch);
+    } else if (primaryType == SearchEntityType.song && currentSong != null) {
+      final songArtists = currentSong.artists.isNotEmpty
+          ? currentSong.artists
+          : (currentSong.artist != null ? [currentSong.artist!] : <String>[]);
+
+      for (final sArtist in songArtists) {
+        final sArtistLower = sArtist.toLowerCase();
+        final artistMatch = _cachedArtists.firstWhere(
+          (a) => a.name.toLowerCase() == sArtistLower,
+          orElse: () => ArtistDiscoveryItem(
+            name: sArtist,
+            songCount: 0,
+            albumCount: 0,
+            representativeSongId: currentSong.mediaStoreId,
+          ),
+        );
+        if (!secondaryArtists.any((a) => a.name.toLowerCase() == sArtistLower)) {
+          secondaryArtists.add(artistMatch);
+        }
       }
     }
 

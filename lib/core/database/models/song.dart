@@ -6,6 +6,8 @@
 /// - Song: Data class encapsulating song metadata and database mapping.
 library;
 
+import 'package:project_anima/core/utils/artist_splitter.dart';
+
 /// Immutable domain and persistence model representing an audio track.
 class Song {
   /// Internal SQLite primary key (auto-incremented).
@@ -66,6 +68,12 @@ class Song {
     this.dateAdded,
     this.size,
   });
+
+  /// List of individual performing artists extracted and normalized from [artist].
+  List<String> get artists => ArtistSplitter.split(artist);
+
+  /// Primary or lead performing artist.
+  String get primaryArtist => ArtistSplitter.primaryArtist(artist);
 
   /// Converts the [Song] instance into a map for SQLite storage.
   Map<String, dynamic> toMap() {
