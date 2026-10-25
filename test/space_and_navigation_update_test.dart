@@ -11,7 +11,6 @@ import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/menu_transition_controller.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
-import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/home/components/space_header.dart';
 import 'package:project_anima/features/home/screens/home.dart';

@@ -58,4 +58,16 @@ class EnSearchStrings implements SearchStrings {
 
   @override
   String get clearSearchTooltip => 'Clear search';
+
+  @override
+  String get newAlbumsSectionHeader => 'NEW ALBUMS';
+
+  @override
+  String get newArtistsSectionHeader => 'NEW ARTISTS';
+
+  @override
+  String get todaySelectionTitle => 'Today Selection';
+
+  @override
+  String get recentlyPlayedTitle => 'Recently Played';
 }

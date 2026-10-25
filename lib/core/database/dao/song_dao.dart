@@ -519,16 +519,130 @@ class SongDao {
     });
   }
 
+  /// Retrieves the newest distinct albums added to the library, ordered by newest addition.
+  Future<List<AlbumDiscoveryItem>> getNewestAlbums({int limit = 5}) async {
+    final db = await _appDatabase.database;
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      WITH album_meta AS (
+        SELECT
+          s.album COLLATE NOCASE AS album_norm,
+          COALESCE(s.album_id, 0) AS album_id_norm,
+          MAX(
+            CASE
+              WHEN s.album_artist IS NOT NULL 
+                AND TRIM(s.album_artist) != '' 
+                AND s.album_artist != '<Desconocido>' 
+                AND s.album_artist != 'Unknown Artist'
+              THEN TRIM(s.album_artist)
+              ELSE NULL
+            END
+          ) AS definitive_album_artist
+        FROM songs s
+        WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+        GROUP BY s.album COLLATE NOCASE, COALESCE(s.album_id, 0)
+      ),
+      song_resolved AS (
+        SELECT
+          s.id,
+          s.album,
+          s.album_id,
+          s.media_store_id,
+          s.duration,
+          COALESCE(s.date_added, s.date_modified, s.id) AS sort_key,
+          COALESCE(
+            CASE
+              WHEN s.album_artist IS NOT NULL 
+                AND TRIM(s.album_artist) != '' 
+                AND s.album_artist != '<Desconocido>' 
+                AND s.album_artist != 'Unknown Artist'
+              THEN TRIM(s.album_artist)
+              ELSE NULL
+            END,
+            am.definitive_album_artist,
+            CASE
+              WHEN INSTR(LOWER(s.artist), ' feat. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft. ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft. ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' feat ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' feat ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' ft ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' ft ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' featuring ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' featuring ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' with ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' with ') - 1))
+              WHEN INSTR(LOWER(s.artist), ', ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ', ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' & ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' & ') - 1))
+              WHEN INSTR(LOWER(s.artist), ' / ') > 0 THEN TRIM(SUBSTR(s.artist, 1, INSTR(LOWER(s.artist), ' / ') - 1))
+              ELSE NULLIF(NULLIF(TRIM(s.artist), ''), '<Desconocido>')
+            END,
+            'Unknown Artist'
+          ) AS resolved_artist
+        FROM songs s
+        LEFT JOIN album_meta am ON (
+          s.album COLLATE NOCASE = am.album_norm 
+          AND COALESCE(s.album_id, 0) = am.album_id_norm
+        )
+        WHERE s.album IS NOT NULL AND s.album != '' AND s.album != '<Desconocido>'
+      )
+      SELECT
+        album AS name,
+        resolved_artist AS artist,
+        MIN(album_id) AS album_id,
+        MIN(media_store_id) AS representative_song_id,
+        COUNT(DISTINCT id) AS song_count,
+        SUM(duration) AS total_duration,
+        MAX(sort_key) AS newest_time
+      FROM song_resolved
+      GROUP BY album COLLATE NOCASE, resolved_artist COLLATE NOCASE
+      ORDER BY newest_time DESC
+      LIMIT ?;
+      ''',
+      [limit],
+    );
+
+    return results.map((row) => AlbumDiscoveryItem.fromMap(row)).toList();
+  }
+
+  /// Retrieves the newest distinct artists in the library, ordered by newest addition.
+  Future<List<ArtistDiscoveryItem>> getNewestArtists({int limit = 5}) async {
+    final db = await _appDatabase.database;
+    await syncSongArtistsIfNeeded();
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT 
+        sa.artist AS name,
+        COUNT(DISTINCT s.id) AS song_count,
+        COUNT(DISTINCT s.album) AS album_count,
+        MIN(s.media_store_id) AS representative_song_id,
+        MIN(s.album_id) AS representative_album_id,
+        MAX(COALESCE(s.date_added, s.date_modified, s.id)) AS newest_time
+      FROM song_artists sa
+      JOIN songs s ON sa.song_id = s.id
+      WHERE sa.artist IS NOT NULL AND TRIM(sa.artist) != '' AND sa.artist != '<Desconocido>'
+      GROUP BY sa.artist COLLATE NOCASE
+      ORDER BY newest_time DESC
+      LIMIT ?;
+      ''',
+      [limit],
+    );
+
+    return results.map((row) => ArtistDiscoveryItem.fromMap(row)).toList();
+  }
+
   /// Retrieves recently played tracks using a single relational JOIN query.
-  Future<List<Song>> getRecentlyPlayedSongs({int limit = 15}) async {
+  /// Eliminates duplicate song instances by grouping by song_id.
+  Future<List<Song>> getRecentlyPlayedSongs({int limit = 20}) async {
     final db = await _appDatabase.database;
 
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
       SELECT s.*
-      FROM playback_history ph
+      FROM (
+        SELECT song_id, MAX(played_at) as max_played_at
+        FROM playback_history
+        GROUP BY song_id
+      ) ph
       JOIN songs s ON ph.song_id = s.id
-      ORDER BY ph.played_at DESC
+      ORDER BY ph.max_played_at DESC
       LIMIT ?;
       ''',
       [limit],

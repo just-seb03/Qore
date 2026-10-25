@@ -16,7 +16,6 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/home/components/home_artist_card.dart';
 import 'package:project_anima/features/home/components/home_favorites_hero_card.dart';
-import 'package:project_anima/features/home/components/today_selection_hero_card.dart';
 import 'package:project_anima/features/home/controls/home_layout_controller.dart';
 import 'package:project_anima/features/home/controls/home_slot_item.dart';
 import 'package:project_anima/features/library/components/albums/library_album_card.dart';
@@ -300,7 +299,7 @@ class HomeSlotGrid extends StatelessWidget {
   Widget _buildCardContent(BuildContext context, HomeSlotItem slot) {
     switch (slot.type) {
       case HomeSlotType.todaySelection:
-        return TodaySelectionHeroCard(songs: todaySongs);
+        return const SizedBox.shrink();
 
       case HomeSlotType.favorites:
         return HomeFavoritesHeroCard(songs: favoriteSongs);

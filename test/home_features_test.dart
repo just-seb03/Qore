@@ -18,9 +18,8 @@ import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/features/album/components/album_header_view.dart';
 import 'package:project_anima/features/artist/components/artist_header_view.dart';
 import 'package:project_anima/features/home/components/home_artist_card.dart';
-import 'package:project_anima/features/home/components/home_header.dart';
 import 'package:project_anima/features/home/components/home_pinned_section.dart';
-import 'package:project_anima/features/home/components/today_selection_hero_card.dart';
+import 'package:project_anima/features/home/components/space_header.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/playlist/components/playlist_detail_header.dart';
@@ -31,24 +30,24 @@ void main() {
     AppDatabase.initializeFfiIfNeeded();
   });
 
-  group('HomeHeader Component Tests', () {
-    testWidgets('HomeHeader renders WELCOME title in Inconsolata typography', (tester) async {
+  group('SpaceHeader Component Tests', () {
+    testWidgets('SpaceHeader renders Space title in Inconsolata typography', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: HomeHeader(),
+            body: SpaceHeader(),
           ),
         ),
       );
 
-      expect(find.text('WELCOME'), findsOneWidget);
+      expect(find.text('Space'), findsOneWidget);
     });
 
-    testWidgets('HomeHeader supports custom titles while maintaining styling', (tester) async {
+    testWidgets('SpaceHeader supports custom titles while maintaining styling', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: Scaffold(
-            body: HomeHeader(title: 'DISCOVER'),
+            body: SpaceHeader(title: 'DISCOVER'),
           ),
         ),
       );
@@ -79,36 +78,6 @@ void main() {
       expect(collage.length, 4);
       final albumKeys = collage.map((s) => s.album).toSet();
       expect(albumKeys.length, 4);
-    });
-  });
-
-  group('TodaySelectionHeroCard Widget Tests', () {
-    final mockSongs = List<Song>.generate(
-      20,
-      (i) => Song(
-        id: i + 1,
-        mediaStoreId: 2000 + i,
-        title: 'Daily Song $i',
-        artist: 'Daily Artist $i',
-        album: 'Daily Album $i',
-        path: '/storage/music/daily_$i.mp3',
-        duration: 180000,
-        dateModified: 1700000000,
-      ),
-    );
-
-    testWidgets('renders 1920x620 aspect banner and title without direct play button', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: TodaySelectionHeroCard(songs: mockSongs),
-          ),
-        ),
-      );
-
-      expect(find.text("Today Selection"), findsOneWidget);
-      expect(find.text('DAILY MIX'), findsNothing);
-      expect(find.byIcon(Icons.play_arrow_rounded), findsNothing);
     });
   });
 

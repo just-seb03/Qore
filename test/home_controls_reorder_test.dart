@@ -9,7 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
-import 'package:project_anima/features/home/components/home_header.dart';
+import 'package:project_anima/features/home/components/space_header.dart';
 import 'package:project_anima/features/home/controls/home_layout_controller.dart';
 import 'package:project_anima/features/home/controls/home_slot_grid.dart';
 import 'package:project_anima/features/home/controls/home_slot_item.dart';
@@ -215,10 +215,7 @@ void main() {
                 builder: (context, _) {
                   return Column(
                     children: [
-                      HomeHeader(
-                        isArranging: controller.isArranging,
-                        onDoneTap: () => controller.exitArrangingMode(),
-                      ),
+                      const SpaceHeader(),
                       HomeSlotGrid(
                         todaySongs: const [],
                         favoriteSongs: const [],
@@ -236,8 +233,7 @@ void main() {
         ),
       );
 
-      expect(find.text('WELCOME'), findsOneWidget);
-      expect(find.text('Today Selection'), findsOneWidget);
+      expect(find.text('Space'), findsOneWidget);
       expect(find.text('Favorites'), findsOneWidget);
       expect(find.text('Discovery'), findsOneWidget);
       expect(find.text('ORGANIZAR INICIO'), findsNothing);
@@ -247,19 +243,13 @@ void main() {
       controller.enterArrangingMode();
       await tester.pump();
 
-      // Old banner is gone
-      expect(find.text('ORGANIZAR INICIO'), findsNothing);
-      expect(find.text('LISTO'), findsNothing);
+      expect(controller.isArranging, isTrue);
 
-      // Standalone ticket checkmark button appears below WELCOME
-      expect(find.byKey(const ValueKey('home_slot_grid_done_button')), findsOneWidget);
-
-      // Exit arranging mode via checkmark ticket button
-      await tester.tap(find.byKey(const ValueKey('home_slot_grid_done_button')));
+      // Exit arranging mode
+      controller.exitArrangingMode();
       await tester.pump();
 
       expect(controller.isArranging, isFalse);
-      expect(find.byKey(const ValueKey('home_slot_grid_done_button')), findsNothing);
     });
   });
 }

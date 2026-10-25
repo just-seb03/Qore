@@ -27,6 +27,7 @@ import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/player/screens/player_screen.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
+import 'package:project_anima/features/search/components/search_discovery_view.dart';
 import 'package:project_anima/features/search/components/search_header.dart';
 import 'package:project_anima/features/search/components/search_results_list.dart';
 
@@ -52,6 +53,8 @@ class _SearchScreenState extends State<SearchScreen>
   final TextEditingController _searchController = TextEditingController();
   final MusicSearchController _searchEngine = MusicSearchController();
   final ScrollController _scrollController = ScrollController();
+  final FocusNode _searchFocusNode = FocusNode();
+  bool _isSearching = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -62,6 +65,19 @@ class _SearchScreenState extends State<SearchScreen>
     RecentSearchController.instance.init();
     NavigationController.instance.searchResetNotifier.addListener(_onSearchReset);
     NavigationController.instance.searchScrollToTopNotifier.addListener(_onScrollToTop);
+    _searchFocusNode.addListener(_onSearchFocusChanged);
+    _searchController.addListener(_onSearchFocusChanged);
+  }
+
+  void _onSearchFocusChanged() {
+    if (!mounted) return;
+    final isSearching =
+        _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
+    if (isSearching != _isSearching) {
+      setState(() {
+        _isSearching = isSearching;
+      });
+    }
   }
 
   Future<void> _handleRecentItemTap(RecentSearchItem item) async {
@@ -207,10 +223,10 @@ class _SearchScreenState extends State<SearchScreen>
     if (!mounted) return;
     _searchController.clear();
     _searchEngine.clear();
+    _searchFocusNode.unfocus();
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0.0);
     }
-    FocusScope.of(context).unfocus();
   }
 
   /// Smoothly scrolls results back to top when single-tapping the already active search tab.
@@ -229,6 +245,9 @@ class _SearchScreenState extends State<SearchScreen>
   void dispose() {
     NavigationController.instance.searchResetNotifier.removeListener(_onSearchReset);
     NavigationController.instance.searchScrollToTopNotifier.removeListener(_onScrollToTop);
+    _searchFocusNode.removeListener(_onSearchFocusChanged);
+    _searchController.removeListener(_onSearchFocusChanged);
+    _searchFocusNode.dispose();
     _searchController.dispose();
     _searchEngine.dispose();
     _scrollController.dispose();
@@ -248,21 +267,41 @@ class _SearchScreenState extends State<SearchScreen>
             const SearchHeader(),
             AppSearchBar(
               controller: _searchController,
+              focusNode: _searchFocusNode,
               onChanged: (text) => _searchEngine.onQueryChanged(text),
               onClear: () => _searchEngine.clear(),
             ),
             Expanded(
-              child: SearchResultsList(
-                controller: _searchEngine,
-                scrollController: _scrollController,
-                onSongTap: _handleSongTap,
-                onSongPlayTap: _handleSongTap,
-                onTopSongCardTap: _handleTopSongCardTap,
-                onAlbumTap: _handleAlbumTap,
-                onAlbumPlayTap: _handleAlbumPlayTap,
-                onArtistTap: _handleArtistTap,
-                onArtistPlayTap: _handleArtistPlayTap,
-                onRecentItemTap: _handleRecentItemTap,
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 250),
+                switchInCurve: Curves.easeOutCubic,
+                switchOutCurve: Curves.easeInCubic,
+                transitionBuilder: (child, animation) {
+                  return FadeTransition(
+                    opacity: animation,
+                    child: child,
+                  );
+                },
+                child: _isSearching
+                    ? SearchResultsList(
+                        key: const ValueKey('search_results_list'),
+                        controller: _searchEngine,
+                        scrollController: _scrollController,
+                        onSongTap: _handleSongTap,
+                        onSongPlayTap: _handleSongTap,
+                        onTopSongCardTap: _handleTopSongCardTap,
+                        onAlbumTap: _handleAlbumTap,
+                        onAlbumPlayTap: _handleAlbumPlayTap,
+                        onArtistTap: _handleArtistTap,
+                        onArtistPlayTap: _handleArtistPlayTap,
+                        onRecentItemTap: _handleRecentItemTap,
+                      )
+                    : SearchDiscoveryView(
+                        key: const ValueKey('search_discovery_view'),
+                        scrollController: _scrollController,
+                        onAlbumTap: _handleAlbumTap,
+                        onArtistTap: _handleArtistTap,
+                      ),
               ),
             ),
           ],

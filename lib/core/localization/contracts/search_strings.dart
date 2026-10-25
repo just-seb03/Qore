@@ -55,4 +55,16 @@ abstract class SearchStrings {
 
   /// Tooltip for the clear search button.
   String get clearSearchTooltip;
+
+  /// Section header for the newest albums carousel in search discovery (e.g. 'NEW ALBUMS').
+  String get newAlbumsSectionHeader;
+
+  /// Section header for the newest artists carousel in search discovery (e.g. 'NEW ARTISTS').
+  String get newArtistsSectionHeader;
+
+  /// Title for the Today's Selection system playlist card.
+  String get todaySelectionTitle;
+
+  /// Title for the Recently Played system playlist card.
+  String get recentlyPlayedTitle;
 }

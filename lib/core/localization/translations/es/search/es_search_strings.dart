@@ -58,4 +58,16 @@ class EsSearchStrings implements SearchStrings {
 
   @override
   String get clearSearchTooltip => 'Borrar búsqueda';
+
+  @override
+  String get newAlbumsSectionHeader => 'NUEVOS ÁLBUMES';
+
+  @override
+  String get newArtistsSectionHeader => 'ARTISTAS NUEVOS';
+
+  @override
+  String get todaySelectionTitle => 'Today Selection';
+
+  @override
+  String get recentlyPlayedTitle => 'Recientes';
 }
