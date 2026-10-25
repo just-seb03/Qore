@@ -13,6 +13,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 
@@ -158,7 +159,7 @@ class HomeFavoritesHeroCard extends StatelessWidget {
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: Text(
-                              'Favorites',
+                              context.l10n.home.favoritesHeroTitle,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: _titleStyle,

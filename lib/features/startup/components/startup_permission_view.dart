@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Permission requirement screen presented when audio storage access is missing.
@@ -15,9 +16,21 @@ class StartupPermissionView extends StatelessWidget {
   /// Callback executed when the user taps the action button to request or retry permissions.
   final VoidCallback onRequestPermission;
 
+  /// Optional custom title. Defaults to localized [StartupStrings.audioAccessRequiredTitle].
+  final String? title;
+
+  /// Optional custom message. Defaults to localized [StartupStrings.audioAccessRequiredMessage].
+  final String? message;
+
+  /// Optional custom action button text. Defaults to localized [StartupStrings.continueAction].
+  final String? actionText;
+
   const StartupPermissionView({
     super.key,
     required this.onRequestPermission,
+    this.title,
+    this.message,
+    this.actionText,
   });
 
   @override
@@ -57,7 +70,7 @@ class StartupPermissionView extends StatelessWidget {
             const SizedBox(height: 28.0),
             // 2. Permission title in Inconsolata
             Text(
-              'AUDIO ACCESS REQUIRED',
+              title ?? context.l10n.startup.audioAccessRequiredTitle,
               textAlign: TextAlign.center,
               style: GoogleFonts.inconsolata(
                 fontSize: 18.0,
@@ -71,7 +84,7 @@ class StartupPermissionView extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(
-                'Project Anima requires access to your audio files to discover, organize, and play your local music library.',
+                message ?? context.l10n.startup.audioAccessRequiredMessage,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inconsolata(
                   fontSize: 13.5,
@@ -109,7 +122,7 @@ class StartupPermissionView extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'CONTINUE',
+                        actionText ?? context.l10n.startup.continueAction,
                         style: GoogleFonts.inconsolata(
                           fontSize: 14.0,
                           fontWeight: FontWeight.w700,

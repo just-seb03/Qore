@@ -15,6 +15,7 @@ import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/fuzzy_search_engine.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/playlist/components/playlist_cover_picker.dart';
@@ -222,7 +223,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('Added "${song.title}" to playlist'),
+        content: Text(context.l10n.playlist.addedSongSuccess(song.title)),
         duration: const Duration(seconds: 1),
         behavior: SnackBarBehavior.floating,
       ),
@@ -244,7 +245,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
 
   Future<void> _savePlaylist() async {
     final name = _nameController.text.trim().isEmpty
-        ? 'My Playlist'
+        ? context.l10n.playlist.defaultPlaylistName
         : _nameController.text.trim();
 
     setState(() {
@@ -292,7 +293,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to save playlist: $e'),
+            content: Text(context.l10n.playlist.savePlaylistError(e.toString())),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -369,7 +370,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                         ),
                         cursorColor: AppColors.futuristicWhite,
                         decoration: InputDecoration(
-                          hintText: 'Playlist Name',
+                          hintText: context.l10n.playlist.playlistNameHint,
                           hintStyle: _nameHintStyle,
                           border: InputBorder.none,
                           isDense: true,
@@ -385,7 +386,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'TITLE FONT / TIPOGRAFÍA',
+                          context.l10n.playlist.typographySection,
                           style: _sectionHeaderStyle,
                         ),
                       ),
@@ -452,7 +453,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: Text(
-                          'ADD SONGS',
+                          context.l10n.playlist.addSongsSection,
                           style: _sectionHeaderStyle,
                         ),
                       ),
@@ -534,7 +535,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                             )
                           : const Icon(Icons.check_rounded, size: 20.0),
                       label: Text(
-                        'Save',
+                        context.l10n.playlist.saveAction,
                         style: _saveButtonStyle,
                       ),
                     ),

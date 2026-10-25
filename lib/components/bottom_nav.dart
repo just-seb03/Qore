@@ -13,6 +13,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/film_grain.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
 
@@ -20,7 +21,31 @@ import 'package:project_anima/features/player/components/mini_player.dart';
 enum BottomNavTab {
   home,
   search,
-  library,
+  library;
+
+  /// Retrieves localized destination label.
+  String localizedLabel(BuildContext context) {
+    switch (this) {
+      case BottomNavTab.home:
+        return context.l10n.navigation.homeTab;
+      case BottomNavTab.search:
+        return context.l10n.navigation.searchTab;
+      case BottomNavTab.library:
+        return context.l10n.navigation.libraryTab;
+    }
+  }
+
+  /// Retrieves localized destination tooltip.
+  String localizedTooltip(BuildContext context) {
+    switch (this) {
+      case BottomNavTab.home:
+        return context.l10n.navigation.homeTabTooltip;
+      case BottomNavTab.search:
+        return context.l10n.navigation.searchTabTooltip;
+      case BottomNavTab.library:
+        return context.l10n.navigation.libraryTabTooltip;
+    }
+  }
 }
 
 /// Global Material 3 Expressive Bottom Navigation Bar.
@@ -71,42 +96,42 @@ class AppBottomNav extends StatelessWidget {
             child: FilmGrain(
               intensity: grainIntensity,
               child: NavigationBar(
-            selectedIndex: currentIndex,
-            onDestinationSelected: (index) {
-              if (onDestinationSelected != null) {
-                onDestinationSelected!(index);
-              } else {
-                NavigationController.instance.navigateToTab(context, index);
-              }
-            },
-            backgroundColor: Colors.transparent, // Handled by outer container
-            indicatorColor: AppColors.navIndicator,
-            elevation: 0,
-            destinations: const [
-              NavigationDestination(
-                icon: Icon(Icons.home_outlined),
-                selectedIcon: Icon(Icons.home_rounded),
-                label: 'Home',
-                tooltip: 'Home',
+                selectedIndex: currentIndex,
+                onDestinationSelected: (index) {
+                  if (onDestinationSelected != null) {
+                    onDestinationSelected!(index);
+                  } else {
+                    NavigationController.instance.navigateToTab(context, index);
+                  }
+                },
+                backgroundColor: Colors.transparent, // Handled by outer container
+                indicatorColor: AppColors.navIndicator,
+                elevation: 0,
+                destinations: [
+                  NavigationDestination(
+                    icon: const Icon(Icons.home_outlined),
+                    selectedIcon: const Icon(Icons.home_rounded),
+                    label: context.l10n.navigation.homeTab,
+                    tooltip: context.l10n.navigation.homeTabTooltip,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.search_rounded),
+                    selectedIcon: const Icon(Icons.search_rounded),
+                    label: context.l10n.navigation.searchTab,
+                    tooltip: context.l10n.navigation.searchTabTooltip,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.video_library_outlined),
+                    selectedIcon: const Icon(Icons.video_library_rounded),
+                    label: context.l10n.navigation.libraryTab,
+                    tooltip: context.l10n.navigation.libraryTabTooltip,
+                  ),
+                ],
               ),
-              NavigationDestination(
-                icon: Icon(Icons.search_rounded),
-                selectedIcon: Icon(Icons.search_rounded),
-                label: 'Search',
-                tooltip: 'Search',
-              ),
-              NavigationDestination(
-                icon: Icon(Icons.video_library_outlined),
-                selectedIcon: Icon(Icons.video_library_rounded),
-                label: 'Library',
-                tooltip: 'Library',
-              ),
-            ],
+            ),
           ),
         ),
-      ),
-    ),
-  ],
-);
-}
+      ],
+    );
+  }
 }

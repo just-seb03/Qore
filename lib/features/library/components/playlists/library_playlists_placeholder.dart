@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Placeholder state widget for the Playlists view.
@@ -42,13 +43,13 @@ class LibraryPlaylistsPlaceholder extends StatelessWidget {
             ),
             const SizedBox(height: 16.0),
             Text(
-              'NO PLAYLISTS YET',
+              context.l10n.library.emptyPlaylistsTitle,
               textAlign: TextAlign.center,
               style: _headerStyle,
             ),
             const SizedBox(height: 6.0),
             Text(
-              'Custom playlists will appear here',
+              context.l10n.library.emptyPlaylistsSubtitle,
               textAlign: TextAlign.center,
               style: _subtitleStyle,
             ),

@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Song search bar placed above the playlist track list.
@@ -15,14 +16,14 @@ class PlaylistSongSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final ValueChanged<String>? onChanged;
   final VoidCallback? onClear;
-  final String hintText;
+  final String? hintText;
 
   const PlaylistSongSearchBar({
     super.key,
     required this.controller,
     this.onChanged,
     this.onClear,
-    this.hintText = 'What song do you want to add?',
+    this.hintText,
   });
 
   static final TextStyle _textStyle = GoogleFonts.inconsolata(
@@ -56,7 +57,7 @@ class PlaylistSongSearchBar extends StatelessWidget {
         style: _textStyle,
         cursorColor: AppColors.futuristicWhite,
         decoration: InputDecoration(
-          hintText: hintText,
+          hintText: hintText ?? context.l10n.playlist.searchSongsPlaceholder,
           hintStyle: _hintStyle,
           prefixIcon: const Icon(
             Icons.search_rounded,

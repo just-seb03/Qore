@@ -16,6 +16,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Filter categories for the Library screen.
@@ -68,12 +69,6 @@ class LibraryFilterPills extends StatelessWidget {
     this.maxWidth = 360.0,
   });
 
-  static const List<_PillItem> _items = [
-    _PillItem(filter: LibraryFilter.albums, icon: Symbols.album_rounded, label: 'Albums'),
-    _PillItem(filter: LibraryFilter.artists, icon: Symbols.person_rounded, label: 'Artists'),
-    _PillItem(filter: LibraryFilter.playlists, icon: Symbols.queue_music_rounded, label: 'Playlists'),
-  ];
-
   BorderRadius _getShapeForIndex(int index, int total) {
     const outerRadius = Radius.circular(20.0);
     const innerRadius = Radius.circular(4.0);
@@ -105,6 +100,24 @@ class LibraryFilterPills extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final items = [
+      _PillItem(
+        filter: LibraryFilter.albums,
+        icon: Symbols.album_rounded,
+        label: context.l10n.library.filterAlbums,
+      ),
+      _PillItem(
+        filter: LibraryFilter.artists,
+        icon: Symbols.person_rounded,
+        label: context.l10n.library.filterArtists,
+      ),
+      _PillItem(
+        filter: LibraryFilter.playlists,
+        icon: Symbols.queue_music_rounded,
+        label: context.l10n.library.filterPlaylists,
+      ),
+    ];
+
     return Padding(
       padding: padding,
       child: Center(
@@ -114,16 +127,16 @@ class LibraryFilterPills extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.max,
             children: [
-              for (int i = 0; i < _items.length; i++) ...[
+              for (int i = 0; i < items.length; i++) ...[
                 if (i > 0) const SizedBox(width: 2.0),
                 Expanded(
                   child: _ConnectedPillButton(
-                    item: _items[i],
-                    isSelected: _items[i].filter == selectedFilter,
-                    shape: _getShapeForIndex(i, _items.length),
+                    item: items[i],
+                    isSelected: items[i].filter == selectedFilter,
+                    shape: _getShapeForIndex(i, items.length),
                     onTap: () {
-                      if (_items[i].filter != selectedFilter) {
-                        onFilterChanged?.call(_items[i].filter);
+                      if (items[i].filter != selectedFilter) {
+                        onFilterChanged?.call(items[i].filter);
                       }
                     },
                   ),

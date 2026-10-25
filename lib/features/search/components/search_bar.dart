@@ -17,6 +17,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Type alias for flexible naming conventions.
@@ -36,8 +37,8 @@ class AppSearchBar extends StatefulWidget {
   /// Controls visibility of the morphing M3ELoadingIndicator.
   final bool isLoading;
 
-  /// Placeholder hint text displayed when the input is empty.
-  final String hintText;
+  /// Placeholder hint text displayed when the input is empty. Defaults to localized placeholder.
+  final String? hintText;
 
   /// Optional focus node for managing keyboard focus.
   final FocusNode? focusNode;
@@ -66,7 +67,7 @@ class AppSearchBar extends StatefulWidget {
     this.onChanged,
     this.onClear,
     this.isLoading = false,
-    this.hintText = 'What do you want to listen to?',
+    this.hintText,
     this.focusNode,
     this.autoFocus = false,
     this.padding = const EdgeInsets.only(
@@ -122,7 +123,7 @@ class _AppSearchBarState extends State<AppSearchBar> {
             editableTextState: editableTextState,
           );
         },
-        hintText: widget.hintText,
+        hintText: widget.hintText ?? context.l10n.search.searchPlaceholder,
         hintStyle: WidgetStatePropertyAll(
           AppSearchBar._baseHintTextStyle.copyWith(
             color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),

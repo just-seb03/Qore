@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -23,6 +24,8 @@ class PlayerControls extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n.player;
+
     return ListenableBuilder(
       listenable: controller,
       builder: (context, _) {
@@ -61,7 +64,7 @@ class PlayerControls extends StatelessWidget {
                     ),
                   ],
                 ),
-                tooltip: 'Modo aleatorio',
+                tooltip: l10n.shuffleTooltip,
                 onPressed: () => controller.toggleShuffle(),
               ),
 
@@ -69,12 +72,13 @@ class PlayerControls extends StatelessWidget {
               _CircularBorderButton(
                 icon: Icons.skip_previous_rounded,
                 onTap: () => controller.skipToPrevious(),
-                tooltip: 'Pista anterior',
+                tooltip: l10n.previousTooltip,
               ),
 
               // 3. Play / Pause (Prominent Center Button)
               _PlayPauseCenterButton(
                 isPlaying: isPlaying,
+                tooltip: isPlaying ? l10n.pauseTooltip : l10n.playTooltip,
                 onTap: () => controller.togglePlayPause(),
               ),
 
@@ -82,7 +86,7 @@ class PlayerControls extends StatelessWidget {
               _CircularBorderButton(
                 icon: Icons.skip_next_rounded,
                 onTap: () => controller.skipToNext(),
-                tooltip: 'Pista siguiente',
+                tooltip: l10n.nextTooltip,
               ),
 
               // 5. Repeat / Loop Mode Toggle
@@ -112,7 +116,7 @@ class PlayerControls extends StatelessWidget {
                     ),
                   ],
                 ),
-                tooltip: 'Repetir pista o lista',
+                tooltip: l10n.loopTooltip,
                 onPressed: () => controller.toggleLoopMode(),
               ),
             ],
@@ -139,28 +143,31 @@ class _CircularBorderButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: _size,
-      height: _size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(
-          color: AppColors.outline,
-          width: 1.5,
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: _size,
+        height: _size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: AppColors.outline,
+            width: 1.5,
+          ),
         ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(_size / 2),
-          onTap: onTap,
-          splashColor: Colors.white.withValues(alpha: 0.15),
-          highlightColor: Colors.white.withValues(alpha: 0.08),
-          child: Center(
-            child: Icon(
-              icon,
-              size: 30.0,
-              color: AppColors.futuristicWhite,
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(_size / 2),
+            onTap: onTap,
+            splashColor: Colors.white.withValues(alpha: 0.15),
+            highlightColor: Colors.white.withValues(alpha: 0.08),
+            child: Center(
+              child: Icon(
+                icon,
+                size: 30.0,
+                color: AppColors.futuristicWhite,
+              ),
             ),
           ),
         ),
@@ -174,41 +181,46 @@ class _PlayPauseCenterButton extends StatelessWidget {
   static const double _size = 68.0;
 
   final bool isPlaying;
+  final String tooltip;
   final VoidCallback onTap;
 
   const _PlayPauseCenterButton({
     required this.isPlaying,
+    required this.tooltip,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: _size,
-      height: _size,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.futuristicWhite,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 14.0,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(_size / 2),
-          onTap: onTap,
-          splashColor: Colors.black.withValues(alpha: 0.2),
-          highlightColor: Colors.black.withValues(alpha: 0.1),
-          child: Center(
-            child: Icon(
-              isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
-              size: 38.0,
-              color: AppColors.background,
+    return Tooltip(
+      message: tooltip,
+      child: Container(
+        width: _size,
+        height: _size,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          color: AppColors.futuristicWhite,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.4),
+              blurRadius: 14.0,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(_size / 2),
+            onTap: onTap,
+            splashColor: Colors.black.withValues(alpha: 0.2),
+            highlightColor: Colors.black.withValues(alpha: 0.1),
+            child: Center(
+              child: Icon(
+                isPlaying ? Icons.pause_rounded : Icons.play_arrow_rounded,
+                size: 38.0,
+                color: AppColors.background,
+              ),
             ),
           ),
         ),

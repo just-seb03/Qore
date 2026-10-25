@@ -7,6 +7,9 @@
 /// - StartupStageX: Extension providing localized English titles and progress metrics.
 library;
 
+import 'package:flutter/widgets.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
+
 /// Distinct operational stages of the startup initialization sequence.
 enum StartupStage {
   /// Initial silent permission inspection before rendering UI.
@@ -49,6 +52,25 @@ extension StartupStageX on StartupStage {
         return 'Finalizing setup...';
       case StartupStage.ready:
         return 'All set!';
+    }
+  }
+
+  /// Context-aware localized label.
+  String localizedLabel(BuildContext context) {
+    switch (this) {
+      case StartupStage.checkingPermission:
+      case StartupStage.permissionDenied:
+        return '';
+      case StartupStage.scanning:
+        return context.l10n.startup.scanningLibrary;
+      case StartupStage.savingTracks:
+        return context.l10n.startup.savingTracks;
+      case StartupStage.savingCovers:
+        return context.l10n.startup.savingCovers;
+      case StartupStage.finalizing:
+        return context.l10n.startup.finalizingSetup;
+      case StartupStage.ready:
+        return context.l10n.startup.allSet;
     }
   }
 

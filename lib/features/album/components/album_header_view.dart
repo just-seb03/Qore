@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
@@ -53,7 +54,7 @@ class AlbumHeaderView extends StatelessWidget {
     this.onToggleFavorite,
   });
 
-  String _formatTotalDuration(int totalMs) {
+  String _formatTotalDuration(BuildContext context, int totalMs) {
     if (totalMs <= 0) return '';
     final totalSeconds = totalMs ~/ 1000;
     final minutes = totalSeconds ~/ 60;
@@ -61,9 +62,10 @@ class AlbumHeaderView extends StatelessWidget {
     final remainingMinutes = minutes % 60;
 
     if (hours > 0) {
-      return '$hours hr $remainingMinutes min';
+      return context.l10n.album
+          .durationHoursMinutes(hours, remainingMinutes);
     }
-    return '$minutes mins';
+    return context.l10n.album.durationMinutes(minutes);
   }
 
   @override
@@ -71,18 +73,22 @@ class AlbumHeaderView extends StatelessWidget {
     final screenSize = MediaQuery.of(context).size;
     final double coverSize = (screenSize.width - 88.0).clamp(220.0, 300.0);
 
-    final durationStr = _formatTotalDuration(totalDurationMs);
-    final countStr = '$songCount ${songCount == 1 ? "song" : "songs"}';
-    final metadataSubtitle = durationStr.isNotEmpty ? '$countStr • $durationStr' : countStr;
+    final durationStr = _formatTotalDuration(context, totalDurationMs);
+    final countStr = context.l10n.album.songCount(songCount);
+    final metadataSubtitle = context.l10n.album.metadataSubtitle(
+      countStr: countStr,
+      durationStr: durationStr,
+    );
 
     final sanitizedArtist = sanitizeArtistName(artistName);
+    final unknownArtist = context.l10n.album.unknownArtist;
     final displayArtist = (sanitizedArtist != null &&
             sanitizedArtist.trim().isNotEmpty &&
             sanitizedArtist != '<Desconocido>')
         ? sanitizedArtist
-        : 'Unknown Artist';
+        : unknownArtist;
 
-    final hasValidArtist = displayArtist != 'Unknown Artist';
+    final hasValidArtist = displayArtist != unknownArtist;
 
     return Column(
       mainAxisSize: MainAxisSize.min,

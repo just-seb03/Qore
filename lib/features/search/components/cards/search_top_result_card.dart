@@ -13,6 +13,7 @@ import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 import 'package:project_anima/features/search/components/common/search_play_button.dart';
 import 'package:project_anima/features/search/components/common/search_section_header.dart';
@@ -31,6 +32,9 @@ class SearchTopResultCard extends StatelessWidget {
   /// Optional secondary subtitle line (e.g. song count for albums).
   final String? secondarySubtitle;
 
+  /// Optional song count for pluralized album subtitle.
+  final int? songCount;
+
   /// Tap callback when card is activated.
   final VoidCallback? onTap;
 
@@ -40,15 +44,20 @@ class SearchTopResultCard extends StatelessWidget {
   /// Whether to render the section header ("TOP RESULT") above the card.
   final bool showHeader;
 
+  /// Optional custom header title. Defaults to localized 'TOP RESULT'.
+  final String? headerTitle;
+
   const SearchTopResultCard({
     super.key,
     required this.leading,
     required this.title,
     this.subtitle,
     this.secondarySubtitle,
+    this.songCount,
     this.onTap,
     this.onPlayTap,
     this.showHeader = true,
+    this.headerTitle,
   });
 
   /// Factory constructor for a dominant [Song] top result.
@@ -58,6 +67,7 @@ class SearchTopResultCard extends StatelessWidget {
     VoidCallback? onTap,
     VoidCallback? onPlayTap,
     bool showHeader = true,
+    String? headerTitle,
   }) {
     final artistStr = (song.artist != null &&
             song.artist!.trim().isNotEmpty &&
@@ -83,6 +93,7 @@ class SearchTopResultCard extends StatelessWidget {
       onTap: onTap,
       onPlayTap: onPlayTap,
       showHeader: showHeader,
+      headerTitle: headerTitle,
     );
   }
 
@@ -93,9 +104,8 @@ class SearchTopResultCard extends StatelessWidget {
     VoidCallback? onTap,
     VoidCallback? onPlayTap,
     bool showHeader = true,
+    String? headerTitle,
   }) {
-    final songCountStr =
-        '${album.songCount} ${album.songCount == 1 ? "song" : "songs"}';
     final artistStr = album.artist.isEmpty ||
             album.artist == '<Desconocido>' ||
             album.artist == 'Unknown Artist'
@@ -117,10 +127,11 @@ class SearchTopResultCard extends StatelessWidget {
       ),
       title: album.name,
       subtitle: artistStr,
-      secondarySubtitle: songCountStr,
+      songCount: album.songCount,
       onTap: onTap,
       onPlayTap: onPlayTap,
       showHeader: showHeader,
+      headerTitle: headerTitle,
     );
   }
 
@@ -131,6 +142,7 @@ class SearchTopResultCard extends StatelessWidget {
     VoidCallback? onTap,
     VoidCallback? onPlayTap,
     bool showHeader = true,
+    String? headerTitle,
   }) {
     return SearchTopResultCard(
       key: key,
@@ -144,6 +156,7 @@ class SearchTopResultCard extends StatelessWidget {
       onTap: onTap,
       onPlayTap: onPlayTap,
       showHeader: showHeader,
+      headerTitle: headerTitle,
     );
   }
 
@@ -168,12 +181,21 @@ class SearchTopResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectiveSubtitle = (subtitle == 'Unknown Artist' || subtitle == '<Desconocido>')
+        ? context.l10n.common.unknownArtist
+        : subtitle;
+    final effectiveSecondary = songCount != null
+        ? context.l10n.search.songCount(songCount!)
+        : secondarySubtitle;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showHeader) ...[
-          const SearchSectionHeader(title: 'TOP RESULT'),
+          SearchSectionHeader(
+            title: headerTitle ?? context.l10n.search.topResultHeader,
+          ),
           const SizedBox(height: 6.0),
         ],
         Padding(
@@ -207,20 +229,21 @@ class SearchTopResultCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: _titleStyle,
                             ),
-                            if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
+                            if (effectiveSubtitle != null &&
+                                effectiveSubtitle.trim().isNotEmpty) ...[
                               const SizedBox(height: 4.0),
                               Text(
-                                subtitle!,
+                                effectiveSubtitle,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: _subtitleStyle,
                               ),
                             ],
-                            if (secondarySubtitle != null &&
-                                secondarySubtitle!.trim().isNotEmpty) ...[
+                            if (effectiveSecondary != null &&
+                                effectiveSecondary.trim().isNotEmpty) ...[
                               const SizedBox(height: 3.0),
                               Text(
-                                secondarySubtitle!,
+                                effectiveSecondary,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: _secondarySubtitleStyle,

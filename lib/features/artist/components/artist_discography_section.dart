@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 
@@ -44,7 +45,7 @@ class ArtistDiscographySection extends StatelessWidget {
           child: Row(
             children: [
               Text(
-                'DISCOGRAPHY',
+                context.l10n.artist.discographyHeader,
                 style: GoogleFonts.inconsolata(
                   fontSize: 13.0,
                   fontWeight: FontWeight.w700,
@@ -91,7 +92,7 @@ class ArtistDiscographySection extends StatelessWidget {
             itemBuilder: (context, index) {
               final album = albums[index];
               final countStr =
-                  '${album.songCount} ${album.songCount == 1 ? "song" : "songs"}';
+                  context.l10n.artist.albumSongCount(album.songCount);
 
               return InkWell(
                 borderRadius: BorderRadius.circular(16.0),

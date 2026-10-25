@@ -12,6 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 
 /// Reusable Spotify-styled song row item.
@@ -63,6 +64,18 @@ class SearchSongTile extends StatelessWidget {
       listenable: FavoriteSongsDao.instance.favoritesRevision,
       builder: (context, _) {
         final isFav = FavoriteSongsDao.instance.isFavorite(song.mediaStoreId);
+        final artist = (song.artist != null &&
+                song.artist!.isNotEmpty &&
+                song.artist != "<Desconocido>" &&
+                song.artist != "Unknown Artist")
+            ? song.artist!
+            : context.l10n.common.unknownArtist;
+        final album = (song.album != null &&
+                song.album!.isNotEmpty &&
+                song.album != "<Desconocido>" &&
+                song.album != "Unknown Album")
+            ? song.album!
+            : context.l10n.common.unknownAlbum;
 
         return Material(
           color: Colors.transparent,
@@ -98,7 +111,7 @@ class SearchSongTile extends StatelessWidget {
                         ),
                         const SizedBox(height: 4.0),
                         Text(
-                          '${song.artist != null && song.artist!.isNotEmpty && song.artist != "<Desconocido>" ? song.artist : "Unknown Artist"} • ${song.album != null && song.album!.isNotEmpty && song.album != "<Desconocido>" ? song.album : "Unknown Album"}',
+                          '$artist • $album',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: _artistAlbumStyle,
@@ -117,7 +130,9 @@ class SearchSongTile extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
                     splashRadius: 16.0,
-                    tooltip: isFav ? 'Quitar de favoritos' : 'Añadir a favoritos',
+                    tooltip: isFav
+                        ? context.l10n.common.removeFromFavorites
+                        : context.l10n.common.addToFavorites,
                     onPressed: () {
                       FavoriteSongsDao.instance.toggleFavorite(song);
                       HapticFeedback.lightImpact();
@@ -133,7 +148,7 @@ class SearchSongTile extends StatelessWidget {
                     padding: EdgeInsets.zero,
                     constraints: const BoxConstraints(minWidth: 28.0, minHeight: 28.0),
                     splashRadius: 16.0,
-                    tooltip: 'Añadir a la cola',
+                    tooltip: context.l10n.common.addToQueue,
                     onPressed: () {
                       PlaybackController.instance.addToQueue(song);
                       HapticFeedback.lightImpact();

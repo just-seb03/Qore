@@ -17,6 +17,7 @@ import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/search/music_search_controller.dart';
@@ -188,7 +189,7 @@ class _SearchScreenState extends State<SearchScreen>
             song.album!.trim().isNotEmpty &&
             song.album != '<Desconocido>')
         ? song.album!.trim()
-        : 'Unknown Album';
+        : context.l10n.common.unknownAlbum;
 
     Navigator.of(context).push(
       AlbumDetailScreen.route(

@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 
@@ -44,7 +45,8 @@ class ArtistDiscographyAlbumCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final countLabel = '${album.songCount} ${album.songCount == 1 ? "track" : "tracks"}';
+    final countLabel =
+        context.l10n.artistDiscography.trackCount(album.songCount);
 
     return Material(
       color: Colors.transparent,

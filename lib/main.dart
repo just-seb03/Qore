@@ -11,10 +11,12 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:project_anima/controls/menu_transition_controller.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/dimensions/adaptive_system_boundary.dart';
 import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/localization/localization_controller.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/startup/screens/startup_loading_screen.dart';
@@ -103,16 +105,29 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Project Anima',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      builder: (context, child) {
-        return AdaptiveSystemBoundary(
-          child: child ?? const SizedBox.shrink(),
+    return ListenableBuilder(
+      listenable: LocalizationController.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          title: 'Project Anima',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.darkTheme,
+          locale: LocalizationController.instance.currentLocale,
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          builder: (context, child) {
+            return AdaptiveSystemBoundary(
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
+          home: const StartupLoadingScreen(),
         );
       },
-      home: const StartupLoadingScreen(),
     );
   }
 }

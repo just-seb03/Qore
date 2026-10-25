@@ -11,6 +11,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Header widget for the Home screen with high-impact typography.
@@ -18,8 +19,8 @@ import 'package:project_anima/core/theme/theme.dart';
 /// Renders stacked words aligned to the left margin using Google Fonts'
 /// 'Inconsolata' in a refined futuristic off-white hue.
 class HomeHeader extends StatelessWidget {
-  /// The header text to display. Defaults to 'WELCOME'.
-  final String title;
+  /// The header text to display. Defaults to localized 'WELCOME'.
+  final String? title;
 
   /// Custom padding around the header.
   final EdgeInsetsGeometry padding;
@@ -41,7 +42,7 @@ class HomeHeader extends StatelessWidget {
 
   const HomeHeader({
     super.key,
-    this.title = 'WELCOME',
+    this.title,
     this.padding = const EdgeInsets.only(
       left: 24.0,
       top: 8.0,
@@ -54,6 +55,8 @@ class HomeHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayTitle = title ?? context.l10n.home.welcomeTitle;
+
     return Padding(
       padding: padding,
       child: Column(
@@ -62,7 +65,7 @@ class HomeHeader extends StatelessWidget {
         children: [
           Center(
             child: Text(
-              title,
+              displayTitle,
               textAlign: TextAlign.center,
               style: _titleTextStyle,
             ),
@@ -76,7 +79,7 @@ class HomeHeader extends StatelessWidget {
                 color: AppColors.futuristicWhite,
                 size: 28.0,
               ),
-              tooltip: 'Listo',
+              tooltip: context.l10n.home.doneButtonTooltip,
               splashRadius: 22.0,
               onPressed: onDoneTap,
             ),

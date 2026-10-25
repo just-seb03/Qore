@@ -10,12 +10,13 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Top header for the Search screen with centered Inconsolata typography.
 class SearchHeader extends StatelessWidget {
-  /// The header text to display. Defaults to 'Search'.
-  final String title;
+  /// The header text to display. Defaults to localized 'Search'.
+  final String? title;
 
   /// Custom padding around the header text.
   final EdgeInsetsGeometry padding;
@@ -30,7 +31,7 @@ class SearchHeader extends StatelessWidget {
 
   const SearchHeader({
     super.key,
-    this.title = 'Search',
+    this.title,
     this.padding = const EdgeInsets.only(
       top: 6.0,
       bottom: 12.0,
@@ -43,7 +44,7 @@ class SearchHeader extends StatelessWidget {
       padding: padding,
       child: Center(
         child: Text(
-          title,
+          title ?? context.l10n.search.headerTitle,
           textAlign: TextAlign.center,
           style: _titleTextStyle,
         ),

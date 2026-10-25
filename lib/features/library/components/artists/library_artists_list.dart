@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/library/components/artists/library_artist_tile.dart';
@@ -136,13 +137,13 @@ class _LibraryArtistsListState extends State<LibraryArtistsList> {
               ),
               const SizedBox(height: 16.0),
               Text(
-                'NO ARTISTS FOUND',
+                context.l10n.library.emptyArtistsTitle,
                 textAlign: TextAlign.center,
                 style: _emptyHeaderStyle,
               ),
               const SizedBox(height: 6.0),
               Text(
-                'Add music to your device to see your artists here',
+                context.l10n.library.emptyArtistsSubtitle,
                 textAlign: TextAlign.center,
                 style: _emptySubtitleStyle,
               ),

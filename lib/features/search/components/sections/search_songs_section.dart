@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/search/components/cards/search_song_tile.dart';
 import 'package:project_anima/features/search/components/common/search_section_header.dart';
 
@@ -22,8 +23,8 @@ class SearchSongsSection extends StatelessWidget {
   /// Whether to render the section header ('SONGS'). Defaults to true.
   final bool showHeader;
 
-  /// Header title text. Defaults to 'SONGS'.
-  final String headerTitle;
+  /// Header title text. Defaults to localized 'SONGS'.
+  final String? headerTitle;
 
   /// Maximum songs to display. Defaults to 5.
   final int maxItems;
@@ -33,7 +34,7 @@ class SearchSongsSection extends StatelessWidget {
     required this.songs,
     this.onSongTap,
     this.showHeader = true,
-    this.headerTitle = 'SONGS',
+    this.headerTitle,
     this.maxItems = 5,
   });
 
@@ -50,7 +51,9 @@ class SearchSongsSection extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showHeader) ...[
-          SearchSectionHeader(title: headerTitle),
+          SearchSectionHeader(
+            title: headerTitle ?? context.l10n.search.songsSectionHeader,
+          ),
           const SizedBox(height: 4.0),
         ],
         ListView.builder(

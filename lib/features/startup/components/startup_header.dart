@@ -8,11 +8,15 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Top branding header for the application launch and startup sequence.
 class StartupHeader extends StatelessWidget {
-  const StartupHeader({super.key});
+  /// Optional title override. Defaults to localized [StartupStrings.appTitle].
+  final String? title;
+
+  const StartupHeader({super.key, this.title});
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +35,7 @@ class StartupHeader extends StatelessWidget {
         const SizedBox(height: 18.0),
         // Monochromatic brand title with Inconsolata font
         Text(
-          'PROJECT ANIMA',
+          title ?? context.l10n.startup.appTitle,
           style: GoogleFonts.inconsolata(
             fontSize: 24.0,
             fontWeight: FontWeight.w700,

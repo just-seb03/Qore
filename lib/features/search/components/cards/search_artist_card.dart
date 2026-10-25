@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 
 /// Reusable Spotify-styled circular artist card for horizontal carousels.
@@ -73,7 +74,7 @@ class SearchArtistCard extends StatelessWidget {
               const SizedBox(height: 2.0),
               // Subtitle Badge
               Text(
-                'Artist',
+                context.l10n.search.artistSubtitle,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 textAlign: TextAlign.center,

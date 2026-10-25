@@ -20,6 +20,7 @@ import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/components/artist_assorted_songs_section.dart';
@@ -243,9 +244,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
     await ArtworkService.instance.removeCustomArtistAvatar(_resolvedArtistName);
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Artist photo reset to default'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(context.l10n.artist.photoResetSuccess),
+          duration: const Duration(seconds: 2),
         ),
       );
       setState(() {});
@@ -269,9 +270,9 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
             .setCustomArtistAvatar(_resolvedArtistName, croppedBytes);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Artist photo updated successfully'),
-              duration: Duration(seconds: 2),
+            SnackBar(
+              content: Text(context.l10n.artist.photoUpdateSuccess),
+              duration: const Duration(seconds: 2),
             ),
           );
           setState(() {});

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Renders search results matching user query with quick add actions.
@@ -44,7 +45,7 @@ class PlaylistSongSearchResults extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
         child: Center(
           child: Text(
-            'No matching songs found in your library',
+            context.l10n.playlist.noSongsFound,
             style: GoogleFonts.inconsolata(
               fontSize: 13.5,
               color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
@@ -97,7 +98,7 @@ class PlaylistSongSearchResults extends StatelessWidget {
                 style: _titleStyle,
               ),
               subtitle: Text(
-                song.artist ?? 'Unknown Artist',
+                song.artist ?? context.l10n.common.unknownArtist,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: _artistStyle,
@@ -109,7 +110,9 @@ class PlaylistSongSearchResults extends StatelessWidget {
                   size: 24.0,
                 ),
                 onPressed: () => onSongAdd(song),
-                tooltip: isAlreadyAdded ? 'Already added' : 'Add to playlist',
+                tooltip: isAlreadyAdded
+                    ? context.l10n.playlist.alreadyAddedTooltip
+                    : context.l10n.playlist.addToPlaylistTooltip,
               ),
               onTap: () => onSongAdd(song),
             ),

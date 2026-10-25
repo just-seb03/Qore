@@ -14,6 +14,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -133,7 +134,7 @@ class ArtistTrackTile extends StatelessWidget {
                             ),
                             const SizedBox(height: 2.0),
                             Text(
-                              song.album ?? 'Unknown Album',
+                              song.album ?? context.l10n.common.unknownAlbum,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: GoogleFonts.inconsolata(
@@ -145,20 +146,25 @@ class ArtistTrackTile extends StatelessWidget {
                         ),
                       ),
                       // 3. Favorite Toggle Button
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20.0),
-                          onTap: () {
-                            HapticFeedback.lightImpact();
-                            FavoriteSongsDao.instance.toggleFavorite(song);
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(6.0),
-                            child: Icon(
-                              isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                              size: 19.0,
-                              color: isFav ? Colors.white : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                      Tooltip(
+                        message: isFav
+                            ? context.l10n.common.removeFromFavorites
+                            : context.l10n.common.addToFavorites,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20.0),
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              FavoriteSongsDao.instance.toggleFavorite(song);
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: Icon(
+                                isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                                size: 19.0,
+                                color: isFav ? Colors.white : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                              ),
                             ),
                           ),
                         ),
@@ -166,20 +172,23 @@ class ArtistTrackTile extends StatelessWidget {
                       const SizedBox(width: 2.0),
 
                       // 4. Add to Queue Button
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(20.0),
-                          onTap: () {
-                            activeController.addToQueue(song);
-                            HapticFeedback.lightImpact();
-                          },
-                          child: Padding(
-                            padding: const EdgeInsets.all(6.0),
-                            child: Icon(
-                              Icons.playlist_add_rounded,
-                              size: 20.0,
-                              color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                      Tooltip(
+                        message: context.l10n.common.addToQueue,
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(20.0),
+                            onTap: () {
+                              activeController.addToQueue(song);
+                              HapticFeedback.lightImpact();
+                            },
+                            child: Padding(
+                              padding: const EdgeInsets.all(6.0),
+                              child: Icon(
+                                Icons.playlist_add_rounded,
+                                size: 20.0,
+                                color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                              ),
                             ),
                           ),
                         ),

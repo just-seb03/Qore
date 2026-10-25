@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/search/components/cards/search_album_card.dart';
 import 'package:project_anima/features/search/components/common/search_section_header.dart';
 
@@ -22,8 +23,8 @@ class SearchAlbumsSection extends StatelessWidget {
   /// Whether to render the section header ('ALBUMS'). Defaults to true.
   final bool showHeader;
 
-  /// Header title text. Defaults to 'ALBUMS'.
-  final String headerTitle;
+  /// Header title text. Defaults to localized 'ALBUMS'.
+  final String? headerTitle;
 
   /// Height of the horizontal carousel. Defaults to 188.0.
   final double carouselHeight;
@@ -33,7 +34,7 @@ class SearchAlbumsSection extends StatelessWidget {
     required this.albums,
     this.onAlbumTap,
     this.showHeader = true,
-    this.headerTitle = 'ALBUMS',
+    this.headerTitle,
     this.carouselHeight = 188.0,
   });
 
@@ -48,7 +49,9 @@ class SearchAlbumsSection extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showHeader) ...[
-          SearchSectionHeader(title: headerTitle),
+          SearchSectionHeader(
+            title: headerTitle ?? context.l10n.search.albumsSectionHeader,
+          ),
           const SizedBox(height: 6.0),
         ],
         SizedBox(

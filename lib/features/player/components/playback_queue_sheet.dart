@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -96,7 +97,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Text(
-                        'NOW PLAYING',
+                        context.l10n.player.nowPlayingHeader,
                         style: GoogleFonts.inconsolata(
                           fontSize: 12.0,
                           fontWeight: FontWeight.w700,
@@ -148,7 +149,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                   ),
                                   const SizedBox(height: 2.0),
                                   Text(
-                                    currentSong.artist ?? 'Unknown Artist',
+                                    currentSong.artist ?? context.l10n.common.unknownArtist,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.inconsolata(
@@ -183,7 +184,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'UP NEXT • ${queue.length} ${queue.length == 1 ? "TRACK" : "TRACKS"}',
+                          context.l10n.player.upNextHeader(queue.length),
                           style: GoogleFonts.inconsolata(
                             fontSize: 12.0,
                             fontWeight: FontWeight.w700,
@@ -198,7 +199,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                               HapticFeedback.lightImpact();
                             },
                             child: Text(
-                              'Clear',
+                              context.l10n.player.clearQueue,
                               style: GoogleFonts.inconsolata(
                                 fontSize: 13.0,
                                 fontWeight: FontWeight.w600,
@@ -216,7 +217,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                     child: queue.isEmpty
                         ? Center(
                             child: Text(
-                              'Queue is empty',
+                              context.l10n.player.emptyQueue,
                               style: GoogleFonts.inconsolata(
                                 fontSize: 14.0,
                                 color: AppColors.onSurfaceDisabled,
@@ -291,7 +292,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                     ),
                                   ),
                                   subtitle: Text(
-                                    '${song.artist ?? "Unknown Artist"} • ${_formatDuration(song.duration)}',
+                                    '${song.artist ?? context.l10n.common.unknownArtist} • ${_formatDuration(song.duration)}',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.inconsolata(

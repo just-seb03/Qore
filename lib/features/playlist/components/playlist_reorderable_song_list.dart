@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Reorderable track list component for the playlist editor.
@@ -65,7 +66,7 @@ class PlaylistReorderableSongList extends StatelessWidget {
               ),
               const SizedBox(height: 12.0),
               Text(
-                'No songs added yet.\nSearch above to add songs to your playlist.',
+                context.l10n.playlist.noSongsAddedYet,
                 textAlign: TextAlign.center,
                 style: _emptyStyle,
               ),
@@ -85,11 +86,11 @@ class PlaylistReorderableSongList extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'TRACKS (${songs.length})',
+                context.l10n.playlist.tracksHeaderWithCount(songs.length),
                 style: _headerStyle,
               ),
               Text(
-                'Drag to reorder',
+                context.l10n.playlist.dragToReorder,
                 style: GoogleFonts.inconsolata(
                   fontSize: 11.5,
                   color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
@@ -154,7 +155,7 @@ class PlaylistReorderableSongList extends StatelessWidget {
                           ),
                           const SizedBox(height: 2.0),
                           Text(
-                            song.artist ?? 'Unknown Artist',
+                            song.artist ?? context.l10n.common.unknownArtist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: _artistStyle,
@@ -172,7 +173,7 @@ class PlaylistReorderableSongList extends StatelessWidget {
                       ),
                       onPressed: () => onRemove(index),
                       splashRadius: 18.0,
-                      tooltip: 'Remove track',
+                      tooltip: context.l10n.playlist.removeTrackTooltip,
                     ),
                   ],
                 ),

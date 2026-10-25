@@ -20,6 +20,7 @@ import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
@@ -181,7 +182,9 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
           itemType: PinnedItemType.playlist,
           itemKey: _playlistKey,
           title: _playlist.name,
-          subtitle: '${_songs.length} ${_songs.length == 1 ? "track" : "tracks"}',
+          subtitle: mounted
+              ? context.l10n.playlist.songCount(_songs.length)
+              : '${_songs.length} ${_songs.length == 1 ? "track" : "tracks"}',
           playlistId: _playlist.id,
           coverPath: _playlist.coverPath,
           fontFamily: _playlist.fontFamily,
@@ -413,7 +416,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Text(
-                'TRACKS',
+                context.l10n.playlist.tracksHeader,
                 style: GoogleFonts.inconsolata(
                   fontSize: 13.0,
                   fontWeight: FontWeight.w700,
@@ -430,7 +433,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                     color: AppColors.onSurfaceVariant,
                   ),
                   onPressed: _editPlaylist,
-                  tooltip: 'Edit playlist',
+                  tooltip: context.l10n.playlist.editPlaylistTooltip,
                   splashRadius: 20.0,
                   padding: EdgeInsets.zero,
                   constraints: const BoxConstraints(),
@@ -448,7 +451,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Text(
-                    'NO TRACKS IN THIS PLAYLIST',
+                    context.l10n.playlist.emptyPlaylistTitle,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inconsolata(
                       fontSize: 13.5,
@@ -459,7 +462,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                   ),
                   const SizedBox(height: 8.0),
                   Text(
-                    'Add tracks to your playlist by editing it.',
+                    context.l10n.playlist.emptyPlaylistSubtitle,
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inconsolata(
                       fontSize: 13.5,
@@ -472,7 +475,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                       key: const ValueKey('playlist_detail_add_songs_button'),
                       onPressed: _editPlaylist,
                       icon: const Icon(Icons.add_rounded, size: 18.0),
-                      label: const Text('Add Songs'),
+                      label: Text(context.l10n.playlist.addSongsButton),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: AppColors.futuristicWhite,
                         side: const BorderSide(color: AppColors.outline),

@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
@@ -48,17 +49,18 @@ class PlayerMetadataView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final title = song?.title ?? 'Sin reproducción';
+    final title = song?.title ?? context.l10n.player.noPlayback;
     final hasArtist = song?.artist != null &&
         song!.artist!.trim().isNotEmpty &&
         song!.artist != '<Desconocido>' &&
         song!.artist != 'Unknown Artist';
-    final artist = hasArtist ? song!.artist! : 'Artista desconocido';
+    final artist =
+        hasArtist ? song!.artist! : context.l10n.common.unknownArtist;
     final hasAlbum = song?.album != null &&
         song!.album!.trim().isNotEmpty &&
         song!.album != '<Desconocido>' &&
         song!.album != 'Unknown Album';
-    final album = hasAlbum ? song!.album! : 'Unknown Album';
+    final album = hasAlbum ? song!.album! : context.l10n.common.unknownAlbum;
 
     final hasAlbumArtist = song?.albumArtist != null &&
         song!.albumArtist!.trim().isNotEmpty &&

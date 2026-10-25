@@ -15,6 +15,7 @@ library;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/player/components/playback_queue_sheet.dart';
@@ -137,7 +138,7 @@ class MiniPlayer extends StatelessWidget {
                                           ),
                                           const SizedBox(height: 2.0),
                                           Text(
-                                            currentSong.artist ?? '<Desconocido>',
+                                            currentSong.artist ?? context.l10n.common.unknownArtist,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
                                             style: const TextStyle(
@@ -167,33 +168,38 @@ class MiniPlayer extends StatelessWidget {
                                             minHeight: 36.0,
                                           ),
                                           splashRadius: 18.0,
-                                          tooltip: 'Canción anterior',
+                                          tooltip: context.l10n.player.previousTooltip,
                                           onPressed: () => activeController.skipToPrevious(),
                                         ),
 
                                         // Material 3 Expressive Filled Circular Play / Pause Button
                                         Padding(
                                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                                          child: Material(
-                                            color: Colors.transparent,
-                                            shape: const CircleBorder(),
-                                            child: InkWell(
-                                              customBorder: const CircleBorder(),
-                                              onTap: () => activeController.togglePlayPause(),
-                                              child: Container(
-                                                width: 38.0,
-                                                height: 38.0,
-                                                decoration: const BoxDecoration(
-                                                  shape: BoxShape.circle,
-                                                  color: AppColors.futuristicWhite,
-                                                ),
-                                                child: Center(
-                                                  child: Icon(
-                                                    activeController.isPlaying
-                                                        ? Icons.pause_rounded
-                                                        : Icons.play_arrow_rounded,
-                                                    size: 24.0,
-                                                    color: AppColors.background,
+                                          child: Tooltip(
+                                            message: activeController.isPlaying
+                                                ? context.l10n.player.pauseTooltip
+                                                : context.l10n.player.playTooltip,
+                                            child: Material(
+                                              color: Colors.transparent,
+                                              shape: const CircleBorder(),
+                                              child: InkWell(
+                                                customBorder: const CircleBorder(),
+                                                onTap: () => activeController.togglePlayPause(),
+                                                child: Container(
+                                                  width: 38.0,
+                                                  height: 38.0,
+                                                  decoration: const BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    color: AppColors.futuristicWhite,
+                                                  ),
+                                                  child: Center(
+                                                    child: Icon(
+                                                      activeController.isPlaying
+                                                          ? Icons.pause_rounded
+                                                          : Icons.play_arrow_rounded,
+                                                      size: 24.0,
+                                                      color: AppColors.background,
+                                                    ),
                                                   ),
                                                 ),
                                               ),
@@ -214,7 +220,7 @@ class MiniPlayer extends StatelessWidget {
                                             minHeight: 36.0,
                                           ),
                                           splashRadius: 18.0,
-                                          tooltip: 'Siguiente canción',
+                                          tooltip: context.l10n.player.nextTooltip,
                                           onPressed: () => activeController.skipToNext(),
                                         ),
                                       ],

@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -71,12 +72,12 @@ class SearchEmptyView extends StatelessWidget {
               ),
               const SizedBox(height: 12.0),
               Text(
-                'SEARCH YOUR LIBRARY',
+                context.l10n.search.emptyLibraryTitle,
                 style: _emptyHeaderStyle,
               ),
               const SizedBox(height: 4.0),
               Text(
-                'Indexed titles, artists, or albums',
+                context.l10n.search.emptyLibrarySubtitle,
                 style: _emptySubtitleStyle,
               ),
             ],

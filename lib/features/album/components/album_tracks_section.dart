@@ -11,6 +11,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/components/album_track_tile.dart';
 
@@ -51,7 +52,7 @@ class AlbumTracksSection extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: Text(
-              'TRACKS',
+              context.l10n.album.tracksHeader,
               style: GoogleFonts.inconsolata(
                 fontSize: 13.0,
                 fontWeight: FontWeight.w700,
@@ -108,7 +109,7 @@ class AlbumTracksSection extends StatelessWidget {
             child: Row(
               children: [
                 Text(
-                  'DISC $disc',
+                  context.l10n.album.discHeader(disc),
                   style: GoogleFonts.inconsolata(
                     fontSize: 13.0,
                     fontWeight: FontWeight.w700,

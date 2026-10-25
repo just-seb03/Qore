@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Confirmation dialog checking whether user wants to discard unsaved playlist changes.
@@ -44,6 +45,8 @@ class PlaylistDiscardDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = context.l10n.playlist;
+
     return AlertDialog(
       backgroundColor: AppColors.surfaceContainerHigh,
       shape: RoundedRectangleBorder(
@@ -66,14 +69,14 @@ class PlaylistDiscardDialog extends StatelessWidget {
           const SizedBox(width: 10.0),
           Expanded(
             child: Text(
-              'Discard playlist?',
+              l10n.discardDialogTitle,
               style: _titleStyle,
             ),
           ),
         ],
       ),
       content: Text(
-        'You have unsaved changes. Are you sure you want to leave without saving?',
+        l10n.discardDialogMessage,
         style: _contentStyle,
       ),
       actions: [
@@ -82,7 +85,7 @@ class PlaylistDiscardDialog extends StatelessWidget {
           style: TextButton.styleFrom(
             foregroundColor: const Color(0xFFB3B3B3),
           ),
-          child: Text('Keep editing', style: _actionStyle),
+          child: Text(l10n.keepEditingAction, style: _actionStyle),
         ),
         FilledButton(
           onPressed: () => Navigator.of(context).pop(true),
@@ -93,7 +96,7 @@ class PlaylistDiscardDialog extends StatelessWidget {
               borderRadius: BorderRadius.circular(12.0),
             ),
           ),
-          child: Text('Discard', style: _actionStyle),
+          child: Text(l10n.discardAction, style: _actionStyle),
         ),
       ],
     );

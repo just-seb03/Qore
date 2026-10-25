@@ -37,6 +37,8 @@ class StartupStatusView extends StatelessWidget {
   Widget build(BuildContext context) {
     final isReady = stage == StartupStage.ready;
     final int percent = (progress.clamp(0.0, 1.0) * 100).round();
+    final stageLabel = stage.localizedLabel(context);
+    final resolvedStatus = stageLabel.isNotEmpty ? stageLabel : statusText;
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -57,7 +59,7 @@ class StartupStatusView extends StatelessWidget {
             );
           },
           child: Row(
-            key: ValueKey<String>(statusText),
+            key: ValueKey<String>(resolvedStatus),
             mainAxisSize: MainAxisSize.min,
             children: [
               if (isReady) ...[
@@ -69,7 +71,7 @@ class StartupStatusView extends StatelessWidget {
                 const SizedBox(width: 6.0),
               ],
               Text(
-                statusText,
+                resolvedStatus,
                 style: GoogleFonts.inconsolata(
                   fontSize: 13.5,
                   fontWeight: isReady ? FontWeight.w700 : FontWeight.w500,

@@ -11,6 +11,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -113,7 +114,9 @@ class ArtistCompactTrackTile extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
                       splashRadius: 16.0,
-                      tooltip: isFav ? 'Quitar de favoritos' : 'Añadir a favoritos',
+                      tooltip: isFav
+                          ? context.l10n.common.removeFromFavorites
+                          : context.l10n.common.addToFavorites,
                       onPressed: () {
                         FavoriteSongsDao.instance.toggleFavorite(song);
                         HapticFeedback.lightImpact();
@@ -130,7 +133,7 @@ class ArtistCompactTrackTile extends StatelessWidget {
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
                       splashRadius: 16.0,
-                      tooltip: 'Añadir a la cola',
+                      tooltip: context.l10n.common.addToQueue,
                       onPressed: () {
                         activeController.addToQueue(song);
                         HapticFeedback.lightImpact();

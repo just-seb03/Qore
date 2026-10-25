@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Empty results message displayed when a query yields zero matches.
@@ -47,12 +48,12 @@ class SearchNoResultsView extends StatelessWidget {
             ),
             const SizedBox(height: 12.0),
             Text(
-              'NO RESULTS FOUND',
+              context.l10n.search.noResultsTitle,
               style: _noResultsHeaderStyle,
             ),
             const SizedBox(height: 6.0),
             Text(
-              'No matches found for "$query"',
+              context.l10n.search.noResultsSubtitle(query),
               textAlign: TextAlign.center,
               style: _noResultsSubtitleStyle,
             ),

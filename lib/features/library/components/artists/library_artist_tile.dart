@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 
 /// Row tile presenting an artist in the Library artists list.
@@ -72,7 +73,7 @@ class LibraryArtistTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2.0),
                     Text(
-                      'Artist',
+                      context.l10n.library.artistSubtitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: _subtitleStyle,

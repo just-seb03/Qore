@@ -11,6 +11,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
@@ -65,7 +66,7 @@ class SearchRecentList extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'RECENT SEARCHES',
+                      context.l10n.search.recentSearchesHeader,
                       style: _headerStyle,
                     ),
                     TextButton(
@@ -76,7 +77,7 @@ class SearchRecentList extends StatelessWidget {
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
                       child: Text(
-                        'Clear all',
+                        context.l10n.search.clearAllRecentAction,
                         style: _clearAllStyle,
                       ),
                     ),
@@ -173,7 +174,7 @@ class _RecentSearchTile extends StatelessWidget {
                   color: Color(0xFF8E8E8E),
                 ),
                 splashRadius: 18.0,
-                tooltip: 'Remove from recents',
+                tooltip: context.l10n.search.removeRecentTooltip,
               ),
             ],
           ),

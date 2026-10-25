@@ -15,6 +15,7 @@ import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
@@ -59,7 +60,7 @@ class PlaylistDetailHeader extends StatelessWidget {
     this.onEdit,
   });
 
-  String _formatTotalDuration(int totalMs) {
+  String _formatTotalDuration(BuildContext context, int totalMs) {
     if (totalMs <= 0) return '';
     final totalSeconds = totalMs ~/ 1000;
     final minutes = totalSeconds ~/ 60;
@@ -67,16 +68,19 @@ class PlaylistDetailHeader extends StatelessWidget {
     final remainingMinutes = minutes % 60;
 
     if (hours > 0) {
-      return '$hours hr $remainingMinutes min';
+      return context.l10n.playlist.durationHoursMinutes(hours, remainingMinutes);
     }
-    return '$minutes mins';
+    return context.l10n.playlist.durationMinutes(minutes);
   }
 
   @override
   Widget build(BuildContext context) {
-    final durationStr = _formatTotalDuration(totalDurationMs);
-    final countStr = '$songCount ${songCount == 1 ? "song" : "songs"}';
-    final metadataSubtitle = durationStr.isNotEmpty ? '$countStr • $durationStr' : countStr;
+    final durationStr = _formatTotalDuration(context, totalDurationMs);
+    final countStr = context.l10n.playlist.songCount(songCount);
+    final metadataSubtitle = context.l10n.playlist.metadataSubtitle(
+      countStr: countStr,
+      durationStr: durationStr.isNotEmpty ? durationStr : null,
+    );
 
     final titleStyle = getPlaylistTitleFont(
       playlist.fontFamily,
@@ -125,7 +129,7 @@ class PlaylistDetailHeader extends StatelessWidget {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12.0),
-                  child: _buildCoverWidget(),
+                  child: _buildCoverWidget(context),
                 ),
               ),
             ),
@@ -177,7 +181,9 @@ class PlaylistDetailHeader extends StatelessWidget {
                     ? AppColors.futuristicWhite
                     : AppColors.onSurfaceVariant.withValues(alpha: 0.4),
               ),
-              tooltip: isShuffleEnabled ? 'Disable shuffle' : 'Enable shuffle',
+              tooltip: isShuffleEnabled
+                  ? context.l10n.playlist.disableShuffleTooltip
+                  : context.l10n.playlist.enableShuffleTooltip,
               splashRadius: 22.0,
             ),
             const SizedBox(width: 20.0),
@@ -198,8 +204,8 @@ class PlaylistDetailHeader extends StatelessWidget {
               tooltip: playlist.id != null &&
                       PlaybackController.instance.activePlaylistId == playlist.id &&
                       PlaybackController.instance.isPlaying
-                  ? 'Pause playlist'
-                  : 'Play playlist',
+                  ? context.l10n.playlist.pausePlaylistTooltip
+                  : context.l10n.playlist.playPlaylistTooltip,
               splashRadius: 24.0,
             ),
 
@@ -220,7 +226,7 @@ class PlaylistDetailHeader extends StatelessWidget {
     );
   }
 
-  Widget _buildCoverWidget() {
+  Widget _buildCoverWidget(BuildContext context) {
     if (playlist.coverPath != null && File(playlist.coverPath!).existsSync()) {
       return Image.file(
         File(playlist.coverPath!),
@@ -266,7 +272,7 @@ class PlaylistDetailHeader extends StatelessWidget {
             ),
             const SizedBox(height: 6.0),
             Text(
-              'HERO BANNER 1920x620',
+              context.l10n.playlist.heroBannerPlaceholder,
               style: GoogleFonts.inconsolata(
                 fontSize: 12.0,
                 fontWeight: FontWeight.w600,

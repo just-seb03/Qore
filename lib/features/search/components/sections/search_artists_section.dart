@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/search/components/cards/search_artist_card.dart';
 import 'package:project_anima/features/search/components/common/search_section_header.dart';
 
@@ -22,8 +23,8 @@ class SearchArtistsSection extends StatelessWidget {
   /// Whether to render the section header ('ARTISTS'). Defaults to true.
   final bool showHeader;
 
-  /// Header title text. Defaults to 'ARTISTS'.
-  final String headerTitle;
+  /// Header title text. Defaults to localized 'ARTISTS'.
+  final String? headerTitle;
 
   /// Height of the horizontal carousel. Defaults to 164.0.
   final double carouselHeight;
@@ -33,7 +34,7 @@ class SearchArtistsSection extends StatelessWidget {
     required this.artists,
     this.onArtistTap,
     this.showHeader = true,
-    this.headerTitle = 'ARTISTS',
+    this.headerTitle,
     this.carouselHeight = 164.0,
   });
 
@@ -48,7 +49,9 @@ class SearchArtistsSection extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showHeader) ...[
-          SearchSectionHeader(title: headerTitle),
+          SearchSectionHeader(
+            title: headerTitle ?? context.l10n.search.artistsSectionHeader,
+          ),
           const SizedBox(height: 6.0),
         ],
         SizedBox(

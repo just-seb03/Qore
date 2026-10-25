@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Top header view displaying the artist's name and discography count in Inconsolata.
@@ -33,7 +34,7 @@ class ArtistDiscographyHeader extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Text(
-            'DISCOGRAPHY',
+            context.l10n.artistDiscography.headerTitle,
             style: GoogleFonts.inconsolata(
               fontSize: 13.0,
               fontWeight: FontWeight.w700,

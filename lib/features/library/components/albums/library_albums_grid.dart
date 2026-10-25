@@ -12,6 +12,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/library/components/albums/library_album_card.dart';
@@ -146,13 +147,13 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
               ),
               const SizedBox(height: 16.0),
               Text(
-                'NO ALBUMS FOUND',
+                context.l10n.library.emptyAlbumsTitle,
                 textAlign: TextAlign.center,
                 style: _emptyHeaderStyle,
               ),
               const SizedBox(height: 6.0),
               Text(
-                'Add music to your device to see your albums here',
+                context.l10n.library.emptyAlbumsSubtitle,
                 textAlign: TextAlign.center,
                 style: _emptySubtitleStyle,
               ),

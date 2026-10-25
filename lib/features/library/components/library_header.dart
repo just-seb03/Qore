@@ -10,12 +10,13 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Top header for the Library screen with centered Inconsolata typography.
 class LibraryHeader extends StatelessWidget {
-  /// The header text to display. Defaults to 'Library'.
-  final String title;
+  /// The header text to display. Defaults to localized 'Library'.
+  final String? title;
 
   /// Custom padding around the header text.
   final EdgeInsetsGeometry padding;
@@ -30,7 +31,7 @@ class LibraryHeader extends StatelessWidget {
 
   const LibraryHeader({
     super.key,
-    this.title = 'Library',
+    this.title,
     this.padding = const EdgeInsets.only(
       top: 6.0,
       bottom: 12.0,
@@ -39,11 +40,13 @@ class LibraryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final displayTitle = title ?? context.l10n.library.headerTitle;
+
     return Padding(
       padding: padding,
       child: Center(
         child: Text(
-          title,
+          displayTitle,
           textAlign: TextAlign.center,
           style: _titleTextStyle,
         ),

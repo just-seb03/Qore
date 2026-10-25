@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Hero banner picker displaying a 1920x620 placeholder or user-selected photo.
@@ -48,9 +49,9 @@ class PlaylistCoverPicker extends StatelessWidget {
       debugPrint('⚠️ [PlaylistCoverPicker] Error picking image: $e');
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Failed to pick image from gallery'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(context.l10n.playlist.galleryPickError),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -102,7 +103,7 @@ class PlaylistCoverPicker extends StatelessWidget {
                     ),
                   ),
                   child: ClipRect(
-                    child: _buildArtworkContent(),
+                    child: _buildArtworkContent(context),
                   ),
                 ),
               ),
@@ -148,7 +149,9 @@ class PlaylistCoverPicker extends StatelessWidget {
         GestureDetector(
           onTap: () => _pickImage(context),
           child: Text(
-            coverPath != null ? 'Change hero banner (1920x620)' : 'Choose hero banner (1920x620)',
+            coverPath != null
+                ? context.l10n.playlist.changeCover
+                : context.l10n.playlist.addCover,
             style: _changePhotoStyle,
           ),
         ),
@@ -156,7 +159,7 @@ class PlaylistCoverPicker extends StatelessWidget {
     );
   }
 
-  Widget _buildArtworkContent() {
+  Widget _buildArtworkContent(BuildContext context) {
     if (coverPath != null && File(coverPath!).existsSync()) {
       return Image.file(
         File(coverPath!),
@@ -191,7 +194,7 @@ class PlaylistCoverPicker extends StatelessWidget {
             ),
             const SizedBox(height: 6.0),
             Text(
-              'HERO BANNER 1920x620',
+              context.l10n.playlist.heroBannerPlaceholder,
               style: GoogleFonts.inconsolata(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
