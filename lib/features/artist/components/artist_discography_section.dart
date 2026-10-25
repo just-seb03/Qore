@@ -95,7 +95,6 @@ class ArtistDiscographySection extends StatelessWidget {
                   context.l10n.artist.albumSongCount(album.songCount);
 
               return InkWell(
-                borderRadius: BorderRadius.circular(16.0),
                 onTap: () {
                   Navigator.of(context).push(
                     AlbumDetailScreen.route(
@@ -114,7 +113,6 @@ class ArtistDiscographySection extends StatelessWidget {
                     children: [
                       Container(
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16.0),
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black.withValues(alpha: 0.35),
@@ -130,7 +128,7 @@ class ArtistDiscographySection extends StatelessWidget {
                           artistName: album.artist,
                           width: 134.0,
                           height: 134.0,
-                          borderRadius: 16.0,
+                          borderRadius: 0.0,
                           fallbackIcon: Icons.album_rounded,
                           isThumbnail: false,
                         ),

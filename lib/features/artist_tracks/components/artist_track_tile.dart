@@ -91,7 +91,7 @@ class ArtistTrackTile extends StatelessWidget {
                             albumId: song.albumId,
                             width: 48.0,
                             height: 48.0,
-                            borderRadius: 10.0,
+                            borderRadius: 0.0,
                             isThumbnail: true,
                           ),
                           if (isPlaying)
@@ -100,7 +100,6 @@ class ArtistTrackTile extends StatelessWidget {
                               height: 48.0,
                               decoration: BoxDecoration(
                                 color: Colors.black.withValues(alpha: 0.45),
-                                borderRadius: BorderRadius.circular(10.0),
                               ),
                               child: const Icon(
                                 Icons.equalizer_rounded,

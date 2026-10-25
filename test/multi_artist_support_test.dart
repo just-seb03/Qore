@@ -7,9 +7,15 @@ import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/search/fuzzy_search_engine.dart';
 import 'package:project_anima/core/utils/artist_splitter.dart';
+import 'package:project_anima/features/artist/components/artist_appears_on_section.dart';
+import 'package:project_anima/features/artist/components/artist_discography_section.dart';
+import 'package:project_anima/features/artist/components/artist_top_track_tile.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
+import 'package:project_anima/features/artist_tracks/components/artist_track_tile.dart';
 import 'package:project_anima/features/player/components/player_metadata_view.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
@@ -374,6 +380,237 @@ void main() {
 
       final screen = tester.widget<ArtistDetailScreen>(find.byType(ArtistDetailScreen));
       expect(screen.artistName, equals('Eliminate'));
+    });
+  });
+
+  group('SongDao getAppearsOnAlbumsByArtist Tests', () {
+    late AppDatabase appDatabase;
+    late SongDao songDao;
+    late Directory tempDir;
+
+    setUp(() async {
+      tempDir = await Directory.systemTemp.createTemp('appears_on_test_');
+      final dbPath = p.join(tempDir.path, 'appears_on_test.db');
+      appDatabase = AppDatabase.instance;
+      await appDatabase.initDatabase(customPath: dbPath);
+      songDao = SongDao(appDatabase: appDatabase);
+    });
+
+    tearDown(() async {
+      await appDatabase.close();
+      if (tempDir.existsSync()) {
+        tempDir.deleteSync(recursive: true);
+      }
+    });
+
+    test('correctly partitions albums into own discography vs appears on', () async {
+      final db = await appDatabase.database;
+
+      // 1. Virtual Riot's own album "Simulation"
+      await db.insert('songs', {
+        'media_store_id': 2001,
+        'title': 'Redline',
+        'artist': 'Virtual Riot',
+        'album_artist': 'Virtual Riot',
+        'album': 'Simulation',
+        'duration': 210000,
+        'path': '/music/redline.mp3',
+        'date_modified': 100,
+      });
+
+      // 2. Eliminate's album "Cyber Whirl" where Virtual Riot is a guest feature
+      await db.insert('songs', {
+        'media_store_id': 2002,
+        'title': 'Cyber Rave',
+        'artist': 'Eliminate feat. Virtual Riot',
+        'album_artist': 'Eliminate',
+        'album': 'Cyber Whirl',
+        'duration': 190000,
+        'path': '/music/cyber_rave.mp3',
+        'date_modified': 200,
+      });
+      await db.insert('songs', {
+        'media_store_id': 2003,
+        'title': 'Breathe',
+        'artist': 'Eliminate',
+        'album_artist': 'Eliminate',
+        'album': 'Cyber Whirl',
+        'duration': 180000,
+        'path': '/music/breathe.mp3',
+        'date_modified': 200,
+      });
+
+      // Query Virtual Riot's albums:
+      final vrOwnAlbums = await songDao.getAlbumsByArtist('Virtual Riot');
+      expect(vrOwnAlbums.length, equals(1));
+      expect(vrOwnAlbums.first.name, equals('Simulation'));
+
+      final vrAppearsOn = await songDao.getAppearsOnAlbumsByArtist('Virtual Riot');
+      expect(vrAppearsOn.length, equals(1));
+      expect(vrAppearsOn.first.name, equals('Cyber Whirl'));
+      expect(vrAppearsOn.first.artist, equals('Eliminate'));
+
+      // Query Eliminate's albums:
+      final elimOwnAlbums = await songDao.getAlbumsByArtist('Eliminate');
+      expect(elimOwnAlbums.length, equals(1));
+      expect(elimOwnAlbums.first.name, equals('Cyber Whirl'));
+
+      final elimAppearsOn = await songDao.getAppearsOnAlbumsByArtist('Eliminate');
+      expect(elimAppearsOn, isEmpty);
+    });
+  });
+
+  group('Unrounded Cover Artwork and ArtistAppearsOnSection Widget Tests', () {
+    testWidgets('ArtistAppearsOnSection renders localized header and unrounded square covers', (tester) async {
+      final albums = [
+        const AlbumDiscoveryItem(
+          name: 'Cyber Whirl',
+          artist: 'Eliminate',
+          albumId: 10,
+          representativeSongId: 2002,
+          songCount: 8,
+          totalDuration: 1800000,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('es'),
+          home: Scaffold(
+            body: ArtistAppearsOnSection(
+              albums: albums,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // Header is rendered
+      expect(find.text('APARECE EN'), findsOneWidget);
+      // Album name and primary artist rendered
+      expect(find.text('Cyber Whirl'), findsOneWidget);
+      expect(find.text('Eliminate'), findsOneWidget);
+
+      // Verify AnimaArtworkImage has borderRadius 0.0
+      final artworkFinder = find.byType(AnimaArtworkImage);
+      expect(artworkFinder, findsOneWidget);
+      final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
+      expect(artwork.borderRadius, equals(0.0));
+    });
+
+    testWidgets('ArtistDiscographySection renders unrounded square covers (borderRadius: 0.0)', (tester) async {
+      final albums = [
+        const AlbumDiscoveryItem(
+          name: 'Simulation',
+          artist: 'Virtual Riot',
+          albumId: 5,
+          representativeSongId: 2001,
+          songCount: 12,
+          totalDuration: 2400000,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: ArtistDiscographySection(
+              albums: albums,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final artworkFinder = find.byType(AnimaArtworkImage);
+      expect(artworkFinder, findsOneWidget);
+      final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
+      expect(artwork.borderRadius, equals(0.0));
+    });
+
+    testWidgets('ArtistTopTrackTile renders unrounded cover thumbnail (borderRadius: 0.0)', (tester) async {
+      final song = Song(
+        mediaStoreId: 3001,
+        title: 'Energy Drink',
+        artist: 'Virtual Riot',
+        album: 'Simulation',
+        duration: 210000,
+        path: '/music/energy.mp3',
+        dateModified: 100,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: ArtistTopTrackTile(
+              song: song,
+              allArtistSongs: [song],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final artworkFinder = find.byType(AnimaArtworkImage);
+      expect(artworkFinder, findsOneWidget);
+      final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
+      expect(artwork.borderRadius, equals(0.0));
+    });
+
+    testWidgets('ArtistTrackTile renders unrounded cover thumbnail (borderRadius: 0.0)', (tester) async {
+      final song = Song(
+        mediaStoreId: 3002,
+        title: 'Basement Dwellers',
+        artist: 'Virtual Riot',
+        album: 'The Classics',
+        duration: 180000,
+        path: '/music/basement.mp3',
+        dateModified: 100,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            body: ArtistTrackTile(
+              song: song,
+              allArtistSongs: [song],
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final artworkFinder = find.byType(AnimaArtworkImage);
+      expect(artworkFinder, findsOneWidget);
+      final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
+      expect(artwork.borderRadius, equals(0.0));
     });
   });
 }

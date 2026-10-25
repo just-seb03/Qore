@@ -23,6 +23,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/artist/components/artist_appears_on_section.dart';
 import 'package:project_anima/features/artist/components/artist_assorted_songs_section.dart';
 import 'package:project_anima/features/artist/components/artist_discography_section.dart';
 import 'package:project_anima/features/artist/components/artist_header_view.dart';
@@ -79,6 +80,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
   bool _isLoading = true;
   List<Song> _topSongs = [];
   List<AlbumDiscoveryItem> _albums = [];
+  List<AlbumDiscoveryItem> _appearsOnAlbums = [];
   List<Song> _assortedSongs = [];
   bool _isPinned = false;
   bool _isFlashingRed = false;
@@ -206,16 +208,20 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
     try {
       final topFuture = _songDao.getTopSongsByArtist(_resolvedArtistName, limit: 3);
       final albumsFuture = _songDao.getAlbumsByArtist(_resolvedArtistName);
+      final appearsOnFuture =
+          _songDao.getAppearsOnAlbumsByArtist(_resolvedArtistName);
       final assortedFuture =
           _songDao.getAssortedSongsByArtist(_resolvedArtistName, limit: 5);
 
-      final results = await Future.wait([topFuture, albumsFuture, assortedFuture]);
+      final results = await Future.wait(
+          [topFuture, albumsFuture, assortedFuture, appearsOnFuture]);
 
       if (mounted) {
         setState(() {
           _topSongs = results[0] as List<Song>;
           _albums = results[1] as List<AlbumDiscoveryItem>;
           _assortedSongs = results[2] as List<Song>;
+          _appearsOnAlbums = results[3] as List<AlbumDiscoveryItem>;
           _isLoading = false;
         });
       }
@@ -364,6 +370,15 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                             allArtistSongs: _assortedSongs,
                             artistName: _resolvedArtistName,
                           ),
+                          const SizedBox(height: 30.0),
+                        ],
+
+                        // 5. Appears On Section (Albums where artist is a secondary / guest contributor)
+                        if (_appearsOnAlbums.isNotEmpty) ...[
+                          ArtistAppearsOnSection(
+                            albums: _appearsOnAlbums,
+                          ),
+                          const SizedBox(height: 30.0),
                         ],
 
                         // Spacing above bottom MiniPlayer

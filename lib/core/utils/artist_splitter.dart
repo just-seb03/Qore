@@ -12,7 +12,10 @@ library;
 class ArtistSplitter {
   ArtistSplitter._();
 
-  static final RegExp _delimiterRegex = RegExp(r'\s*[,;]\s*|\s*/\s*');
+  static final RegExp _delimiterRegex = RegExp(
+    r'\s*[,;]\s*|\s*/\s*|\s+(?:feat\.|ft\.|featuring|with)\s+',
+    caseSensitive: false,
+  );
 
   /// Known artists containing slashes in their official name that should not be split.
   static const Set<String> _protectedArtists = {

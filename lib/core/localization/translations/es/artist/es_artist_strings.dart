@@ -18,6 +18,9 @@ class EsArtistStrings implements ArtistStrings {
   String get discographyHeader => 'DISCOGRAFÍA';
 
   @override
+  String get appearsOnHeader => 'APARECE EN';
+
+  @override
   String get songsHeader => 'CANCIONES';
 
   @override

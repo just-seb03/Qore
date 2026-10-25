@@ -18,6 +18,9 @@ class EnArtistStrings implements ArtistStrings {
   String get discographyHeader => 'DISCOGRAPHY';
 
   @override
+  String get appearsOnHeader => 'APPEARS ON';
+
+  @override
   String get songsHeader => 'SONGS';
 
   @override

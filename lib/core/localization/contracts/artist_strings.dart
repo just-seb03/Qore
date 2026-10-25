@@ -14,6 +14,9 @@ abstract class ArtistStrings {
   /// Header label for the discography section (e.g. 'DISCOGRAPHY').
   String get discographyHeader;
 
+  /// Header label for the 'Appears On' section (e.g. 'APPEARS ON').
+  String get appearsOnHeader;
+
   /// Header label for the assorted songs section (e.g. 'SONGS').
   String get songsHeader;
 

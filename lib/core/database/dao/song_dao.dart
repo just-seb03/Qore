@@ -742,11 +742,157 @@ class SongDao {
             OR at.album_artist LIKE '%, ' || ?1 COLLATE NOCASE
             OR at.album_artist LIKE ?1 || ' / %' COLLATE NOCASE
             OR at.album_artist LIKE '% / ' || ?1 COLLATE NOCASE
+            OR at.album_artist LIKE ?1 || '; %' COLLATE NOCASE
+            OR at.album_artist LIKE '%; ' || ?1 COLLATE NOCASE
           THEN 1 
           ELSE 0 
         END) = 1
-        -- Or this artist owns at least 50% of the tracks in this album (eliminating compilations/guest features)
-        OR (COUNT(DISTINCT at.id) * 2 >= MAX(ast.total_count))
+        -- Or this artist owns at least 50% of the tracks in this album (when album_artist is absent/unknown)
+        OR (
+          MAX(CASE 
+            WHEN at.album_artist IS NOT NULL 
+              AND TRIM(at.album_artist) != '' 
+              AND at.album_artist != '<Desconocido>' 
+              AND at.album_artist != 'Unknown Artist'
+            THEN 1 
+            ELSE 0 
+          END) = 0
+          AND (COUNT(DISTINCT at.id) * 2 >= MAX(ast.total_count))
+        )
+      )
+      ORDER BY at.album COLLATE NOCASE ASC;
+      ''',
+      [cleanArtist],
+    );
+
+    return results.map((row) => AlbumDiscoveryItem.fromMap(row)).toList();
+  }
+
+  /// Retrieves distinct albums where [artist] appears as a secondary / guest artist
+  /// (i.e. not the primary album artist, and not an album belonging to their main discography).
+  Future<List<AlbumDiscoveryItem>> getAppearsOnAlbumsByArtist(String artist) async {
+    final cleanArtist = artist.trim();
+    if (cleanArtist.isEmpty ||
+        cleanArtist == '<Desconocido>' ||
+        cleanArtist.toLowerCase() == 'unknown artist') {
+      return [];
+    }
+
+    final db = await _appDatabase.database;
+    await syncSongArtistsIfNeeded();
+
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      WITH artist_tracks AS (
+        SELECT 
+          s.id,
+          s.album,
+          s.album_id,
+          s.media_store_id,
+          s.duration,
+          s.album_artist,
+          s.artist
+        FROM songs s
+        LEFT JOIN song_artists sa ON s.id = sa.song_id
+        WHERE s.album IS NOT NULL 
+          AND TRIM(s.album) != '' 
+          AND s.album != '<Desconocido>'
+          AND (
+            sa.artist = ?1 COLLATE NOCASE
+            OR (
+              s.artist = ?1 COLLATE NOCASE
+              OR s.artist LIKE ?1 || ' feat. %' COLLATE NOCASE
+              OR s.artist LIKE ?1 || ' ft. %' COLLATE NOCASE
+              OR s.artist LIKE ?1 || ' featuring %' COLLATE NOCASE
+              OR s.artist LIKE ?1 || ' with %' COLLATE NOCASE
+              OR s.artist LIKE '% feat. ' || ?1 COLLATE NOCASE
+              OR s.artist LIKE '% ft. ' || ?1 COLLATE NOCASE
+              OR s.artist LIKE '% featuring ' || ?1 COLLATE NOCASE
+              OR s.artist LIKE '% with ' || ?1 COLLATE NOCASE
+              OR s.artist LIKE ?1 || ' & %' COLLATE NOCASE
+              OR s.artist LIKE '% & ' || ?1 COLLATE NOCASE
+              OR s.artist LIKE ?1 || ', %' COLLATE NOCASE
+              OR s.artist LIKE '%, ' || ?1 COLLATE NOCASE
+              OR s.artist LIKE ?1 || ' / %' COLLATE NOCASE
+              OR s.artist LIKE '% / ' || ?1 COLLATE NOCASE
+              OR s.artist LIKE ?1 || '; %' COLLATE NOCASE
+              OR s.artist LIKE '%; ' || ?1 COLLATE NOCASE
+            )
+          )
+      ),
+      album_song_totals AS (
+        SELECT 
+          s.album COLLATE NOCASE AS album_norm,
+          COUNT(DISTINCT s.id) AS total_count,
+          COALESCE(
+            MAX(CASE 
+              WHEN s.album_artist IS NOT NULL 
+                AND TRIM(s.album_artist) != '' 
+                AND s.album_artist != '<Desconocido>' 
+                AND s.album_artist != 'Unknown Artist'
+              THEN TRIM(s.album_artist)
+              ELSE NULL 
+            END),
+            MAX(CASE 
+              WHEN s.artist IS NOT NULL 
+                AND TRIM(s.artist) != '' 
+                AND s.artist != '<Desconocido>' 
+                AND s.artist != 'Unknown Artist'
+              THEN TRIM(s.artist)
+              ELSE NULL 
+            END),
+            '<Desconocido>'
+          ) AS main_artist
+        FROM songs s
+        WHERE s.album IS NOT NULL AND TRIM(s.album) != '' AND s.album != '<Desconocido>'
+        GROUP BY s.album COLLATE NOCASE
+      )
+      SELECT 
+        at.album AS name,
+        ast.main_artist AS artist,
+        COALESCE(MAX(CASE WHEN at.album_id IS NOT NULL AND at.album_id > 0 THEN at.album_id ELSE NULL END), 0) AS album_id,
+        COALESCE(
+          MIN(CASE WHEN at.media_store_id IS NOT NULL AND at.media_store_id > 0 THEN at.media_store_id ELSE NULL END),
+          0
+        ) AS representative_song_id,
+        MAX(ast.total_count) AS song_count,
+        SUM(at.duration) AS total_duration,
+        MAX(ph.played_at) AS last_played
+      FROM artist_tracks at
+      JOIN album_song_totals ast ON at.album COLLATE NOCASE = ast.album_norm
+      LEFT JOIN (
+        SELECT song_id, MAX(played_at) AS played_at
+        FROM playback_history
+        GROUP BY song_id
+      ) ph ON at.id = ph.song_id
+      GROUP BY at.album COLLATE NOCASE
+      HAVING (
+        -- Target artist is NOT the album_artist
+        MAX(CASE 
+          WHEN at.album_artist = ?1 COLLATE NOCASE 
+            OR at.album_artist LIKE ?1 || ' & %' COLLATE NOCASE 
+            OR at.album_artist LIKE '% & ' || ?1 COLLATE NOCASE
+            OR at.album_artist LIKE ?1 || ', %' COLLATE NOCASE
+            OR at.album_artist LIKE '%, ' || ?1 COLLATE NOCASE
+            OR at.album_artist LIKE ?1 || ' / %' COLLATE NOCASE
+            OR at.album_artist LIKE '% / ' || ?1 COLLATE NOCASE
+            OR at.album_artist LIKE ?1 || '; %' COLLATE NOCASE
+            OR at.album_artist LIKE '%; ' || ?1 COLLATE NOCASE
+          THEN 1 
+          ELSE 0 
+        END) = 0
+        -- And if album_artist is absent/unknown, target artist does NOT own >= 50%
+        AND (
+          MAX(CASE 
+            WHEN at.album_artist IS NOT NULL 
+              AND TRIM(at.album_artist) != '' 
+              AND at.album_artist != '<Desconocido>' 
+              AND at.album_artist != 'Unknown Artist'
+            THEN 1 
+            ELSE 0 
+          END) = 1
+          OR (COUNT(DISTINCT at.id) * 2 < MAX(ast.total_count))
+        )
       )
       ORDER BY at.album COLLATE NOCASE ASC;
       ''',
