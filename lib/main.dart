@@ -19,6 +19,7 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/localization/localization_controller.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/startup/screens/startup_loading_screen.dart';
 
 Future<void> main() async {
@@ -92,11 +93,13 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
     if (state == AppLifecycleState.resumed) {
       // Re-detect system dimensions and notch concealment in case user modified device settings
       SystemDimensionsCoordinator.instance.refresh();
+      AmbientParticlesController.instance.setAppPaused(false);
     }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
         state == AppLifecycleState.detached) {
       PlaybackController.instance.saveCurrentSessionImmediate();
+      AmbientParticlesController.instance.setAppPaused(true);
     }
     if (state == AppLifecycleState.detached) {
       // User closed the application completely: stop playback and close notification
@@ -126,7 +129,9 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
           ],
           builder: (context, child) {
             return AdaptiveSystemBoundary(
-              child: child ?? const SizedBox.shrink(),
+              child: AmbientParticlesBackground(
+                child: child ?? const SizedBox.shrink(),
+              ),
             );
           },
           home: const StartupLoadingScreen(),

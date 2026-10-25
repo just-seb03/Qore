@@ -16,7 +16,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
-import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/screens/library.dart';
 import 'package:project_anima/features/search/screens/search.dart';
@@ -366,7 +365,7 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
     }
 
     return Scaffold(
-      backgroundColor: AppColors.bottomNavBackground,
+      backgroundColor: Colors.transparent,
       body: animatedContent,
       bottomNavigationBar: ListenableBuilder(
         listenable: _controller,

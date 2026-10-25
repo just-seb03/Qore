@@ -18,7 +18,6 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/permissions/audio_permission_service.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/selection/today_selection_service.dart';
-import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/home/components/home_header.dart';
@@ -220,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.bottomNavBackground,
+      backgroundColor: Colors.transparent,
       body: SafeArea(
         bottom: false,
         child: SingleChildScrollView(

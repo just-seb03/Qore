@@ -23,6 +23,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
 import 'package:project_anima/features/playlist/components/playlist_detail_header.dart';
 import 'package:project_anima/features/playlist/components/playlist_track_tile.dart';
@@ -332,8 +333,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
           duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
           curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
           color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              const AmbientParticlesCanvas(),
+              Scaffold(
+                backgroundColor: Colors.transparent,
             bottomNavigationBar: const SafeArea(
               top: false,
               child: MiniPlayer(),
@@ -397,11 +402,13 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
               ),
             ),
           ),
-        );
-      },
+        ],
       ),
     );
-  }
+  },
+  ),
+);
+}
 
   Widget _buildTracksSection() {
     return Column(

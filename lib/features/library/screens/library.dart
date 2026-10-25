@@ -145,7 +145,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
       builder: (context, _) {
         final currentFilter = _transitionController.currentFilter;
         return Scaffold(
-          backgroundColor: AppColors.bottomNavBackground,
+          backgroundColor: Colors.transparent,
           body: SafeArea(
             child: Column(
               children: [

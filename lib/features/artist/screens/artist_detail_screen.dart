@@ -29,6 +29,7 @@ import 'package:project_anima/features/artist/components/artist_discography_sect
 import 'package:project_anima/features/artist/components/artist_header_view.dart';
 import 'package:project_anima/features/artist/components/artist_photo_options_sheet.dart';
 import 'package:project_anima/features/artist/components/artist_top_tracks_section.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist/screens/artist_avatar_crop_screen.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
 
@@ -295,8 +296,12 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
       duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
       curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
       color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const AmbientParticlesCanvas(),
+          Scaffold(
+            backgroundColor: Colors.transparent,
         bottomNavigationBar: const SafeArea(
           top: false,
           child: MiniPlayer(),
@@ -381,14 +386,15 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                           const SizedBox(height: 30.0),
                         ],
 
-                        // Spacing above bottom MiniPlayer
                         const SizedBox(height: 24.0),
                       ],
                     ),
                   ),
-          ),
+                ),
+              ),
+            ),
+          ],
         ),
-      ),
-    );
+      );
   }
 }

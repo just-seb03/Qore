@@ -11,6 +11,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/player/components/player_artwork_view.dart';
 import 'package:project_anima/features/player/components/player_controls.dart';
 import 'package:project_anima/features/player/components/player_dismiss_indicator.dart';
@@ -52,6 +53,11 @@ class _PlayerScreenState extends State<PlayerScreen>
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        AmbientParticlesController.instance.setExpandedPlayerVisible(true);
+      }
+    });
     _springController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 220),
@@ -66,6 +72,7 @@ class _PlayerScreenState extends State<PlayerScreen>
 
   @override
   void dispose() {
+    AmbientParticlesController.instance.setExpandedPlayerVisible(false);
     _springController.dispose();
     super.dispose();
   }
