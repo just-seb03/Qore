@@ -1,20 +1,33 @@
 /// File: startup_feature_test.dart
-/// Description: Unit and Widget tests verifying the Startup sequence, permission gate,
-/// M3 Expressive wavy progress bar, Inconsolata labels, and screen transition.
+/// Description: Unit and Widget tests verifying the modern 4-step Startup sequence:
+/// 1. Splash ("PROJECT ANIMA" animated entrance and exit)
+/// 2. Permission card (Audio storage and playback notifications)
+/// 3. Theme selector ("Monochrome" with 5 constituent color circles and accept action)
+/// 4. Wavy library loading sequence with Inconsolata status labels and screen transition.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/localization/localization_controller.dart';
+import 'package:project_anima/core/localization/translations/es/startup/es_startup_strings.dart';
 import 'package:project_anima/core/permissions/audio_permission_service.dart';
 import 'package:project_anima/core/scanner/models/indexing_result.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/startup/components/startup_header.dart';
+import 'package:project_anima/features/startup/components/startup_loading_view.dart';
+import 'package:project_anima/features/startup/components/startup_permission_card_view.dart';
 import 'package:project_anima/features/startup/components/startup_permission_view.dart';
 import 'package:project_anima/features/startup/components/startup_progress_bar.dart';
+import 'package:project_anima/features/startup/components/startup_splash_view.dart';
 import 'package:project_anima/features/startup/components/startup_status_view.dart';
+import 'package:project_anima/features/startup/components/startup_theme_selector_view.dart';
 import 'package:project_anima/features/startup/controls/startup_controller.dart';
 import 'package:project_anima/features/startup/models/startup_stage.dart';
+import 'package:project_anima/features/startup/models/startup_step.dart';
+import 'package:project_anima/features/startup/models/startup_theme_option.dart';
 import 'package:project_anima/features/startup/screens/startup_loading_screen.dart';
 
 class _FakePermissionService implements AudioPermissionService {
@@ -61,10 +74,50 @@ class _FakeMusicIndexer implements MusicIndexer {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
+Widget _wrapWithLocalization({required Widget child}) {
+  return MaterialApp(
+    theme: AppTheme.darkTheme,
+    locale: const Locale('en'),
+    supportedLocales: AppLocalizations.supportedLocales,
+    localizationsDelegates: const [
+      AppLocalizations.delegate,
+      GlobalMaterialLocalizations.delegate,
+      GlobalWidgetsLocalizations.delegate,
+      GlobalCupertinoLocalizations.delegate,
+    ],
+    home: Scaffold(body: child),
+  );
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('StartupStage Enum Tests', () {
+  setUp(() {
+    LocalizationController.instance.init();
+  });
+
+  group('Startup Models Tests', () {
+    test('StartupStep defines the four onboarding sequential phases', () {
+      expect(StartupStep.values, [
+        StartupStep.splash,
+        StartupStep.permissions,
+        StartupStep.themeSelector,
+        StartupStep.loading,
+      ]);
+    });
+
+    test('StartupThemeOption monochrome provides 5 constituent palette colors', () {
+      const theme = StartupThemeOption.monochrome;
+      expect(theme.id, 'monochrome');
+      expect(theme.name, 'Monochrome');
+      expect(theme.colors.length, 5);
+      expect(theme.colors[0], const Color(0xFF0E0E10));
+      expect(theme.colors[1], const Color(0xFF1A1A1E));
+      expect(theme.colors[2], const Color(0xFF242429));
+      expect(theme.colors[3], const Color(0xFF8E8E96));
+      expect(theme.colors[4], const Color(0xFFF2F2F2));
+    });
+
     test('StartupStage returns accurate localized English labels', () {
       expect(StartupStage.scanning.label, 'Scanning library...');
       expect(StartupStage.savingTracks.label, 'Saving your tracks...');
@@ -79,10 +132,20 @@ void main() {
       expect(StartupStage.savingCovers.baseProgress, lessThan(StartupStage.finalizing.baseProgress));
       expect(StartupStage.finalizing.baseProgress, lessThanOrEqualTo(StartupStage.ready.baseProgress));
     });
+
+    test('Startup strings return valid Spanish translations', () {
+      const strings = EsStartupStrings();
+      expect(strings.permissionsCardTitle, 'PERMISOS REQUERIDOS');
+      expect(strings.musicAccessTitle, 'Acceso a la música');
+      expect(strings.notificationAccessTitle, 'Acceso a notificaciones');
+      expect(strings.grantPermissionsButton, 'PERMITIR ACCESOS');
+      expect(strings.themeNameMonochrome, 'Monochrome');
+      expect(strings.acceptThemeAction, 'ACEPTAR');
+    });
   });
 
-  group('StartupController Progression Tests', () {
-    test('StartupController transitions through all stages to ready when permission granted', () async {
+  group('StartupController Step Transitions', () {
+    test('StartupController transitions through splash -> permissions -> theme -> loading -> ready', () async {
       final fakePerm = _FakePermissionService();
       final fakeIndexer = _FakeMusicIndexer();
 
@@ -91,34 +154,46 @@ void main() {
         musicIndexer: fakeIndexer,
       );
 
-      expect(controller.state.stage, StartupStage.checkingPermission);
+      expect(controller.currentStep, StartupStep.splash);
       expect(controller.isReady, isFalse);
 
-      final stagesRecorded = <StartupStage>[];
-      controller.addListener(() {
-        if (!stagesRecorded.contains(controller.state.stage)) {
-          stagesRecorded.add(controller.state.stage);
-        }
-      });
+      // 1. Advance from splash
+      controller.proceedFromSplash();
+      expect(controller.currentStep, StartupStep.permissions);
+
+      // 2. Grant permissions
+      await controller.requestPermissionsAndProceed();
+      expect(controller.currentStep, StartupStep.themeSelector);
+
+      // 3. Accept theme and start scanning
+      await controller.acceptThemeAndStartScanning();
+      expect(controller.currentStep, StartupStep.loading);
+      expect(controller.isReady, isTrue);
+      expect(controller.state.stage, StartupStage.ready);
+      expect(controller.state.progress, 1.0);
+
+      controller.dispose();
+    });
+
+    test('StartupController start() backwards compatibility transitions to ready directly', () async {
+      final fakePerm = _FakePermissionService();
+      final fakeIndexer = _FakeMusicIndexer();
+
+      final controller = StartupController(
+        permissionService: fakePerm,
+        musicIndexer: fakeIndexer,
+      );
 
       await controller.start();
 
       expect(controller.isReady, isTrue);
       expect(controller.state.stage, StartupStage.ready);
-      expect(controller.state.progress, 1.0);
-      expect(controller.state.statusText, 'All set!');
-      expect(stagesRecorded, containsAll([
-        StartupStage.scanning,
-        StartupStage.savingTracks,
-        StartupStage.savingCovers,
-        StartupStage.finalizing,
-        StartupStage.ready,
-      ]));
+      expect(controller.state.step, StartupStep.loading);
 
       controller.dispose();
     });
 
-    test('StartupController enters permissionDenied stage when permission is rejected', () async {
+    test('StartupController enters permissionDenied stage when permission is rejected in start()', () async {
       final fakePerm = _FakePermissionService()
         ..permissionGranted = false
         ..currentState = AudioPermissionState.denied;
@@ -133,7 +208,6 @@ void main() {
 
       expect(controller.isPermissionDenied, isTrue);
       expect(controller.state.stage, StartupStage.permissionDenied);
-      expect(controller.isContentVisible, isFalse);
 
       // Now grant permission and retry
       fakePerm.permissionGranted = true;
@@ -149,29 +223,18 @@ void main() {
   });
 
   group('Startup UI Components Tests', () {
-    testWidgets('StartupHeader renders PROJECT ANIMA without subtitle', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.darkTheme,
-          home: const Scaffold(
-            body: StartupHeader(),
-          ),
-        ),
-      );
+    testWidgets('StartupHeader renders PROJECT ANIMA', (tester) async {
+      await tester.pumpWidget(_wrapWithLocalization(child: const StartupHeader()));
 
       expect(find.text('PROJECT ANIMA'), findsOneWidget);
-      expect(find.text('HIGH FIDELITY AUDIO'), findsNothing);
     });
 
     testWidgets('StartupProgressBar renders with M3 Expressive CustomPaint', (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.darkTheme,
-          home: const Scaffold(
-            body: StartupProgressBar(
-              progress: 0.65,
-              width: 260.0,
-            ),
+        _wrapWithLocalization(
+          child: const StartupProgressBar(
+            progress: 0.65,
+            width: 260.0,
           ),
         ),
       );
@@ -180,16 +243,106 @@ void main() {
       expect(find.byType(CustomPaint), findsWidgets);
     });
 
-    testWidgets('StartupPermissionView renders icon, text, and button in Inconsolata', (tester) async {
+    testWidgets('StartupSplashView animates brand title and triggers onCompleted when tapped', (tester) async {
+      bool completed = false;
+
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          child: StartupSplashView(
+            onCompleted: () => completed = true,
+          ),
+        ),
+      );
+
+      expect(find.text('PROJECT ANIMA'), findsOneWidget);
+
+      // Tap on screen to fast-forward
+      await tester.tap(find.byType(StartupSplashView));
+      await tester.pump();
+
+      expect(completed, isTrue);
+    });
+
+    testWidgets('StartupPermissionCardView renders both permissions and triggers callback', (tester) async {
+      bool permissionsRequested = false;
+
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          child: StartupPermissionCardView(
+            onRequestPermissions: () => permissionsRequested = true,
+          ),
+        ),
+      );
+
+      expect(find.text('PERMISSIONS REQUIRED'), findsOneWidget);
+      expect(find.text('Music & Audio Access'), findsOneWidget);
+      expect(find.text('Notification Controls'), findsOneWidget);
+      expect(find.text('GRANT PERMISSIONS'), findsOneWidget);
+
+      await tester.tap(find.text('GRANT PERMISSIONS'));
+      expect(permissionsRequested, isTrue);
+    });
+
+    testWidgets('StartupThemeSelectorView renders Monochrome and 5 color circles', (tester) async {
+      bool accepted = false;
+
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          child: StartupThemeSelectorView(
+            onAccept: () => accepted = true,
+          ),
+        ),
+      );
+
+      expect(find.text('Monochrome'), findsOneWidget);
+      expect(find.text('SELECT THEME'), findsOneWidget);
+      expect(find.text('ACCEPT'), findsOneWidget);
+
+      await tester.tap(find.text('ACCEPT'));
+      expect(accepted, isTrue);
+    });
+
+    testWidgets('StartupStatusView renders stage text and percentage', (tester) async {
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          child: const StartupStatusView(
+            stage: StartupStage.savingTracks,
+            statusText: 'Saving your tracks...',
+            progress: 0.50,
+          ),
+        ),
+      );
+
+      expect(find.text('Saving your tracks...'), findsOneWidget);
+      expect(find.text('50%'), findsOneWidget);
+    });
+
+    testWidgets('StartupLoadingView renders header, wavy bar, and status labels', (tester) async {
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          child: const StartupLoadingView(
+            state: StartupState(
+              stage: StartupStage.savingCovers,
+              progress: 0.75,
+              statusText: 'Saving covers...',
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('PROJECT ANIMA'), findsOneWidget);
+      expect(find.byType(StartupProgressBar), findsOneWidget);
+      expect(find.text('Saving covers...'), findsOneWidget);
+      expect(find.text('75%'), findsOneWidget);
+    });
+
+    testWidgets('StartupPermissionView renders legacy denied screen correctly', (tester) async {
       bool tapped = false;
 
       await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.darkTheme,
-          home: Scaffold(
-            body: StartupPermissionView(
-              onRequestPermission: () => tapped = true,
-            ),
+        _wrapWithLocalization(
+          child: StartupPermissionView(
+            onRequestPermission: () => tapped = true,
           ),
         ),
       );
@@ -201,29 +354,11 @@ void main() {
       await tester.tap(find.text('CONTINUE'));
       expect(tapped, isTrue);
     });
+  });
 
-    testWidgets('StartupStatusView renders stage text and percentage', (tester) async {
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: AppTheme.darkTheme,
-          home: const Scaffold(
-            body: StartupStatusView(
-              stage: StartupStage.savingTracks,
-              statusText: 'Saving your tracks...',
-              progress: 0.50,
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Saving your tracks...'), findsOneWidget);
-      expect(find.text('50%'), findsOneWidget);
-    });
-
-    testWidgets('StartupLoadingScreen renders permission view when denied and navigates on ready', (tester) async {
-      final fakePerm = _FakePermissionService()
-        ..permissionGranted = false
-        ..currentState = AudioPermissionState.denied;
+  group('StartupLoadingScreen Orchestration Tests', () {
+    testWidgets('StartupLoadingScreen guides through full 4-step sequence into destination screen', (tester) async {
+      final fakePerm = _FakePermissionService();
       final fakeIndexer = _FakeMusicIndexer();
 
       final controller = StartupController(
@@ -236,6 +371,14 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           theme: AppTheme.darkTheme,
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
           home: StartupLoadingScreen(
             controller: controller,
             destinationScreen: const Scaffold(
@@ -246,30 +389,86 @@ void main() {
         ),
       );
 
-      // Process post frame callback
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      await tester.pump(const Duration(milliseconds: 50));
 
-      // Shows permission denied view
-      expect(find.byType(StartupPermissionView), findsOneWidget);
-      expect(find.text('AUDIO ACCESS REQUIRED'), findsOneWidget);
+      // 1. Initial Step: Splash View
+      expect(find.byType(StartupSplashView), findsOneWidget);
 
-      // Grant permission and tap retry
-      fakePerm.permissionGranted = true;
-      fakePerm.currentState = AudioPermissionState.granted;
-
-      await tester.tap(find.text('CONTINUE'));
-
-      // Advance frames through controller completion
+      // Fast-forward splash by tapping
+      await tester.tap(find.byType(StartupSplashView));
       await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500)); // AnimatedSwitcher transition
+
+      // 2. Step 2: Permission Card View
+      expect(find.byType(StartupPermissionCardView), findsOneWidget);
+      expect(find.text('GRANT PERMISSIONS'), findsOneWidget);
+
+      // Tap Grant Permissions button
+      await tester.tap(find.text('GRANT PERMISSIONS'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500)); // AnimatedSwitcher transition
+
+      // 3. Step 3: Theme Selector View
+      expect(find.byType(StartupThemeSelectorView), findsOneWidget);
+      expect(find.text('Monochrome'), findsOneWidget);
+      expect(find.text('ACCEPT'), findsOneWidget);
+
+      // Tap Accept theme button
+      await tester.tap(find.text('ACCEPT'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500)); // AnimatedSwitcher transition
+
+      // 4. Step 4: Loading View
+      expect(find.byType(StartupLoadingView), findsOneWidget);
+
+      // Settle scanning sequence through ready state
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(milliseconds: 600));
       await tester.pumpAndSettle();
 
-      // Verify destination navigation occurred
+      // Successfully reached destination screen!
       expect(find.byKey(destinationKey), findsOneWidget);
       expect(find.text('Main Menu'), findsOneWidget);
+    });
+
+    testWidgets('StartupLoadingScreen renders legacy permission denied screen when stage is permissionDenied', (tester) async {
+      final fakePerm = _FakePermissionService()
+        ..permissionGranted = false
+        ..currentState = AudioPermissionState.denied;
+      final fakeIndexer = _FakeMusicIndexer();
+
+      final controller = StartupController(
+        permissionService: fakePerm,
+        musicIndexer: fakeIndexer,
+      );
+
+      // Run start directly to force permissionDenied state
+      await controller.start();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.darkTheme,
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: StartupLoadingScreen(
+            controller: controller,
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      expect(find.byType(StartupPermissionView), findsOneWidget);
+      expect(find.text('AUDIO ACCESS REQUIRED'), findsOneWidget);
     });
   });
 }

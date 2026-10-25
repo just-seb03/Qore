@@ -1,35 +1,44 @@
 /// File: startup_loading_screen.dart
-/// Description: Initial launch screen coordinating silent permission evaluation,
-/// permission request view if missing, and fluid Material 3 Expressive wavy progress sequence
-/// ("Scanning library...", "Saving your tracks...", "Saving covers...", "Finalizing setup...", "All set!")
-/// before transitioning into the main application.
+/// Description: Initial launch screen coordinating the modern 4-step startup onboarding experience:
+/// 1. Animated brand splash ("PROJECT ANIMA" with graceful exit)
+/// 2. Permissions request card (Audio files & notification access with action trigger)
+/// 3. Theme selector preview (Centered slightly above Y-axis, "Monochrome" title, 5 constituent color circles, accept button)
+/// 4. Dynamic library loading sequence (Wavy progress bar & status labels)
+/// followed by seamless transition into the primary application interface.
 ///
 /// Components / Classes / Functions:
-/// - StartupLoadingScreen: Main stateful screen coordinating permission gate, startup progress, and navigation.
+/// - StartupLoadingScreen: Main stateful orchestrator switching smoothly across startup steps.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/controls/menu_transition_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
-import 'package:project_anima/features/startup/components/startup_header.dart';
+import 'package:project_anima/features/startup/components/startup_loading_view.dart';
+import 'package:project_anima/features/startup/components/startup_permission_card_view.dart';
 import 'package:project_anima/features/startup/components/startup_permission_view.dart';
-import 'package:project_anima/features/startup/components/startup_progress_bar.dart';
-import 'package:project_anima/features/startup/components/startup_status_view.dart';
+import 'package:project_anima/features/startup/components/startup_splash_view.dart';
+import 'package:project_anima/features/startup/components/startup_theme_selector_view.dart';
 import 'package:project_anima/features/startup/controls/startup_controller.dart';
 import 'package:project_anima/features/startup/models/startup_stage.dart';
+import 'package:project_anima/features/startup/models/startup_step.dart';
 
-/// The entry screen mounted on app initialization to index audio and extract covers.
+/// The entry screen mounted on app initialization to guide the user through
+/// branding, permission grant, theme confirmation, and audio library indexing.
 class StartupLoadingScreen extends StatefulWidget {
-  /// Optional injected controller for testing.
+  /// Optional injected controller for testing or custom orchestration.
   final StartupController? controller;
 
   /// Optional target screen destination upon completion. Defaults to [MenuTransitionControl].
   final Widget? destinationScreen;
 
+  /// Optional initial step override (defaults to [StartupStep.splash]).
+  final StartupStep? initialStep;
+
   const StartupLoadingScreen({
     super.key,
     this.controller,
     this.destinationScreen,
+    this.initialStep,
   });
 
   @override
@@ -52,11 +61,11 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
       _internalController = true;
     }
 
-    _controller.addListener(_onControllerStateChanged);
+    if (widget.initialStep != null) {
+      _controller.goToStep(widget.initialStep!);
+    }
 
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _controller.start();
-    });
+    _controller.addListener(_onControllerStateChanged);
   }
 
   @override
@@ -94,6 +103,42 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
     }
   }
 
+  Widget _buildStepWidget(BuildContext context, StartupState state) {
+    // If runtime permission was denied in legacy retry flow, show dedicated permission view
+    if (state.stage == StartupStage.permissionDenied) {
+      return StartupPermissionView(
+        key: const ValueKey('startup_permission_denied_view'),
+        onRequestPermission: _controller.requestPermissionAndRetry,
+      );
+    }
+
+    switch (state.step) {
+      case StartupStep.splash:
+        return StartupSplashView(
+          key: const ValueKey('startup_splash_view'),
+          onCompleted: _controller.proceedFromSplash,
+        );
+
+      case StartupStep.permissions:
+        return StartupPermissionCardView(
+          key: const ValueKey('startup_permission_card_view'),
+          onRequestPermissions: _controller.requestPermissionsAndProceed,
+        );
+
+      case StartupStep.themeSelector:
+        return StartupThemeSelectorView(
+          key: const ValueKey('startup_theme_selector_view'),
+          onAccept: _controller.acceptThemeAndStartScanning,
+        );
+
+      case StartupStep.loading:
+        return StartupLoadingView(
+          key: const ValueKey('startup_loading_view'),
+          state: state,
+        );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -104,54 +149,26 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
           builder: (context, _) {
             final state = _controller.state;
 
-            // 1. Initial silent check: render blank background to prevent layout flashes
-            if (state.stage == StartupStage.checkingPermission) {
-              return const SizedBox.expand();
-            }
-
-            // 2. Permission denied / required: render dedicated permission view
-            if (state.stage == StartupStage.permissionDenied) {
-              return StartupPermissionView(
-                onRequestPermission: _controller.requestPermissionAndRetry,
-              );
-            }
-
-            // 3. Active scanning & indexing: render brand header and M3 Expressive wavy progress bar
             return AnimatedSwitcher(
-              duration: const Duration(milliseconds: 350),
+              duration: const Duration(milliseconds: 450),
               switchInCurve: Curves.easeOutCubic,
               switchOutCurve: Curves.easeInCubic,
-              child: Center(
-                key: const ValueKey('active_startup_content'),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      const Spacer(flex: 3),
-                      // Brand title: PROJECT ANIMA in Inconsolata
-                      const StartupHeader(),
-                      const Spacer(flex: 2),
-                      // Material 3 Expressive sinusoidal wavy progress bar
-                      StartupProgressBar(
-                        progress: state.progress,
-                        width: 260.0,
-                        height: 36.0,
-                      ),
-                      const SizedBox(height: 16.0),
-                      // Status label: "Scanning...", "Saving your tracks...", "Saving covers...", etc.
-                      StartupStatusView(
-                        stage: state.stage,
-                        statusText: state.statusText,
-                        progress: state.progress,
-                        totalSongs: state.totalSongs,
-                      ),
-                      const Spacer(flex: 3),
-                    ],
+              transitionBuilder: (child, animation) {
+                return FadeTransition(
+                  opacity: animation,
+                  child: SlideTransition(
+                    position: Tween<Offset>(
+                      begin: const Offset(0.0, 0.04),
+                      end: Offset.zero,
+                    ).animate(CurvedAnimation(
+                      parent: animation,
+                      curve: Curves.easeOutCubic,
+                    )),
+                    child: child,
                   ),
-                ),
-              ),
+                );
+              },
+              child: _buildStepWidget(context, state),
             );
           },
         ),

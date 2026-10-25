@@ -25,6 +25,39 @@ class EnStartupStrings implements StartupStrings {
   String get continueAction => 'CONTINUE';
 
   @override
+  String get permissionsCardTitle => 'PERMISSIONS REQUIRED';
+
+  @override
+  String get permissionsCardDescription =>
+      'Project Anima needs the following permissions to deliver a complete, seamless listening experience:';
+
+  @override
+  String get musicAccessTitle => 'Music & Audio Access';
+
+  @override
+  String get musicAccessDescription =>
+      'Access local media storage to discover, index, and play your audio library.';
+
+  @override
+  String get notificationAccessTitle => 'Notification Controls';
+
+  @override
+  String get notificationAccessDescription =>
+      'Display playback controls, artist info, and lock screen media widgets.';
+
+  @override
+  String get grantPermissionsButton => 'GRANT PERMISSIONS';
+
+  @override
+  String get themeSelectorTitle => 'SELECT THEME';
+
+  @override
+  String get themeNameMonochrome => 'Monochrome';
+
+  @override
+  String get acceptThemeAction => 'ACCEPT';
+
+  @override
   String get scanningLibrary => 'Scanning library...';
 
   @override

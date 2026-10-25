@@ -9,16 +9,22 @@
 library;
 
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/permissions/audio_permission_service.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/selection/today_selection_service.dart';
 import 'package:project_anima/features/startup/models/startup_stage.dart';
+import 'package:project_anima/features/startup/models/startup_step.dart';
 
 /// Immutable state holding the active startup stage and visual progress.
 @immutable
 class StartupState {
+  /// Active user-facing onboarding and initialization step.
+  final StartupStep step;
+
   /// Active operational stage.
   final StartupStage stage;
 
@@ -32,6 +38,7 @@ class StartupState {
   final int? totalSongs;
 
   const StartupState({
+    this.step = StartupStep.splash,
     required this.stage,
     required this.progress,
     required this.statusText,
@@ -41,6 +48,7 @@ class StartupState {
   /// Factory constructing initial blank state before permission check.
   factory StartupState.initial() {
     return const StartupState(
+      step: StartupStep.splash,
       stage: StartupStage.checkingPermission,
       progress: 0.0,
       statusText: '',
@@ -49,12 +57,14 @@ class StartupState {
 
   /// Creates a copy of this state with modified values.
   StartupState copyWith({
+    StartupStep? step,
     StartupStage? stage,
     double? progress,
     String? statusText,
     int? totalSongs,
   }) {
     return StartupState(
+      step: step ?? this.step,
       stage: stage ?? this.stage,
       progress: progress != null ? progress.clamp(0.0, 1.0) : this.progress,
       statusText: statusText ?? this.statusText,
@@ -66,6 +76,7 @@ class StartupState {
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is StartupState &&
+        other.step == step &&
         other.stage == stage &&
         (other.progress - progress).abs() < 0.001 &&
         other.statusText == statusText &&
@@ -73,7 +84,7 @@ class StartupState {
   }
 
   @override
-  int get hashCode => Object.hash(stage, progress, statusText, totalSongs);
+  int get hashCode => Object.hash(step, stage, progress, statusText, totalSongs);
 }
 
 /// Orchestrator of the application startup lifecycle and permission gate.
@@ -100,6 +111,9 @@ class StartupController extends ChangeNotifier {
   /// Current immutable startup state.
   StartupState get state => _state;
 
+  /// Active user-facing onboarding and initialization step.
+  StartupStep get currentStep => _state.step;
+
   /// Whether the entire startup pipeline has completed and is ready for transition.
   bool get isReady => _state.stage == StartupStage.ready;
 
@@ -117,6 +131,44 @@ class StartupController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Advances from the splash screen to the permissions request step.
+  void proceedFromSplash() {
+    _emit(_state.copyWith(step: StartupStep.permissions));
+  }
+
+  /// Requests runtime permissions (audio access & notification) and proceeds to the theme selector step.
+  Future<void> requestPermissionsAndProceed() async {
+    try {
+      await _permissionService.requestPermission();
+      if (Platform.isAndroid || Platform.isIOS) {
+        try {
+          await Permission.notification.request();
+        } catch (e) {
+          debugPrint('⚠️ [StartupController] Notification permission request error: $e');
+        }
+      }
+    } catch (e) {
+      debugPrint('⚠️ [StartupController] Error requesting permissions: $e');
+    }
+    _emit(_state.copyWith(step: StartupStep.themeSelector));
+  }
+
+  /// Accepts the chosen theme (or default) and initiates the background scanning and indexing sequence.
+  Future<void> acceptThemeAndStartScanning({String? themeId}) async {
+    _emit(_state.copyWith(
+      step: StartupStep.loading,
+      stage: StartupStage.scanning,
+      progress: 0.12,
+      statusText: StartupStage.scanning.label,
+    ));
+    await _runScanningAndIndexingSequence();
+  }
+
+  /// Explicitly navigates to a target startup step (useful for tests and programmatic flow).
+  void goToStep(StartupStep step) {
+    _emit(_state.copyWith(step: step));
+  }
+
   /// Initiates the initial permission gate and startup pipeline.
   Future<void> start() async {
     if (_hasStarted) return;
@@ -129,6 +181,7 @@ class StartupController extends ChangeNotifier {
         final status = await _permissionService.requestPermission();
         if (!status.isGranted) {
           _emit(_state.copyWith(
+            step: StartupStep.permissions,
             stage: StartupStage.permissionDenied,
             progress: 0.0,
             statusText: '',
@@ -138,10 +191,12 @@ class StartupController extends ChangeNotifier {
       }
 
       // Permission granted: start sequence
+      _emit(_state.copyWith(step: StartupStep.loading));
       await _runScanningAndIndexingSequence();
     } catch (e, stack) {
       debugPrint('⚠️ [StartupController] Permission initialization error: $e\n$stack');
       _emit(_state.copyWith(
+        step: StartupStep.permissions,
         stage: StartupStage.permissionDenied,
         progress: 0.0,
       ));
@@ -159,9 +214,11 @@ class StartupController extends ChangeNotifier {
 
       final status = await _permissionService.requestPermission();
       if (status.isGranted) {
+        _emit(_state.copyWith(step: StartupStep.loading));
         await _runScanningAndIndexingSequence();
       } else {
         _emit(_state.copyWith(
+          step: StartupStep.permissions,
           stage: StartupStage.permissionDenied,
           progress: 0.0,
         ));

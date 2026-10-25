@@ -25,6 +25,39 @@ class EsStartupStrings implements StartupStrings {
   String get continueAction => 'CONTINUAR';
 
   @override
+  String get permissionsCardTitle => 'PERMISOS REQUERIDOS';
+
+  @override
+  String get permissionsCardDescription =>
+      'Project Anima necesita los siguientes permisos para brindarte una experiencia musical óptima:';
+
+  @override
+  String get musicAccessTitle => 'Acceso a la música';
+
+  @override
+  String get musicAccessDescription =>
+      'Accede al almacenamiento para descubrir, indexar y reproducir tu biblioteca.';
+
+  @override
+  String get notificationAccessTitle => 'Acceso a notificaciones';
+
+  @override
+  String get notificationAccessDescription =>
+      'Muestra controles de reproducción e información en tu pantalla de bloqueo.';
+
+  @override
+  String get grantPermissionsButton => 'PERMITIR ACCESOS';
+
+  @override
+  String get themeSelectorTitle => 'ELIGE UN TEMA';
+
+  @override
+  String get themeNameMonochrome => 'Monochrome';
+
+  @override
+  String get acceptThemeAction => 'ACEPTAR';
+
+  @override
   String get scanningLibrary => 'Escaneando biblioteca...';
 
   @override

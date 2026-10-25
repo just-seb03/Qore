@@ -20,6 +20,36 @@ abstract class StartupStrings {
   /// Action button to grant permissions (e.g. 'CONTINUE').
   String get continueAction;
 
+  /// Card title requesting permissions (e.g. 'PERMISSIONS REQUIRED').
+  String get permissionsCardTitle;
+
+  /// Explanatory description of required device permissions.
+  String get permissionsCardDescription;
+
+  /// Title for local music and storage access.
+  String get musicAccessTitle;
+
+  /// Description of music and storage access.
+  String get musicAccessDescription;
+
+  /// Title for playback notification access.
+  String get notificationAccessTitle;
+
+  /// Description of playback notification access.
+  String get notificationAccessDescription;
+
+  /// Action button on permission card (e.g. 'GRANT PERMISSIONS').
+  String get grantPermissionsButton;
+
+  /// Header title for the theme selector screen (e.g. 'SELECT THEME').
+  String get themeSelectorTitle;
+
+  /// Name of the initial monochrome dark theme ('Monochrome').
+  String get themeNameMonochrome;
+
+  /// Action button on theme selector (e.g. 'ACCEPT').
+  String get acceptThemeAction;
+
   /// Stage progress label during initial filesystem discovery (e.g. 'Scanning library...').
   String get scanningLibrary;
 
