@@ -9,6 +9,12 @@ library;
 
 /// Distinct operational stages of the startup initialization sequence.
 enum StartupStage {
+  /// Initial silent permission inspection before rendering UI.
+  checkingPermission,
+
+  /// Permissions missing or declined; renders explicit permission request view.
+  permissionDenied,
+
   /// Initial device filesystem and MediaStore projection scanning.
   scanning,
 
@@ -30,6 +36,9 @@ extension StartupStageX on StartupStage {
   /// English display label matching the user specification.
   String get label {
     switch (this) {
+      case StartupStage.checkingPermission:
+      case StartupStage.permissionDenied:
+        return '';
       case StartupStage.scanning:
         return 'Scanning library...';
       case StartupStage.savingTracks:
@@ -46,6 +55,9 @@ extension StartupStageX on StartupStage {
   /// Normalized base progress threshold for this stage [0.0 - 1.0].
   double get baseProgress {
     switch (this) {
+      case StartupStage.checkingPermission:
+      case StartupStage.permissionDenied:
+        return 0.0;
       case StartupStage.scanning:
         return 0.15;
       case StartupStage.savingTracks:

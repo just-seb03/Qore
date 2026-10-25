@@ -1,6 +1,6 @@
 /// File: startup_controller.dart
-/// Description: Business logic controller coordinating the startup initialization pipeline.
-/// Manages permissions, audio indexing, cover art extraction, component pre-warming,
+/// Description: Business logic control coordinating the application startup lifecycle,
+/// permission gates, audio indexing, cover art extraction, component pre-warming,
 /// and smooth progress state transitions following senior optimization and low-coupling principles.
 ///
 /// Components / Classes / Functions:
@@ -38,12 +38,12 @@ class StartupState {
     this.totalSongs,
   });
 
-  /// Factory constructing initial state for the launch screen.
+  /// Factory constructing initial blank state before permission check.
   factory StartupState.initial() {
-    return StartupState(
-      stage: StartupStage.scanning,
-      progress: 0.08,
-      statusText: StartupStage.scanning.label,
+    return const StartupState(
+      stage: StartupStage.checkingPermission,
+      progress: 0.0,
+      statusText: '',
     );
   }
 
@@ -76,7 +76,7 @@ class StartupState {
   int get hashCode => Object.hash(stage, progress, statusText, totalSongs);
 }
 
-/// Orchestrator of the application startup lifecycle.
+/// Orchestrator of the application startup lifecycle and permission gate.
 class StartupController extends ChangeNotifier {
   final AudioPermissionService _permissionService;
   final MusicIndexer _musicIndexer;
@@ -103,17 +103,76 @@ class StartupController extends ChangeNotifier {
   /// Whether the entire startup pipeline has completed and is ready for transition.
   bool get isReady => _state.stage == StartupStage.ready;
 
+  /// Whether permissions are currently denied and requiring user interaction.
+  bool get isPermissionDenied => _state.stage == StartupStage.permissionDenied;
+
+  /// Whether permissions have been granted and active scanning/indexing is in progress.
+  bool get isContentVisible =>
+      _state.stage != StartupStage.checkingPermission &&
+      _state.stage != StartupStage.permissionDenied;
+
   void _emit(StartupState newState) {
     if (_disposed) return;
     _state = newState;
     notifyListeners();
   }
 
-  /// Executes the 5-phase startup sequence.
+  /// Initiates the initial permission gate and startup pipeline.
   Future<void> start() async {
     if (_hasStarted) return;
     _hasStarted = true;
 
+    try {
+      // 1. Initial silent permission check
+      final hasPerm = await _permissionService.hasPermission();
+      if (!hasPerm) {
+        final status = await _permissionService.requestPermission();
+        if (!status.isGranted) {
+          _emit(_state.copyWith(
+            stage: StartupStage.permissionDenied,
+            progress: 0.0,
+            statusText: '',
+          ));
+          return;
+        }
+      }
+
+      // Permission granted: start sequence
+      await _runScanningAndIndexingSequence();
+    } catch (e, stack) {
+      debugPrint('⚠️ [StartupController] Permission initialization error: $e\n$stack');
+      _emit(_state.copyWith(
+        stage: StartupStage.permissionDenied,
+        progress: 0.0,
+      ));
+    }
+  }
+
+  /// Retries requesting permission when user taps action button on denied view.
+  Future<void> requestPermissionAndRetry() async {
+    try {
+      final currentStatus = await _permissionService.checkPermissionStatus();
+      if (currentStatus == AudioPermissionState.permanentlyDenied) {
+        await _permissionService.openSettings();
+        return;
+      }
+
+      final status = await _permissionService.requestPermission();
+      if (status.isGranted) {
+        await _runScanningAndIndexingSequence();
+      } else {
+        _emit(_state.copyWith(
+          stage: StartupStage.permissionDenied,
+          progress: 0.0,
+        ));
+      }
+    } catch (e) {
+      debugPrint('⚠️ [StartupController] Error retrying permission request: $e');
+    }
+  }
+
+  /// Executes scanning, metadata indexing, cover extraction, and component warm-up.
+  Future<void> _runScanningAndIndexingSequence() async {
     try {
       // 1. Stage: Scanning library
       _emit(_state.copyWith(
@@ -121,15 +180,6 @@ class StartupController extends ChangeNotifier {
         progress: 0.12,
         statusText: StartupStage.scanning.label,
       ));
-
-      // Request or verify runtime audio permission
-      final hasPerm = await _permissionService.hasPermission();
-      if (!hasPerm) {
-        final status = await _permissionService.requestPermission();
-        if (!status.isGranted) {
-          debugPrint('⚠️ [StartupController] Audio permission not granted.');
-        }
-      }
 
       _emit(_state.copyWith(progress: 0.22));
 
@@ -149,7 +199,7 @@ class StartupController extends ChangeNotifier {
 
       final totalSongs = indexResult.totalSongs;
 
-      // Small pacing pause for aesthetic transition
+      // Small pacing pause for smooth aesthetic transition
       await Future.delayed(const Duration(milliseconds: 120));
 
       // 3. Stage: Saving covers (Background isolate artwork extraction)
@@ -177,7 +227,7 @@ class StartupController extends ChangeNotifier {
         statusText: StartupStage.finalizing.label,
       ));
 
-      // Pre-warm Today Selection so HomeScreen renders immediately without pop-in
+      // Pre-warm Today Selection so HomeScreen renders immediately with zero pop-in
       try {
         await _todaySelectionService.getTodaySelection();
       } catch (e) {
@@ -197,7 +247,6 @@ class StartupController extends ChangeNotifier {
       ));
     } catch (e, stack) {
       debugPrint('⚠️ [StartupController] Startup sequence recovered from error: $e\n$stack');
-      // Graceful fallback: guarantee navigation to main app
       _emit(_state.copyWith(
         stage: StartupStage.ready,
         progress: 1.0,

@@ -1,6 +1,6 @@
 /// File: startup_header.dart
 /// Description: Visual brand header component displaying the monochromatic "PROJECT ANIMA"
-/// typography with custom letter-spacing and high-impact futuristic styling.
+/// typography with custom letter-spacing and high-impact Inconsolata styling.
 ///
 /// Components / Classes / Functions:
 /// - StartupHeader: Monochromatic brand title component with clean typography.
@@ -19,7 +19,7 @@ class StartupHeader extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Subtle minimal insignia dot or pulse line
+        // Subtle minimal insignia line
         Container(
           width: 32.0,
           height: 3.0,
@@ -29,25 +29,14 @@ class StartupHeader extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 18.0),
-        // Monochromatic brand title
+        // Monochromatic brand title with Inconsolata font
         Text(
           'PROJECT ANIMA',
-          style: GoogleFonts.outfit(
+          style: GoogleFonts.inconsolata(
             fontSize: 24.0,
             fontWeight: FontWeight.w700,
-            letterSpacing: 5.0,
+            letterSpacing: 4.5,
             color: AppColors.futuristicWhite,
-          ),
-        ),
-        const SizedBox(height: 6.0),
-        // Sub-brand audio engine subtitle
-        Text(
-          'HIGH FIDELITY AUDIO',
-          style: GoogleFonts.inconsolata(
-            fontSize: 11.0,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 3.0,
-            color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
           ),
         ),
       ],

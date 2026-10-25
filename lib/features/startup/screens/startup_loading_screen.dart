@@ -1,19 +1,21 @@
 /// File: startup_loading_screen.dart
-/// Description: Initial launch screen displaying the monochromatic "PROJECT ANIMA" branding,
-/// smooth stage progression ("Scanning library...", "Saving your tracks...", "Saving covers...",
-/// "Finalizing setup...", "All set!"), and animated progress bar before navigating into the main app.
+/// Description: Initial launch screen coordinating silent permission evaluation,
+/// permission request view if missing, and fluid Material 3 Expressive wavy progress sequence
+/// ("Scanning library...", "Saving your tracks...", "Saving covers...", "Finalizing setup...", "All set!")
+/// before transitioning into the main application.
 ///
 /// Components / Classes / Functions:
-/// - StartupLoadingScreen: Main stateful screen coordinating startup display and seamless transition.
+/// - StartupLoadingScreen: Main stateful screen coordinating permission gate, startup progress, and navigation.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/controls/menu_transition_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/startup/components/startup_header.dart';
+import 'package:project_anima/features/startup/components/startup_permission_view.dart';
 import 'package:project_anima/features/startup/components/startup_progress_bar.dart';
 import 'package:project_anima/features/startup/components/startup_status_view.dart';
-import 'package:project_anima/features/startup/controllers/startup_controller.dart';
+import 'package:project_anima/features/startup/controls/startup_controller.dart';
 import 'package:project_anima/features/startup/models/startup_stage.dart';
 
 /// The entry screen mounted on app initialization to index audio and extract covers.
@@ -102,33 +104,52 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
           builder: (context, _) {
             final state = _controller.state;
 
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Spacer(flex: 3),
-                    // 1. Monochromatic brand title: PROJECT ANIMA
-                    const StartupHeader(),
-                    const Spacer(flex: 2),
-                    // 2. Expressive interpolated progress bar
-                    StartupProgressBar(
-                      progress: state.progress,
-                      width: 250.0,
-                      height: 4.0,
-                    ),
-                    const SizedBox(height: 20.0),
-                    // 3. Status label: "Scanning...", "Saving your tracks...", "Saving covers...", etc.
-                    StartupStatusView(
-                      stage: state.stage,
-                      statusText: state.statusText,
-                      progress: state.progress,
-                      totalSongs: state.totalSongs,
-                    ),
-                    const Spacer(flex: 3),
-                  ],
+            // 1. Initial silent check: render blank background to prevent layout flashes
+            if (state.stage == StartupStage.checkingPermission) {
+              return const SizedBox.expand();
+            }
+
+            // 2. Permission denied / required: render dedicated permission view
+            if (state.stage == StartupStage.permissionDenied) {
+              return StartupPermissionView(
+                onRequestPermission: _controller.requestPermissionAndRetry,
+              );
+            }
+
+            // 3. Active scanning & indexing: render brand header and M3 Expressive wavy progress bar
+            return AnimatedSwitcher(
+              duration: const Duration(milliseconds: 350),
+              switchInCurve: Curves.easeOutCubic,
+              switchOutCurve: Curves.easeInCubic,
+              child: Center(
+                key: const ValueKey('active_startup_content'),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 32.0),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Spacer(flex: 3),
+                      // Brand title: PROJECT ANIMA in Inconsolata
+                      const StartupHeader(),
+                      const Spacer(flex: 2),
+                      // Material 3 Expressive sinusoidal wavy progress bar
+                      StartupProgressBar(
+                        progress: state.progress,
+                        width: 260.0,
+                        height: 36.0,
+                      ),
+                      const SizedBox(height: 16.0),
+                      // Status label: "Scanning...", "Saving your tracks...", "Saving covers...", etc.
+                      StartupStatusView(
+                        stage: state.stage,
+                        statusText: state.statusText,
+                        progress: state.progress,
+                        totalSongs: state.totalSongs,
+                      ),
+                      const Spacer(flex: 3),
+                    ],
+                  ),
                 ),
               ),
             );
