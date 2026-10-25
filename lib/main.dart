@@ -17,6 +17,7 @@ import 'package:project_anima/core/dimensions/adaptive_system_boundary.dart';
 import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/startup/screens/startup_loading_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -111,7 +112,7 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
           child: child ?? const SizedBox.shrink(),
         );
       },
-      home: const MenuTransitionControl(),
+      home: const StartupLoadingScreen(),
     );
   }
 }

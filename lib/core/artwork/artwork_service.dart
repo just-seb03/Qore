@@ -45,6 +45,8 @@ class ArtworkService extends ChangeNotifier {
   final List<Song> _queue = [];
   final Set<int> _pendingQueueSet = {};
   bool _isProcessingQueue = false;
+  int _totalQueueItemsToProcess = 0;
+  int _processedQueueItems = 0;
 
   /// Whether the service has completed disk directory discovery and in-memory cache population.
   bool get isInitialized => _initialized;
@@ -54,6 +56,12 @@ class ArtworkService extends ChangeNotifier {
 
   /// Current number of songs remaining in the extraction queue.
   int get queueLength => _queue.length;
+
+  /// Total queue items scheduled in current batch.
+  int get totalQueueItemsToProcess => _totalQueueItemsToProcess;
+
+  /// Items processed so far in current batch.
+  int get processedQueueItems => _processedQueueItems;
 
   /// Total cached thumbnails count in memory.
   int get cachedThumbnailsCount => _thumbnailCache.length;
@@ -480,6 +488,7 @@ class ArtworkService extends ChangeNotifier {
       _albumRepresentativeCache[key] = candidateToQueue.mediaStoreId;
       _queue.add(candidateToQueue);
       _pendingQueueSet.add(candidateToQueue.mediaStoreId);
+      _totalQueueItemsToProcess++;
     }
 
     if (!_isProcessingQueue && _queue.isNotEmpty) {
@@ -591,6 +600,8 @@ class ArtworkService extends ChangeNotifier {
           }
         }
 
+        _processedQueueItems += count;
+
         // 25 ms pause between batches to preserve 90/120 Hz UI
         if (_queue.isNotEmpty) {
           await Future.delayed(_batchPause);
@@ -600,8 +611,36 @@ class ArtworkService extends ChangeNotifier {
       debugPrint('⚠️ [ArtworkService] Queue processing error: $e\n$stack');
     } finally {
       _isProcessingQueue = false;
+      if (_queue.isEmpty) {
+        _totalQueueItemsToProcess = 0;
+        _processedQueueItems = 0;
+      }
       notifyListeners();
     }
+  }
+
+  /// Waits until the active artwork queue has finished processing or [timeout] expires.
+  /// Reports [onProgress] with (processed, total) counts as batches finish.
+  Future<void> waitForQueueCompletion({
+    Duration timeout = const Duration(seconds: 4),
+    void Function(int processed, int total)? onProgress,
+  }) async {
+    if (!_isProcessingQueue && _queue.isEmpty) {
+      onProgress?.call(1, 1);
+      return;
+    }
+
+    final stopwatch = Stopwatch()..start();
+    while ((_isProcessingQueue || _queue.isNotEmpty) && stopwatch.elapsed < timeout) {
+      final total = _totalQueueItemsToProcess > 0
+          ? _totalQueueItemsToProcess
+          : (_processedQueueItems + _queue.length);
+      onProgress?.call(_processedQueueItems, total > 0 ? total : 1);
+      await Future.delayed(const Duration(milliseconds: 50));
+    }
+
+    final finalTotal = _totalQueueItemsToProcess > 0 ? _totalQueueItemsToProcess : 1;
+    onProgress?.call(finalTotal, finalTotal);
   }
 
   /// Clears in-memory caches and queue (useful for test suites or database resets).
@@ -617,6 +656,8 @@ class ArtworkService extends ChangeNotifier {
     _queue.clear();
     _pendingQueueSet.clear();
     _isProcessingQueue = false;
+    _totalQueueItemsToProcess = 0;
+    _processedQueueItems = 0;
     _initialized = false;
   }
 }

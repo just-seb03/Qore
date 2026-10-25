@@ -207,6 +207,9 @@ class MusicIndexer {
 
   bool _isIndexing = false;
 
+  /// Global revision notifier to signal database sync changes across all features.
+  static final ValueNotifier<int> revision = ValueNotifier<int>(0);
+
   /// Whether a synchronization job is currently in progress.
   bool get isIndexing => _isIndexing;
 
@@ -240,6 +243,7 @@ class MusicIndexer {
   /// Emits terminal log showing song count and elapsed duration upon completion.
   Future<IndexingResult> syncWithDevice({
     List<LightweightAudioItem>? mockDeviceItems,
+    void Function(String phase, int current, int total)? onProgress,
   }) async {
     if (_isIndexing) {
       return IndexingResult.alreadyRunning();
@@ -248,9 +252,13 @@ class MusicIndexer {
     final stopwatch = Stopwatch()..start();
 
     try {
+      onProgress?.call('scanning', 0, 0);
+
       // FASE 1: Proyección liviana de MediaStore (Coste: ~10-20 ms)
       final List<LightweightAudioItem> deviceItems =
           mockDeviceItems ?? await _fetchLightweightProjection();
+
+      onProgress?.call('scanning', deviceItems.length, deviceItems.length);
 
       final Map<int, int> deviceMap = {
         for (final item in deviceItems) item.mediaStoreId: item.dateModified,
@@ -358,6 +366,8 @@ class MusicIndexer {
         (item) => scanIds.contains(item.mediaStoreId),
       ).toList();
 
+      onProgress?.call('saving_tracks', 0, itemsToScan.length);
+
       List<Song> parsedSongs = [];
       if (itemsToScan.isNotEmpty) {
         parsedSongs = await compute(parseMetadataInIsolate, itemsToScan);
@@ -368,6 +378,11 @@ class MusicIndexer {
         toInsertOrUpdate: parsedSongs,
         toDelete: deletedIds.toList(),
       );
+
+      if (deltaCount > 0) {
+        revision.value++;
+      }
+      onProgress?.call('saving_tracks', itemsToScan.length, itemsToScan.length);
 
       stopwatch.stop();
       final int totalSongs = await _songDao.getSongCount();
@@ -382,6 +397,8 @@ class MusicIndexer {
       if (parsedSongs.isNotEmpty) {
         ArtworkService.instance.enqueueSongs(parsedSongs);
       }
+
+      onProgress?.call('done', totalSongs, totalSongs);
 
       return IndexingResult(
         totalSongs: totalSongs,

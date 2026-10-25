@@ -78,6 +78,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
     PinnedFavoritesDao.revision.addListener(_onPinnedRevisionChanged);
     FavoriteSongsDao.instance.favoritesRevision.addListener(_onFavoritesRevisionChanged);
+    MusicIndexer.revision.addListener(_onIndexerRevisionChanged);
 
     final isTesting = widget.initialTodaySongs != null ||
         widget.initialFavoriteSongs != null ||
@@ -99,7 +100,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void dispose() {
     PinnedFavoritesDao.revision.removeListener(_onPinnedRevisionChanged);
     FavoriteSongsDao.instance.favoritesRevision.removeListener(_onFavoritesRevisionChanged);
+    MusicIndexer.revision.removeListener(_onIndexerRevisionChanged);
     super.dispose();
+  }
+
+  void _onIndexerRevisionChanged() {
+    _loadHomeData();
   }
 
   void _onPinnedRevisionChanged() {
@@ -125,8 +131,6 @@ class _HomeScreenState extends State<HomeScreen> {
       if (status.isGranted) {
         MusicIndexer.instance.syncWithDevice();
       }
-    } else {
-      MusicIndexer.instance.syncWithDevice();
     }
   }
 
