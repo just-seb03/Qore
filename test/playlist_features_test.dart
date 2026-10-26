@@ -26,6 +26,9 @@ import 'package:project_anima/features/playlist/components/playlist_text_banner.
 import 'package:project_anima/features/playlist/components/playlist_track_tile.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
+import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/features/playlist/components/playlist_delete_dialog.dart';
+import 'package:project_anima/features/playlist/screens/playlist_tracks_edit_screen.dart';
 import 'package:project_anima/features/playlist/utils/playlist_effect_helper.dart';
 import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -52,7 +55,7 @@ class FakeSongDao extends Fake implements SongDao {
 
 class FakePlaylistDao extends Fake implements PlaylistDao {
   Playlist? lastCreated;
-  final List<Song> playlistSongs;
+  List<Song> playlistSongs;
 
   FakePlaylistDao({this.playlistSongs = const []});
 
@@ -89,6 +92,26 @@ class FakePlaylistDao extends Fake implements PlaylistDao {
   }
 
   @override
+  Future<void> updatePlaylist(
+    int playlistId, {
+    String? name,
+    String? coverPath,
+    String? fontFamily,
+    double? textAlignX,
+    double? textAlignY,
+    int? textColor,
+    int? textGradientColor,
+    double? fontSize,
+    String? textEffect,
+    bool clearGradient = false,
+    List<Song>? songs,
+  }) async {
+    if (songs != null) {
+      playlistSongs = List.of(songs);
+    }
+  }
+
+  @override
   Future<Playlist?> getPlaylistById(int id) async {
     return lastCreated ??
         Playlist(
@@ -109,6 +132,15 @@ class FakePlaylistDao extends Fake implements PlaylistDao {
   @override
   Future<List<Playlist>> getPlaylists() async {
     return lastCreated != null ? [lastCreated!] : [];
+  }
+
+  bool wasDeleted = false;
+
+  @override
+  Future<void> deletePlaylist(int playlistId) async {
+    wasDeleted = true;
+    lastCreated = null;
+    PlaylistDao.notifyPlaylistsChanged();
   }
 }
 
@@ -878,13 +910,263 @@ void main() {
       // Edit Playlist button
       expect(find.byKey(const ValueKey('playlist_detail_edit_button')), findsOneWidget);
 
-      // Tracks section with sequential indices
+      // Tracks section with sequential indices and covers on the left
       expect(find.text('TRACKS'), findsOneWidget);
       expect(find.byType(PlaylistTrackTile), findsNWidgets(2));
       expect(find.text('01'), findsOneWidget);
       expect(find.text('02'), findsOneWidget);
       expect(find.text('Song One'), findsOneWidget);
       expect(find.text('Song Two'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(PlaylistTrackTile),
+          matching: find.byType(AnimaArtworkImage),
+        ),
+        findsNWidgets(2),
+      );
+    });
+
+    testWidgets('tapping hero banner in PlaylistDetailScreen triggers PlaylistEditScreen navigation', (tester) async {
+      const playlist = Playlist(
+        id: 42,
+        name: 'Chill Vibes',
+        songCount: 1,
+        totalDuration: 150000,
+        createdAt: 100,
+        updatedAt: 100,
+      );
+
+      final s1 = Song(
+        mediaStoreId: 501,
+        title: 'Song One',
+        artist: 'Artist One',
+        duration: 150000,
+        path: '/one.mp3',
+        dateModified: 100,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlaylistDetailScreen(
+            playlist: playlist,
+            initialSongs: [s1],
+            playlistDao: FakePlaylistDao(playlistSongs: [s1]),
+            songDao: FakeSongDao([s1]),
+            animateBounce: false,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Tap hero banner trigger
+      await tester.tap(find.byKey(const ValueKey('playlist_detail_banner_edit_trigger')));
+      await tester.pumpAndSettle();
+
+      // PlaylistEditScreen is mounted
+      expect(find.byType(PlaylistEditScreen), findsOneWidget);
+    });
+
+    testWidgets('tapping edit pencil in tracks section opens PlaylistTracksEditScreen', (tester) async {
+      const playlist = Playlist(
+        id: 42,
+        name: 'Chill Vibes',
+        songCount: 1,
+        totalDuration: 150000,
+        createdAt: 100,
+        updatedAt: 100,
+      );
+
+      final s1 = Song(
+        mediaStoreId: 501,
+        title: 'Song One',
+        artist: 'Artist One',
+        duration: 150000,
+        path: '/one.mp3',
+        dateModified: 100,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlaylistDetailScreen(
+            playlist: playlist,
+            initialSongs: [s1],
+            playlistDao: FakePlaylistDao(playlistSongs: [s1]),
+            songDao: FakeSongDao([s1]),
+            animateBounce: false,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Tap pencil icon next to TRACKS
+      await tester.tap(find.byKey(const ValueKey('playlist_detail_edit_button')));
+      await tester.pumpAndSettle();
+
+      // PlaylistTracksEditScreen is mounted
+      expect(find.byType(PlaylistTracksEditScreen), findsOneWidget);
+      expect(find.text('EDITAR CANCIONES'), findsOneWidget);
+    });
+  });
+
+  group('PlaylistTracksEditScreen and Deletion Confirmation Tests', () {
+    testWidgets('PlaylistTracksEditScreen renders drag handles, cover thumbnails, native trash icon, and handles remove and save', (tester) async {
+      const playlist = Playlist(
+        id: 42,
+        name: 'Workout Mix',
+        songCount: 2,
+        totalDuration: 300000,
+        createdAt: 100,
+        updatedAt: 100,
+      );
+
+      final s1 = Song(
+        mediaStoreId: 701,
+        title: 'Track Alpha',
+        artist: 'Artist Alpha',
+        duration: 150000,
+        path: '/alpha.mp3',
+        dateModified: 100,
+      );
+      final s2 = Song(
+        mediaStoreId: 702,
+        title: 'Track Beta',
+        artist: 'Artist Beta',
+        duration: 150000,
+        path: '/beta.mp3',
+        dateModified: 100,
+      );
+
+      final fakePlaylistDao = FakePlaylistDao(playlistSongs: [s1, s2]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: PlaylistTracksEditScreen(
+            playlist: playlist,
+            initialSongs: [s1, s2],
+            playlistDao: fakePlaylistDao,
+            songDao: FakeSongDao([s1, s2]),
+            animateBounce: false,
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('EDITAR CANCIONES'), findsOneWidget);
+      expect(find.text('Track Alpha'), findsOneWidget);
+      expect(find.text('Track Beta'), findsOneWidget);
+
+      // Artwork covers on the left
+      expect(find.byType(AnimaArtworkImage), findsNWidgets(2));
+
+      // Native trash icons to discard tracks
+      expect(find.byIcon(Icons.delete_outline_rounded), findsNWidgets(2));
+
+      // Drag handles
+      expect(find.byIcon(Icons.drag_indicator_rounded), findsNWidgets(2));
+
+      // Remove Track Alpha using trash icon
+      await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);
+      await tester.pump();
+
+      expect(find.text('Track Alpha'), findsNothing);
+      expect(find.text('Track Beta'), findsOneWidget);
+
+      // Save tracks
+      await tester.tap(find.byKey(const ValueKey('playlist_tracks_save_button')));
+      await tester.pumpAndSettle();
+
+      expect(fakePlaylistDao.playlistSongs.length, 1);
+      expect(fakePlaylistDao.playlistSongs.first.title, 'Track Beta');
+    });
+
+    testWidgets('PlaylistDeleteDialog displays warning and confirms or cancels deletion', (tester) async {
+      bool? result;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Builder(
+            builder: (context) => ElevatedButton(
+              onPressed: () async {
+                result = await PlaylistDeleteDialog.show(
+                  context,
+                  playlistName: 'My Awesome Playlist',
+                );
+              },
+              child: const Text('Open Dialog'),
+            ),
+          ),
+        ),
+      );
+
+      // Open dialog
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Eliminar playlist'), findsOneWidget);
+      expect(find.textContaining('My Awesome Playlist'), findsOneWidget);
+      expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
+
+      // Cancel first
+      await tester.tap(find.text('CANCELAR'));
+      await tester.pumpAndSettle();
+      expect(result, isFalse);
+
+      // Open again and confirm
+      await tester.tap(find.text('Open Dialog'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('confirm_delete_playlist_button')));
+      await tester.pumpAndSettle();
+      expect(result, isTrue);
+    });
+
+    testWidgets('LibraryPlaylistsView long-press triggers PlaylistDeleteDialog and confirms deletion', (tester) async {
+      const playlist = Playlist(
+        id: 99,
+        name: 'Summer Hits',
+        songCount: 1,
+        totalDuration: 100,
+        createdAt: 100,
+        updatedAt: 100,
+      );
+
+      final fakePlaylistDao = FakePlaylistDao(playlistSongs: []);
+      fakePlaylistDao.lastCreated = playlist;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LibraryPlaylistsView(
+              playlists: [playlist],
+              playlistDao: fakePlaylistDao,
+              songDao: FakeSongDao([]),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Summer Hits'), findsOneWidget);
+
+      // Long press playlist card for 1 second
+      await tester.longPress(find.text('Summer Hits'));
+      await tester.pumpAndSettle();
+
+      // Deletion dialog is shown
+      expect(find.text('Eliminar playlist'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(PlaylistDeleteDialog),
+          matching: find.textContaining('Summer Hits'),
+        ),
+        findsOneWidget,
+      );
+
+      // Confirm delete
+      await tester.tap(find.byKey(const ValueKey('confirm_delete_playlist_button')));
+      await tester.pumpAndSettle();
+
+      expect(fakePlaylistDao.wasDeleted, isTrue);
     });
   });
 

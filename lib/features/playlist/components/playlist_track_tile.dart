@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -88,11 +89,11 @@ class PlaylistTrackTile extends StatelessWidget {
                   children: [
                     // 1. Margin Track Number (Aligned, Monospaced)
                     SizedBox(
-                      width: 32.0,
+                      width: 26.0,
                       child: isPlaying
                           ? Icon(
                               Icons.equalizer_rounded,
-                              size: 18.0,
+                              size: 17.0,
                               color: AppColors.accent,
                             )
                           : Text(
@@ -109,7 +110,19 @@ class PlaylistTrackTile extends StatelessWidget {
                     ),
                     const SizedBox(width: 8.0),
 
-                    // 2. Song Title & Artist (No cover)
+                    // 2. Song Cover Artwork (Left thumbnail)
+                    AnimaArtworkImage(
+                      mediaStoreId: song.mediaStoreId,
+                      albumId: song.albumId,
+                      width: 42.0,
+                      height: 42.0,
+                      borderRadius: 4.0,
+                      fallbackIcon: Icons.music_note_rounded,
+                      isThumbnail: true,
+                    ),
+                    const SizedBox(width: 10.0),
+
+                    // 3. Song Title & Artist
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

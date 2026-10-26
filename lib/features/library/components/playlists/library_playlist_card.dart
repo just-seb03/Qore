@@ -23,6 +23,9 @@ class LibraryPlaylistCard extends StatelessWidget {
   /// Callback when the playlist card is tapped.
   final VoidCallback? onTap;
 
+  /// Callback when the playlist card is long pressed.
+  final VoidCallback? onLongPress;
+
   /// Retained for backwards compatibility across tests.
   final VoidCallback? onPlayTap;
 
@@ -33,6 +36,7 @@ class LibraryPlaylistCard extends StatelessWidget {
     super.key,
     required this.playlist,
     this.onTap,
+    this.onLongPress,
     this.onPlayTap,
     this.showPlayButton = false,
   });
@@ -58,6 +62,7 @@ class LibraryPlaylistCard extends StatelessWidget {
           color: Colors.transparent,
           child: InkWell(
             onTap: onTap,
+            onLongPress: onLongPress,
             splashColor: Colors.white.withValues(alpha: 0.08),
             highlightColor: Colors.white.withValues(alpha: 0.04),
             child: PlaylistTextBanner(

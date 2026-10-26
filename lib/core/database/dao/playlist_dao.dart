@@ -298,15 +298,28 @@ class PlaylistDao {
     PinnedFavoritesDao.revision.value++;
   }
 
-  /// Deletes a playlist and its track associations.
+  /// Deletes a playlist, its track associations, and any pinned favorite reference.
   Future<void> deletePlaylist(int playlistId) async {
     final db = await _appDatabase.database;
-    await db.delete(
-      'playlists',
-      where: 'id = ?',
-      whereArgs: [playlistId],
-    );
+    await db.transaction((txn) async {
+      await txn.delete(
+        'playlist_songs',
+        where: 'playlist_id = ?',
+        whereArgs: [playlistId],
+      );
+      await txn.delete(
+        'pinned_favorites',
+        where: 'playlist_id = ?',
+        whereArgs: [playlistId],
+      );
+      await txn.delete(
+        'playlists',
+        where: 'id = ?',
+        whereArgs: [playlistId],
+      );
+    });
 
     notifyPlaylistsChanged();
+    PinnedFavoritesDao.revision.value++;
   }
 }

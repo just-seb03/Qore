@@ -98,30 +98,34 @@ class PlaylistDetailHeader extends StatelessWidget {
           // 1. Space-styled 2:1 Rectangular Hero Banner (sharp unrounded corners)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.zero,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.65),
-                    blurRadius: 28.0,
-                    spreadRadius: 1.0,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: PlaylistTextBanner(
-                title: playlist.name,
-                coverPath: playlist.coverPath,
-                representativeSongId: playlist.firstMediaStoreId,
-                fontFamily: playlist.fontFamily,
-                textAlignX: playlist.textAlignX,
-                textAlignY: playlist.textAlignY,
-                textColor: playlist.textColor,
-                textGradientColor: playlist.textGradientColor,
-                fontSize: playlist.fontSize,
-                textEffect: playlist.textEffect,
-                isInteractive: false,
+            child: GestureDetector(
+              key: const ValueKey('playlist_detail_banner_edit_trigger'),
+              onTap: isEditable ? onEdit : null,
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.zero,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      blurRadius: 28.0,
+                      spreadRadius: 1.0,
+                      offset: const Offset(0, 10),
+                    ),
+                  ],
+                ),
+                child: PlaylistTextBanner(
+                  title: playlist.name,
+                  coverPath: playlist.coverPath,
+                  representativeSongId: playlist.firstMediaStoreId,
+                  fontFamily: playlist.fontFamily,
+                  textAlignX: playlist.textAlignX,
+                  textAlignY: playlist.textAlignY,
+                  textColor: playlist.textColor,
+                  textGradientColor: playlist.textGradientColor,
+                  fontSize: playlist.fontSize,
+                  textEffect: playlist.textEffect,
+                  isInteractive: false,
+                ),
               ),
             ),
           ),

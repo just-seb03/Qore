@@ -164,11 +164,11 @@ class PlaylistReorderableSongList extends StatelessWidget {
                       ),
                     ),
 
-                    // 4. Remove Button ('X')
+                    // 4. Remove Button (Native Trash Icon)
                     IconButton(
                       icon: Icon(
-                        Icons.close_rounded,
-                        size: 18.0,
+                        Icons.delete_outline_rounded,
+                        size: 20.0,
                         color: AppColors.onSurfaceVariant,
                       ),
                       onPressed: () => onRemove(index),

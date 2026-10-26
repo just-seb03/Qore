@@ -10,6 +10,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
@@ -17,6 +18,7 @@ import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlist_card.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_placeholder.dart';
+import 'package:project_anima/features/playlist/components/playlist_delete_dialog.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 
 /// Coordinator view presenting user playlists in the Library tab.
@@ -163,6 +165,21 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
     }
   }
 
+  Future<void> _handlePlaylistLongPress(Playlist playlist) async {
+    if (playlist.id == null || playlist.id! <= 0) return;
+    HapticFeedback.mediumImpact();
+
+    final confirmed = await PlaylistDeleteDialog.show(
+      context,
+      playlistName: playlist.name,
+    );
+
+    if (confirmed == true && mounted) {
+      await _playlistDao.deletePlaylist(playlist.id!);
+      await reloadPlaylists();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
@@ -200,6 +217,7 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
           key: ValueKey('library_playlist_card_${playlist.id ?? index}'),
           playlist: playlist,
           onTap: () => _handlePlaylistTap(playlist),
+          onLongPress: () => _handlePlaylistLongPress(playlist),
           onPlayTap: () => _handlePlayTap(playlist),
         );
       },
