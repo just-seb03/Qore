@@ -263,6 +263,7 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
     if (!mounted) return;
 
     if (_controller.currentIndex != _renderedCurrentIndex) {
+      FocusManager.instance.primaryFocus?.unfocus();
       if (!_controller.isAnimating) {
         setState(() {
           _renderedCurrentIndex = _controller.currentIndex;
@@ -365,6 +366,7 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
     }
 
     return Scaffold(
+      resizeToAvoidBottomInset: false,
       extendBody: true,
       backgroundColor: Colors.transparent,
       body: animatedContent,

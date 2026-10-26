@@ -215,6 +215,7 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
 
   void _handleOpenTodaySelection(BuildContext context) {
     if (_todaySongs.isEmpty) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final todayPlaylist = Playlist(
@@ -238,6 +239,7 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
 
   void _handleOpenRecientes(BuildContext context) {
     if (_recentlyPlayedSongs.isEmpty) return;
+    FocusManager.instance.primaryFocus?.unfocus();
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final recentPlaylist = Playlist(
@@ -271,6 +273,7 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
 
     return SingleChildScrollView(
       controller: widget.scrollController,
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(top: 8.0, bottom: 160.0),
       child: Column(

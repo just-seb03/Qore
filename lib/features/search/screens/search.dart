@@ -80,6 +80,7 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   Future<void> _handleRecentItemTap(RecentSearchItem item) async {
+    _searchFocusNode.unfocus();
     void deferTouch() {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         Future.delayed(const Duration(milliseconds: 400), () {
@@ -123,10 +124,12 @@ class _SearchScreenState extends State<SearchScreen>
   final SongDao _songDao = SongDao();
 
   void _handleArtistTap(ArtistDiscoveryItem artist) {
+    _searchFocusNode.unfocus();
     Navigator.of(context).push(ArtistDetailScreen.route(artist.name));
   }
 
   Future<void> _handleArtistPlayTap(ArtistDiscoveryItem artist) async {
+    _searchFocusNode.unfocus();
     try {
       final songs = await _songDao.getSongsByArtist(artist.name);
       if (songs.isNotEmpty) {
@@ -148,6 +151,7 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   void _handleAlbumTap(AlbumDiscoveryItem album) {
+    _searchFocusNode.unfocus();
     Navigator.of(context).push(
       AlbumDetailScreen.route(
         albumName: album.name,
@@ -159,6 +163,7 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   Future<void> _handleAlbumPlayTap(AlbumDiscoveryItem album) async {
+    _searchFocusNode.unfocus();
     try {
       var songs = await _songDao.getSongsByAlbum(
         album.name,
@@ -190,6 +195,7 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   void _handleSongTap(Song song) {
+    _searchFocusNode.unfocus();
     PlaybackController.instance.playSong(
       song,
       queue: _searchEngine.resultsGroup.matchedSongs.isNotEmpty
@@ -200,6 +206,7 @@ class _SearchScreenState extends State<SearchScreen>
   }
 
   void _handleTopSongCardTap(Song song) {
+    _searchFocusNode.unfocus();
     final albumName = (song.album != null &&
             song.album!.trim().isNotEmpty &&
             song.album != '<Desconocido>')
@@ -284,6 +291,7 @@ class _SearchScreenState extends State<SearchScreen>
         }
       },
       child: Scaffold(
+        resizeToAvoidBottomInset: false,
         extendBody: true,
         backgroundColor: AppColors.bottomNavBackground,
         body: SafeArea(

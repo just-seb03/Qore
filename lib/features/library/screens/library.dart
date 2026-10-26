@@ -45,6 +45,16 @@ class LibraryPlaylistsFabLocation extends FloatingActionButtonLocation {
         bottomOffset;
     return Offset(fabX, fabY);
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is LibraryPlaylistsFabLocation &&
+        (other.bottomOffset - bottomOffset).abs() < 0.5;
+  }
+
+  @override
+  int get hashCode => bottomOffset.round().hashCode;
 }
 
 /// Type alias allowing both `Library` and `LibraryScreen` across the codebase.
@@ -224,6 +234,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           ),
           floatingActionButton: currentFilter == LibraryFilter.playlists
               ? Container(
+                  key: const ValueKey('library_create_playlist_fab_container'),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16.0),
                     boxShadow: [
@@ -261,6 +272,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           floatingActionButtonLocation: currentFilter == LibraryFilter.playlists
               ? LibraryPlaylistsFabLocation(fabBottomOffset)
               : null,
+          floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
           bottomNavigationBar: widget.showBottomNav
               ? const AppBottomNav(
                   currentIndex: 2,

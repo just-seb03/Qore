@@ -16,6 +16,7 @@ library;
 
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -205,6 +206,8 @@ class _AppSearchBarState extends State<AppSearchBar>
         onTap: () {
           if (!_effectiveFocusNode.hasFocus) {
             _effectiveFocusNode.requestFocus();
+          } else {
+            SystemChannels.textInput.invokeMethod<void>('TextInput.show');
           }
         },
         child: SizedBox(
@@ -311,18 +314,18 @@ class _AppSearchBarState extends State<AppSearchBar>
                           // D. Expanded Search Input Field & Placeholder
                           Positioned(
                             left: 48.0,
-                            right: 48.0,
+                            width: (maxWidth - 96.0).clamp(100.0, double.infinity),
                             child: Opacity(
-                              opacity: animValue,
+                              opacity: animValue.clamp(0.0, 1.0),
                               child: IgnorePointer(
-                                ignoring: animValue == 0.0,
+                                ignoring: animValue < 0.2,
                                 child: TextField(
                                   controller: effectiveController,
                                   focusNode: _effectiveFocusNode,
                                   autofocus: widget.autoFocus,
                                   onChanged: widget.onChanged,
                                   onTapOutside: (_) {
-                                    // Maintain focus; don't auto-dismiss keyboard on taps
+                                    _effectiveFocusNode.unfocus();
                                   },
                                   style: AppSearchBar._baseTextStyle.copyWith(
                                     color: colorScheme.onSurface,

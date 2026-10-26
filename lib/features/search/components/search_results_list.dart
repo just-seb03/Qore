@@ -178,6 +178,7 @@ class SearchResultsList extends StatelessWidget {
         // 4. Render Dynamic Spotify-style Hierarchical Sections
         return ListView(
           controller: scrollController,
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.only(top: 8.0, bottom: 160.0),
           children: _buildDynamicSections(results),
