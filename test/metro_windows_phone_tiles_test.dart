@@ -232,7 +232,7 @@ void main() {
   });
 
   group('MetroTileGlassBack Widget Tests', () {
-    testWidgets('renders BackdropFilter with frosted glass blur and theme styling',
+    testWidgets('renders solid surfaceContainerHigh background without glass or BackdropFilter',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -251,7 +251,13 @@ void main() {
 
       expect(find.text('ÁLBUM'), findsOneWidget);
       expect(find.byIcon(Icons.album_rounded), findsOneWidget);
-      expect(find.byType(BackdropFilter), findsOneWidget);
+      expect(find.byType(BackdropFilter), findsNothing);
+      expect(
+        find.byWidgetPredicate(
+          (w) => w is ColoredBox && w.color == AppColors.surfaceContainerHigh,
+        ),
+        findsOneWidget,
+      );
     });
   });
 
