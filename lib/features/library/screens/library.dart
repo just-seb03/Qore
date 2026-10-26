@@ -166,8 +166,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
         final currentFilter = _transitionController.currentFilter;
         final hasMiniPlayer = PlaybackController.instance.currentSong != null;
         final bottomInset = MediaQuery.paddingOf(context).bottom;
+        const double navBarHeight = 80.0;
+        final double miniPlayerHeight = hasMiniPlayer ? 72.0 : 0.0;
+        const double separation = 16.0;
         final fabBottomOffset =
-            (hasMiniPlayer ? 72.0 : 0.0) + 64.0 + bottomInset + 16.0;
+            miniPlayerHeight + navBarHeight + bottomInset + separation;
 
         return Scaffold(
           extendBody: true,
@@ -208,7 +211,6 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           playlists: widget.initialPlaylists,
                           playlistDao: widget.playlistDao,
                           songDao: widget.songDao,
-                          onCreatePlaylist: _openCreatePlaylistScreen,
                         ),
                       ],
                     ),
@@ -218,20 +220,39 @@ class _LibraryScreenState extends State<LibraryScreen> {
             ),
           ),
           floatingActionButton: currentFilter == LibraryFilter.playlists
-              ? FloatingActionButton(
-                  key: const ValueKey('library_create_playlist_fab'),
-                  onPressed: _openCreatePlaylistScreen,
-                  backgroundColor: AppColors.navIndicator,
-                  foregroundColor: AppColors.futuristicWhite,
-                  elevation: 6.0,
-                  shape: RoundedRectangleBorder(
+              ? Container(
+                  decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(16.0),
-                    side: BorderSide(
-                      color: AppColors.outline,
-                      width: 1.0,
-                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.60),
+                        blurRadius: 18.0,
+                        spreadRadius: 2.0,
+                        offset: const Offset(0, 8),
+                      ),
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.35),
+                        blurRadius: 12.0,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: const Icon(Icons.add_rounded, size: 28.0),
+                  child: FloatingActionButton(
+                    key: const ValueKey('library_create_playlist_fab'),
+                    onPressed: _openCreatePlaylistScreen,
+                    backgroundColor: AppColors.accent,
+                    foregroundColor: AppColors.onAccent,
+                    elevation: 0.0,
+                    highlightElevation: 0.0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16.0),
+                      side: BorderSide(
+                        color: AppColors.outline.withValues(alpha: 0.4),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: const Icon(Icons.add_rounded, size: 28.0),
+                  ),
                 )
               : null,
           floatingActionButtonLocation: currentFilter == LibraryFilter.playlists

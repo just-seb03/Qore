@@ -14,13 +14,7 @@ import 'package:project_anima/core/theme/theme.dart';
 
 /// Placeholder state widget for the Playlists view.
 class LibraryPlaylistsPlaceholder extends StatelessWidget {
-  /// Optional callback invoked when tapping the create playlist action.
-  final VoidCallback? onCreatePlaylist;
-
-  const LibraryPlaylistsPlaceholder({
-    super.key,
-    this.onCreatePlaylist,
-  });
+  const LibraryPlaylistsPlaceholder({super.key});
 
   static final TextStyle _headerStyle = GoogleFonts.inconsolata(
     fontSize: 14.0,
@@ -59,35 +53,6 @@ class LibraryPlaylistsPlaceholder extends StatelessWidget {
               textAlign: TextAlign.center,
               style: _subtitleStyle,
             ),
-            if (onCreatePlaylist != null) ...[
-              const SizedBox(height: 22.0),
-              OutlinedButton.icon(
-                key: const ValueKey('library_empty_create_playlist_button'),
-                onPressed: onCreatePlaylist,
-                icon: const Icon(Icons.add_rounded, size: 20.0),
-                label: Text(
-                  context.l10n.playlist.createPlaylistTitle,
-                  style: GoogleFonts.inconsolata(
-                    fontSize: 13.0,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.accent,
-                  side: BorderSide(
-                    color: AppColors.accent.withValues(alpha: 0.5),
-                  ),
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 20.0,
-                    vertical: 12.0,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.0),
-                  ),
-                ),
-              ),
-            ],
           ],
         ),
       ),
