@@ -165,12 +165,15 @@ class _LibraryScreenState extends State<LibraryScreen> {
       builder: (context, _) {
         final currentFilter = _transitionController.currentFilter;
         final hasMiniPlayer = PlaybackController.instance.currentSong != null;
-        final bottomInset = MediaQuery.paddingOf(context).bottom;
-        const double navBarHeight = 80.0;
-        final double miniPlayerHeight = hasMiniPlayer ? 72.0 : 0.0;
+        final mqBottom = MediaQuery.paddingOf(context).bottom;
+        // When hosted in MenuTransitionControl, mqBottom already contains the exact height
+        // of the bottom navigation bar (and MiniPlayer if active) plus device safe area.
+        // In standalone/test environments, fallback to explicit baseline offsets.
         const double separation = 16.0;
-        final fabBottomOffset =
-            miniPlayerHeight + navBarHeight + bottomInset + separation;
+        final double baseBottomOffset = (mqBottom > 60.0)
+            ? mqBottom
+            : (80.0 + (hasMiniPlayer ? 72.0 : 0.0) + mqBottom);
+        final fabBottomOffset = baseBottomOffset + separation;
 
         return Scaffold(
           extendBody: true,
