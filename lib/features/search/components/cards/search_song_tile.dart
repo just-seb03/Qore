@@ -69,7 +69,10 @@ class SearchSongTile extends StatelessWidget {
         return Material(
           color: Colors.transparent,
           child: InkWell(
-            onTap: onTap,
+            onTap: () {
+              SongOptionsPillCoordinator.instance.close();
+              onTap?.call();
+            },
             splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
             highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
             child: Padding(

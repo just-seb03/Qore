@@ -9,6 +9,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/localization/localization_controller.dart';
 import 'package:project_anima/core/localization/translations/es/startup/es_startup_strings.dart';
@@ -17,6 +18,7 @@ import 'package:project_anima/core/scanner/models/indexing_result.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/startup/components/startup_celebration_stars.dart';
 import 'package:project_anima/features/startup/components/startup_header.dart';
 import 'package:project_anima/features/startup/components/startup_loading_view.dart';
 import 'package:project_anima/features/startup/components/startup_permission_card_view.dart';
@@ -222,6 +224,13 @@ void main() {
 
     test('Startup strings return valid Spanish translations', () {
       const strings = EsStartupStrings();
+      expect(strings.welcomeLine1, 'Bienvenido');
+      expect(strings.welcomeLine2, 'A');
+      expect(strings.welcomeLine3, 'Anima');
+      expect(strings.musicAccessPrompt, contains('Para poder utilizar Anima'));
+      expect(strings.notificationAccessPrompt, contains('notifiaciones'));
+      expect(strings.permissionDeniedPrompt, contains('No se otorgaron los permisos'));
+      expect(strings.nextAction, 'SIGUIENTE');
       expect(strings.permissionsCardTitle, 'PERMISOS REQUERIDOS');
       expect(strings.musicAccessTitle, 'Acceso a la música');
       expect(strings.notificationAccessTitle, 'Acceso a notificaciones');
@@ -330,7 +339,7 @@ void main() {
       expect(find.byType(CustomPaint), findsWidgets);
     });
 
-    testWidgets('StartupSplashView animates brand title and triggers onCompleted when tapped', (tester) async {
+    testWidgets('StartupSplashView animates Bienvenido / A / Anima brand title and triggers onCompleted when tapped', (tester) async {
       bool completed = false;
 
       await tester.pumpWidget(
@@ -341,7 +350,9 @@ void main() {
         ),
       );
 
-      expect(find.text('PROJECT ANIMA'), findsOneWidget);
+      expect(find.text('Welcome'), findsOneWidget);
+      expect(find.text('To'), findsOneWidget);
+      expect(find.text('Anima'), findsOneWidget);
 
       // Tap on screen to fast-forward
       await tester.tap(find.byType(StartupSplashView));
@@ -350,27 +361,73 @@ void main() {
       expect(completed, isTrue);
     });
 
-    testWidgets('StartupPermissionCardView renders both permissions and triggers callback', (tester) async {
+    testWidgets('StartupPermissionCardView stages from < 1 > music to < 2 > notifications to request', (tester) async {
       bool permissionsRequested = false;
 
       await tester.pumpWidget(
         _wrapWithLocalization(
           child: StartupPermissionCardView(
-            onRequestPermissions: () => permissionsRequested = true,
+            onRequestPermissions: () {
+              permissionsRequested = true;
+              return true;
+            },
           ),
         ),
       );
 
-      expect(find.text('PERMISSIONS REQUIRED'), findsOneWidget);
-      expect(find.text('Music & Audio Access'), findsOneWidget);
-      expect(find.text('Notification Controls'), findsOneWidget);
-      expect(find.text('GRANT PERMISSIONS'), findsOneWidget);
+      // Page 1: Music note icon, access prompt, animated indicator < 1 >, and NEXT button
+      expect(find.byIcon(Icons.music_note_rounded), findsOneWidget);
+      expect(find.textContaining('access to your music files'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('NEXT'), findsOneWidget);
 
-      await tester.tap(find.text('GRANT PERMISSIONS'));
+      // Tap NEXT to advance to Page 2
+      await tester.tap(find.text('NEXT'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Page 2: Notification icon, background playback prompt, indicator < 2 >, and NEXT button
+      expect(find.byIcon(Icons.notifications_active_rounded), findsOneWidget);
+      expect(find.textContaining('notification system'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('NEXT'), findsOneWidget);
+
+      // Tap NEXT to launch permissions request
+      await tester.tap(find.text('NEXT'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+
       expect(permissionsRequested, isTrue);
     });
 
-    testWidgets('StartupThemeSelectorView renders theme family tabs, mode toggle, and allows selection', (tester) async {
+    testWidgets('StartupPermissionCardView displays monochrome alert icon, error prompt and removes < 2 > on denial', (tester) async {
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          child: StartupPermissionCardView(
+            initialPage: 2,
+            initialDenied: false,
+            onRequestPermissions: () async => false, // denied
+          ),
+        ),
+      );
+
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('NEXT'), findsOneWidget);
+
+      // Tap NEXT, request fails/denied
+      await tester.tap(find.text('NEXT'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      await tester.pump(const Duration(milliseconds: 300));
+
+      // Denial state: Monochrome warning/alert icon, error prompt, hidden < 2 >, and retry NEXT button
+      expect(find.byIcon(Icons.warning_amber_rounded), findsOneWidget);
+      expect(find.textContaining('permissions were not granted'), findsOneWidget);
+      expect(find.text('2'), findsNothing);
+      expect(find.text('NEXT'), findsOneWidget);
+    });
+
+    testWidgets('StartupThemeSelectorView renders player preview, < Theme > and < Mode > selectors, and allows selection', (tester) async {
       bool accepted = false;
 
       await tester.pumpWidget(
@@ -381,25 +438,35 @@ void main() {
         ),
       );
 
-      expect(find.text('SELECT THEME'), findsOneWidget);
-      expect(find.text('Solar'), findsWidgets);
-      expect(find.text('That Pad'), findsOneWidget);
-      expect(find.text('Corporate'), findsOneWidget);
-      expect(find.text('Neo-Tokyo'), findsOneWidget);
-      expect(find.text('Monochrome'), findsOneWidget);
-      expect(find.text('Dark'), findsOneWidget);
-      expect(find.text('Light'), findsOneWidget);
-      expect(find.text('ACCEPT'), findsOneWidget);
+      // 0. Top Prompt Title
+      expect(find.text("What's your style?"), findsOneWidget);
 
-      // Select That Pad tab
-      await tester.tap(find.text('That Pad'));
+      // 1. Scaled down player preview imitation
+      expect(find.text('Dewdrop Digital'), findsOneWidget);
+      expect(find.text('Iglooghost'), findsOneWidget);
+      expect(find.text('Tidal Memory Exo'), findsOneWidget);
+      expect(find.text('1:38'), findsOneWidget);
+      expect(find.text('4:05'), findsOneWidget);
+
+      // 2. Theme selector inside < >
+      expect(find.text('< Monochrome >'), findsOneWidget);
+
+      // 3. Brightness mode selector inside < >
+      expect(find.text('< Dark >'), findsOneWidget);
+      expect(find.text('NEXT'), findsOneWidget);
+
+      // Cycle to next theme using chevron button
+      await tester.tap(find.byKey(const ValueKey('startup_theme_next_button')));
       await tester.pumpAndSettle();
+      expect(find.text('< That Pad >'), findsOneWidget);
 
-      // Switch to Light mode
-      await tester.tap(find.text('Light'));
+      // Toggle to Light mode
+      await tester.tap(find.byKey(const ValueKey('startup_mode_toggle_next')));
       await tester.pumpAndSettle();
+      expect(find.text('< Light >'), findsOneWidget);
 
-      await tester.tap(find.text('ACCEPT'));
+      // Tap NEXT to accept
+      await tester.tap(find.byKey(const ValueKey('startup_theme_accept_button')));
       expect(accepted, isTrue);
       expect(ThemeController.instance.activeFamily, 'that_pad');
       expect(ThemeController.instance.isDarkMode, isFalse);
@@ -423,23 +490,31 @@ void main() {
       expect(find.text('50%'), findsOneWidget);
     });
 
-    testWidgets('StartupLoadingView renders header, wavy bar, and status labels', (tester) async {
+    testWidgets('StartupLoadingView renders centered wavy bar, subtle brand label, and celebration stars on complete', (tester) async {
+      bool celebrationDone = false;
+
       await tester.pumpWidget(
         _wrapWithLocalization(
-          child: const StartupLoadingView(
-            state: StartupState(
-              stage: StartupStage.savingCovers,
-              progress: 0.75,
-              statusText: 'Saving covers...',
+          child: StartupLoadingView(
+            state: const StartupState(
+              stage: StartupStage.ready,
+              progress: 1.0,
+              statusText: 'All set!',
             ),
+            celebrate: true,
+            onCelebrationComplete: () => celebrationDone = true,
           ),
         ),
       );
 
-      expect(find.text('PROJECT ANIMA'), findsOneWidget);
+      // Only centered progress bar and bottom subtle brand title
       expect(find.byType(StartupProgressBar), findsOneWidget);
-      expect(find.text('Saving covers...'), findsOneWidget);
-      expect(find.text('75%'), findsOneWidget);
+      expect(find.text('project_anima'), findsOneWidget);
+      expect(find.byType(StartupCelebrationStars), findsOneWidget);
+
+      // Advance through celebration duration
+      await tester.pump(const Duration(milliseconds: 1400));
+      expect(celebrationDone, isTrue);
     });
 
     testWidgets('StartupPermissionView renders legacy denied screen correctly', (tester) async {
@@ -506,22 +581,31 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500)); // AnimatedSwitcher transition
 
-      // 2. Step 2: Permission Card View
+      // 2. Step 2: Permission Card View (Staged Onboarding Menu)
       expect(find.byType(StartupPermissionCardView), findsOneWidget);
-      expect(find.text('GRANT PERMISSIONS'), findsOneWidget);
+      expect(find.text('NEXT'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
 
-      // Tap Grant Permissions button
-      await tester.tap(find.text('GRANT PERMISSIONS'));
+      // Tap NEXT to advance to Page 2 (< 2 >)
+      await tester.tap(find.text('NEXT'));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500)); // AnimatedSwitcher transition
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.text('2'), findsOneWidget);
+
+      // Tap NEXT to request permissions and advance
+      await tester.tap(find.text('NEXT'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 600)); // Darkening and grant
+      await tester.pump(const Duration(milliseconds: 600)); // Transformation transition to ThemeSelector
 
       // 3. Step 3: Theme Selector View
       expect(find.byType(StartupThemeSelectorView), findsOneWidget);
-      expect(find.text('Monochrome'), findsOneWidget);
-      expect(find.text('ACCEPT'), findsOneWidget);
+      expect(find.text('Dewdrop Digital'), findsOneWidget);
+      expect(find.text('NEXT'), findsOneWidget);
 
-      // Tap Accept theme button
-      await tester.tap(find.text('ACCEPT'));
+      // Tap NEXT to accept theme and advance to library loading
+      await tester.tap(find.byKey(const ValueKey('startup_theme_accept_button')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500)); // AnimatedSwitcher transition
 
@@ -532,11 +616,70 @@ void main() {
       await tester.pump(const Duration(milliseconds: 300));
       await tester.pump(const Duration(milliseconds: 500));
       await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump(const Duration(milliseconds: 1400)); // Celebration stars duration
       await tester.pumpAndSettle();
 
       // Successfully reached destination screen!
       expect(find.byKey(destinationKey), findsOneWidget);
       expect(find.text('Main Menu'), findsOneWidget);
+    });
+
+    testWidgets('StartupLoadingScreen skips onboarding and loads directly on second launch', (tester) async {
+      final fakePerm = _FakePermissionService();
+      final fakeIndexer = _FakeMusicIndexer();
+      final mockMetadataDao = AppMetadataDao(mockOnboardingCompleted: true);
+
+      final controller = StartupController(
+        permissionService: fakePerm,
+        musicIndexer: fakeIndexer,
+        appMetadataDao: mockMetadataDao,
+      );
+
+      const destinationKey = Key('destination_screen_second_launch');
+
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: AppTheme.darkTheme,
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: StartupLoadingScreen(
+            controller: controller,
+            destinationScreen: const Scaffold(
+              key: destinationKey,
+              body: Text('Second Launch Destination'),
+            ),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // Skips splash, permissions, and theme selector!
+      expect(find.byType(StartupSplashView), findsNothing);
+      expect(find.byType(StartupPermissionCardView), findsNothing);
+      expect(find.byType(StartupThemeSelectorView), findsNothing);
+
+      // Mounts loading view directly
+      expect(find.byType(StartupLoadingView), findsOneWidget);
+      expect(find.text('project_anima'), findsOneWidget);
+
+      // Settle scanning sequence
+      await tester.pump(const Duration(milliseconds: 300));
+      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pumpAndSettle();
+
+      // Directly reaches destination screen without celebration stars
+      expect(find.byType(StartupCelebrationStars), findsNothing);
+      expect(find.byKey(destinationKey), findsOneWidget);
+      expect(find.text('Second Launch Destination'), findsOneWidget);
     });
 
     testWidgets('StartupLoadingScreen renders legacy permission denied screen when stage is permissionDenied', (tester) async {
@@ -575,6 +718,53 @@ void main() {
 
       expect(find.byType(StartupPermissionView), findsOneWidget);
       expect(find.text('AUDIO ACCESS REQUIRED'), findsOneWidget);
+    });
+
+    testWidgets('StartupPlayerPreview renders without borders, borderRadius, or shadows (flat background integration)', (tester) async {
+      await tester.pumpWidget(
+        _wrapWithLocalization(
+          child: const StartupPlayerPreview(
+            isDark: true,
+            themeOption: StartupThemeOption.monochrome,
+          ),
+        ),
+      );
+
+      final previewFinder = find.byType(StartupPlayerPreview);
+      expect(previewFinder, findsOneWidget);
+
+      // Verify root container is a SizedBox, not a decorated card container with borders or shadows
+      final rootSizedBoxFinder = find.descendant(of: previewFinder, matching: find.byType(SizedBox)).first;
+      final rootSizedBox = tester.widget<SizedBox>(rootSizedBoxFinder);
+      expect(rootSizedBox.width, 196.0);
+
+      // Verify no outer card Container exists with bounding box decoration / border / shadow / radius
+      final outerCardContainers = tester.widgetList<Container>(
+        find.descendant(of: previewFinder, matching: find.byType(Container)),
+      ).where((c) => c.constraints?.maxWidth == 196.0 || c.child is Column);
+      expect(outerCardContainers.isEmpty, isTrue, reason: 'Root player preview must be flat and integrated into background with no card container');
+    });
+
+    test('ThemeController persists active family and isDark to AppMetadataDao and restores on init', () async {
+      final dao = AppMetadataDao.instance;
+      dao.setMockTheme(family: null, isDark: null);
+
+      // 1. Change theme via controller
+      ThemeController.instance.setTheme('solar', isDark: false);
+      expect(ThemeController.instance.activeFamily, 'solar');
+      expect(ThemeController.instance.isDarkMode, isFalse);
+      expect(dao.cachedThemeFamily, 'solar');
+      expect(dao.cachedIsDarkMode, isFalse);
+
+      // 2. Re-initialize controller from persisted DAO
+      dao.setMockTheme(family: 'that_pad', isDark: true);
+      await ThemeController.instance.init(appMetadataDao: dao);
+
+      expect(ThemeController.instance.activeFamily, 'that_pad');
+      expect(ThemeController.instance.isDarkMode, isTrue);
+
+      // Cleanup
+      ThemeController.instance.setTheme('monochrome', isDark: true);
     });
   });
 }

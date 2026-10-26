@@ -7,6 +7,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/theme/contracts/app_theme_palette.dart';
 import 'package:project_anima/core/theme/corporate/dark/corporate_dark_theme.dart';
 import 'package:project_anima/core/theme/corporate/light/corporate_light_theme.dart';
@@ -51,6 +52,7 @@ class ThemeController extends ChangeNotifier {
 
   String _activeFamily = 'monochrome';
   bool _isDarkMode = true;
+  bool _initialized = false;
 
   /// Ordered list of available theme family identifiers.
   List<String> get availableFamilies => const [
@@ -67,6 +69,9 @@ class ThemeController extends ChangeNotifier {
   /// Whether dark mode is currently selected.
   bool get isDarkMode => _isDarkMode;
 
+  /// Whether controller has loaded persisted theme preferences.
+  bool get isInitialized => _initialized;
+
   /// Active theme palette tokens.
   AppThemePalette get currentPalette {
     final familyMap = _registry[_activeFamily] ?? _registry['monochrome']!;
@@ -75,6 +80,25 @@ class ThemeController extends ChangeNotifier {
 
   /// Active cached [ThemeData] for [MaterialApp].
   ThemeData get currentThemeData => currentPalette.toThemeData();
+
+  /// Initializes the active theme from persistent metadata if available.
+  Future<void> init({AppMetadataDao? appMetadataDao}) async {
+    final dao = appMetadataDao ?? AppMetadataDao.instance;
+    try {
+      final savedFamily = await dao.getThemeFamily();
+      if (savedFamily != null && _registry.containsKey(savedFamily)) {
+        _activeFamily = savedFamily;
+      }
+      final savedDark = await dao.getIsDarkMode();
+      if (savedDark != null) {
+        _isDarkMode = savedDark;
+      }
+      _initialized = true;
+      notifyListeners();
+    } catch (e) {
+      debugPrint('⚠️ [ThemeController] Error initializing theme: $e');
+    }
+  }
 
   /// Retrieves a specific theme palette by family and brightness.
   AppThemePalette getPalette(String family, {required bool isDark}) {
@@ -88,10 +112,12 @@ class ThemeController extends ChangeNotifier {
     if (_registry.containsKey(family) && _activeFamily != family) {
       _activeFamily = family;
       changed = true;
+      AppMetadataDao.instance.setThemeFamily(family);
     }
     if (isDark != null && _isDarkMode != isDark) {
       _isDarkMode = isDark;
       changed = true;
+      AppMetadataDao.instance.setIsDarkMode(isDark);
     }
     if (changed) {
       notifyListeners();
@@ -102,6 +128,7 @@ class ThemeController extends ChangeNotifier {
   void setDarkMode(bool isDark) {
     if (_isDarkMode != isDark) {
       _isDarkMode = isDark;
+      AppMetadataDao.instance.setIsDarkMode(isDark);
       notifyListeners();
     }
   }
@@ -109,6 +136,7 @@ class ThemeController extends ChangeNotifier {
   /// Toggles between Dark and Light mode.
   void toggleBrightness() {
     _isDarkMode = !_isDarkMode;
+    AppMetadataDao.instance.setIsDarkMode(_isDarkMode);
     notifyListeners();
   }
 }

@@ -64,9 +64,19 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
 
     if (widget.initialStep != null) {
       _controller.goToStep(widget.initialStep!);
+    } else if (!_controller.isPermissionDenied) {
+      if (!_controller.isFirstLaunch) {
+        _controller.startScanningSequence();
+      } else {
+        _initFirstLaunchCheck();
+      }
     }
 
     _controller.addListener(_onControllerStateChanged);
+  }
+
+  Future<void> _initFirstLaunchCheck() async {
+    await _controller.checkOnboardingAndInitialize();
   }
 
   @override
@@ -78,29 +88,65 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
     super.dispose();
   }
 
+  void _onCelebrationCompleted() {
+    if (_hasNavigated || !mounted) return;
+    _controller.markOnboardingCompleted();
+    _navigateToDestination();
+  }
+
+  void _navigateToDestination() {
+    if (_hasNavigated || !mounted) return;
+    _hasNavigated = true;
+    final target = widget.destinationScreen ?? const MenuTransitionControl();
+    Navigator.of(context).pushReplacement(
+      PageRouteBuilder<void>(
+        pageBuilder: (context, animation, secondaryAnimation) => target,
+        transitionDuration: const Duration(milliseconds: 400),
+        transitionsBuilder: (context, animation, secondaryAnimation, child) {
+          return FadeTransition(
+            opacity: CurvedAnimation(
+              parent: animation,
+              curve: Curves.easeOutCubic,
+            ),
+            child: child,
+          );
+        },
+      ),
+    );
+  }
+
   void _onControllerStateChanged() {
     if (_controller.state.stage == StartupStage.ready && !_hasNavigated && mounted) {
-      _hasNavigated = true;
-      // Brief aesthetic pause to celebrate completion
-      Future.delayed(const Duration(milliseconds: 380), () {
-        if (!mounted) return;
-        final target = widget.destinationScreen ?? const MenuTransitionControl();
-        Navigator.of(context).pushReplacement(
-          PageRouteBuilder<void>(
-            pageBuilder: (context, animation, secondaryAnimation) => target,
-            transitionDuration: const Duration(milliseconds: 400),
-            transitionsBuilder: (context, animation, secondaryAnimation, child) {
-              return FadeTransition(
-                opacity: CurvedAnimation(
-                  parent: animation,
-                  curve: Curves.easeOutCubic,
-                ),
-                child: child,
-              );
-            },
-          ),
-        );
-      });
+      if (!_controller.isFirstLaunch) {
+        // Second time onwards: no celebration stars, navigate directly after subtle settle
+        Future.delayed(const Duration(milliseconds: 250), () {
+          if (!mounted) return;
+          _navigateToDestination();
+        });
+      } else {
+        // Fallback safety in case celebration view was not mounted
+        Future.delayed(const Duration(milliseconds: 2200), () {
+          if (!_hasNavigated && mounted) {
+            _onCelebrationCompleted();
+          }
+        });
+      }
+    }
+  }
+
+  Key _getActiveStepKey(StartupState state) {
+    if (state.stage == StartupStage.permissionDenied) {
+      return const ValueKey('startup_permission_denied_view');
+    }
+    switch (state.step) {
+      case StartupStep.splash:
+        return const ValueKey('startup_splash_view');
+      case StartupStep.permissions:
+        return const ValueKey('startup_permission_card_view');
+      case StartupStep.themeSelector:
+        return const ValueKey('startup_theme_selector_view');
+      case StartupStep.loading:
+        return const ValueKey('startup_loading_view');
     }
   }
 
@@ -123,6 +169,7 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
       case StartupStep.permissions:
         return StartupPermissionCardView(
           key: const ValueKey('startup_permission_card_view'),
+          isDenied: state.stage == StartupStage.permissionDenied,
           onRequestPermissions: _controller.requestPermissionsAndProceed,
         );
 
@@ -136,6 +183,8 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
         return StartupLoadingView(
           key: const ValueKey('startup_loading_view'),
           state: state,
+          celebrate: _controller.isFirstLaunch,
+          onCelebrationComplete: _onCelebrationCompleted,
         );
     }
   }
@@ -156,25 +205,47 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
                 animation: _controller,
                 builder: (context, _) {
                   final state = _controller.state;
+                  final activeKey = _getActiveStepKey(state);
 
                   return AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 450),
+                    duration: const Duration(milliseconds: 400),
                     switchInCurve: Curves.easeOutCubic,
                     switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.0, 0.04),
-                            end: Offset.zero,
-                          ).animate(CurvedAnimation(
-                            parent: animation,
-                            curve: Curves.easeOutCubic,
-                          )),
-                          child: child,
-                        ),
+                    layoutBuilder: (currentChild, previousChildren) {
+                      return Stack(
+                        alignment: Alignment.center,
+                        children: <Widget>[
+                          ...previousChildren,
+                          ?currentChild,
+                        ],
                       );
+                    },
+                    transitionBuilder: (child, animation) {
+                      final isIncoming = child.key == activeKey;
+                      if (isIncoming) {
+                        // Incoming child emerges only after outgoing child has faded out
+                        final inAnim = CurvedAnimation(
+                          parent: animation,
+                          curve: const Interval(0.40, 1.0, curve: Curves.easeOutCubic),
+                        );
+                        return FadeTransition(
+                          opacity: inAnim,
+                          child: ScaleTransition(
+                            scale: Tween<double>(begin: 0.94, end: 1.0).animate(inAnim),
+                            child: child,
+                          ),
+                        );
+                      } else {
+                        // Outgoing child cleanly fades out with zero visual overlap
+                        final outAnim = CurvedAnimation(
+                          parent: animation,
+                          curve: const Interval(0.60, 1.0, curve: Curves.easeInCubic),
+                        );
+                        return FadeTransition(
+                          opacity: outAnim,
+                          child: child,
+                        );
+                      }
                     },
                     child: _buildStepWidget(context, state),
                   );

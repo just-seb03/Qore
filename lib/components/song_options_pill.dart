@@ -9,6 +9,8 @@
 /// 4. Add to end of queue
 ///
 /// Components / Classes / Functions:
+/// - SongOptionsPillCoordinator: Singleton coordinator ensuring only one song options pill is open at a time,
+///   and dismissing open pills automatically upon playback changes.
 /// - SongOptionsPill: Stateful animated pill widget for track options.
 library;
 
@@ -21,6 +23,62 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/player/components/song_playlist_picker_sheet.dart';
+
+/// Global coordinator managing single-active pill state across all track items.
+class SongOptionsPillCoordinator extends ChangeNotifier {
+  static final SongOptionsPillCoordinator instance = SongOptionsPillCoordinator._internal();
+
+  SongOptionsPillCoordinator._internal() {
+    // Automatically close any open options pill whenever playback starts or active song changes
+    PlaybackController.instance.addListener(_onPlaybackChanged);
+  }
+
+  int? _activeSongMediaStoreId;
+
+  /// Currently expanded song mediaStoreId, or null if all are collapsed.
+  int? get activeSongMediaStoreId => _activeSongMediaStoreId;
+
+  /// Whether the options pill for [mediaStoreId] is currently expanded.
+  bool isExpanded(int mediaStoreId) => _activeSongMediaStoreId == mediaStoreId;
+
+  void _onPlaybackChanged() {
+    close();
+  }
+
+  /// Opens the options pill for [mediaStoreId], closing any other opened pill.
+  void open(int mediaStoreId) {
+    if (_activeSongMediaStoreId != mediaStoreId) {
+      _activeSongMediaStoreId = mediaStoreId;
+      notifyListeners();
+    }
+  }
+
+  /// Closes the options pill for [mediaStoreId], or all pills if [mediaStoreId] is null.
+  void close([int? mediaStoreId]) {
+    if (mediaStoreId == null || _activeSongMediaStoreId == mediaStoreId) {
+      if (_activeSongMediaStoreId != null) {
+        _activeSongMediaStoreId = null;
+        notifyListeners();
+      }
+    }
+  }
+
+  /// Toggles expansion for [mediaStoreId].
+  void toggle(int mediaStoreId) {
+    if (_activeSongMediaStoreId == mediaStoreId) {
+      close(mediaStoreId);
+    } else {
+      open(mediaStoreId);
+    }
+  }
+
+  /// Resets coordinator state (useful for tests).
+  @visibleForTesting
+  void reset() {
+    _activeSongMediaStoreId = null;
+    notifyListeners();
+  }
+}
 
 /// Animated pill menu for song row items.
 class SongOptionsPill extends StatefulWidget {
@@ -61,27 +119,25 @@ class SongOptionsPill extends StatefulWidget {
 }
 
 class _SongOptionsPillState extends State<SongOptionsPill> {
-  late bool _isExpanded;
-
   @override
   void initState() {
     super.initState();
-    _isExpanded = widget.initialExpanded;
+    if (widget.initialExpanded) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          SongOptionsPillCoordinator.instance.open(widget.song.mediaStoreId);
+        }
+      });
+    }
   }
 
   void _toggle() {
     HapticFeedback.selectionClick();
-    setState(() {
-      _isExpanded = !_isExpanded;
-    });
+    SongOptionsPillCoordinator.instance.toggle(widget.song.mediaStoreId);
   }
 
   void _close() {
-    if (_isExpanded) {
-      setState(() {
-        _isExpanded = false;
-      });
-    }
+    SongOptionsPillCoordinator.instance.close(widget.song.mediaStoreId);
   }
 
   Widget _buildIconButton({
@@ -116,150 +172,149 @@ class _SongOptionsPillState extends State<SongOptionsPill> {
   Widget build(BuildContext context) {
     final durationStr = widget.durationText;
 
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        // 1. Horizontal Animated Pill (expanding from right to left)
-        ClipRect(
-          child: AnimatedSize(
-            duration: const Duration(milliseconds: 220),
-            curve: Curves.easeOutCubic,
-            alignment: Alignment.centerRight,
-            child: _isExpanded
-                ? Container(
-                    margin: const EdgeInsets.only(right: 4.0),
-                    padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 1.0),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E1E26),
-                      borderRadius: BorderRadius.circular(20.0),
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: 0.12),
-                        width: 0.8,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.40),
-                          blurRadius: 10.0,
-                          offset: const Offset(0, 3),
+    return ListenableBuilder(
+      listenable: SongOptionsPillCoordinator.instance,
+      builder: (context, _) {
+        final isExpanded =
+            SongOptionsPillCoordinator.instance.isExpanded(widget.song.mediaStoreId);
+
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            // 1. Horizontal Animated Pill (expanding from right to left)
+            AnimatedSize(
+              duration: const Duration(milliseconds: 220),
+              curve: Curves.easeOutCubic,
+              alignment: Alignment.centerRight,
+              child: isExpanded
+                  ? Container(
+                      margin: const EdgeInsets.only(right: 4.0),
+                      padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 1.0),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerHigh,
+                        borderRadius: BorderRadius.circular(20.0),
+                        border: Border.all(
+                          color: AppColors.outline.withValues(alpha: 0.30),
+                          width: 0.8,
                         ),
-                      ],
-                    ),
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      physics: const NeverScrollableScrollPhysics(),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          // 1. Add to Playlist
-                          _buildIconButton(
-                            key: ValueKey('song_pill_playlist_${widget.song.mediaStoreId}'),
-                            icon: Icons.playlist_add_rounded,
-                            tooltip: context.l10n.playlist.addToPlaylistTooltip,
-                            onTap: () {
-                              _close();
-                              if (widget.onPlaylistAdd != null) {
-                                widget.onPlaylistAdd!();
-                              } else {
-                                SongPlaylistPickerSheet.show(context, song: widget.song);
-                              }
-                            },
-                          ),
-
-                          // 2. Favorites Toggle (Reactive)
-                          ListenableBuilder(
-                            listenable: FavoriteSongsDao.instance.favoritesRevision,
-                            builder: (context, _) {
-                              final isFav =
-                                  FavoriteSongsDao.instance.isFavorite(widget.song.mediaStoreId);
-                              return _buildIconButton(
-                                key: ValueKey('song_pill_favorite_${widget.song.mediaStoreId}'),
-                                icon: isFav
-                                    ? Icons.favorite_rounded
-                                    : Icons.favorite_border_rounded,
-                                color: isFav ? AppColors.accent : AppColors.onSurfaceVariant,
-                                tooltip: isFav
-                                    ? context.l10n.common.removeFromFavorites
-                                    : context.l10n.common.addToFavorites,
-                                onTap: () {
-                                  HapticFeedback.lightImpact();
-                                  if (widget.onFavoriteToggle != null) {
-                                    widget.onFavoriteToggle!();
-                                  } else {
-                                    FavoriteSongsDao.instance.toggleFavorite(widget.song);
-                                  }
-                                },
-                              );
-                            },
-                          ),
-
-                          // 3. Add to Front of Queue (Play Next)
-                          _buildIconButton(
-                            key: ValueKey('song_pill_queue_first_${widget.song.mediaStoreId}'),
-                            icon: Icons.queue_play_next_rounded,
-                            tooltip: 'Reproducir a continuación',
-                            onTap: () {
-                              _close();
-                              HapticFeedback.lightImpact();
-                              if (widget.onQueueFirst != null) {
-                                widget.onQueueFirst!();
-                              } else {
-                                PlaybackController.instance.addToQueueFirst(widget.song);
-                              }
-                            },
-                          ),
-
-                          // 4. Add to End of Queue
-                          _buildIconButton(
-                            key: ValueKey('song_pill_queue_end_${widget.song.mediaStoreId}'),
-                            icon: Icons.add_to_queue_rounded,
-                            tooltip: 'Añadir al final de la cola',
-                            onTap: () {
-                              _close();
-                              HapticFeedback.lightImpact();
-                              if (widget.onQueueEnd != null) {
-                                widget.onQueueEnd!();
-                              } else {
-                                PlaybackController.instance.addToQueueEnd(widget.song);
-                              }
-                            },
-                          ),
-                        ],
                       ),
-                    ),
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ),
+                      child: SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        physics: const NeverScrollableScrollPhysics(),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // 1. Add to Playlist
+                            _buildIconButton(
+                              key: ValueKey('song_pill_playlist_${widget.song.mediaStoreId}'),
+                              icon: Icons.playlist_add_rounded,
+                              tooltip: context.l10n.playlist.addToPlaylistTooltip,
+                              onTap: () {
+                                _close();
+                                if (widget.onPlaylistAdd != null) {
+                                  widget.onPlaylistAdd!();
+                                } else {
+                                  SongPlaylistPickerSheet.show(context, song: widget.song);
+                                }
+                              },
+                            ),
 
-        // 2. Track Duration (visible when pill is collapsed)
-        if (!_isExpanded && durationStr != null && durationStr.isNotEmpty) ...[
-          Text(
-            durationStr,
-            style: GoogleFonts.inconsolata(
-              fontSize: 12.0,
-              fontWeight: FontWeight.w400,
-              color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                            // 2. Favorites Toggle (Reactive)
+                            ListenableBuilder(
+                              listenable: FavoriteSongsDao.instance.favoritesRevision,
+                              builder: (context, _) {
+                                final isFav =
+                                    FavoriteSongsDao.instance.isFavorite(widget.song.mediaStoreId);
+                                return _buildIconButton(
+                                  key: ValueKey('song_pill_favorite_${widget.song.mediaStoreId}'),
+                                  icon: isFav
+                                      ? Icons.favorite_rounded
+                                      : Icons.favorite_border_rounded,
+                                  color: isFav ? AppColors.accent : AppColors.onSurfaceVariant,
+                                  tooltip: isFav
+                                      ? context.l10n.common.removeFromFavorites
+                                      : context.l10n.common.addToFavorites,
+                                  onTap: () {
+                                    HapticFeedback.lightImpact();
+                                    if (widget.onFavoriteToggle != null) {
+                                      widget.onFavoriteToggle!();
+                                    } else {
+                                      FavoriteSongsDao.instance.toggleFavorite(widget.song);
+                                    }
+                                  },
+                                );
+                              },
+                            ),
+
+                            // 3. Add to Front of Queue (Play Next)
+                            _buildIconButton(
+                              key: ValueKey('song_pill_queue_first_${widget.song.mediaStoreId}'),
+                              icon: Icons.queue_play_next_rounded,
+                              tooltip: 'Reproducir a continuación',
+                              onTap: () {
+                                _close();
+                                HapticFeedback.lightImpact();
+                                if (widget.onQueueFirst != null) {
+                                  widget.onQueueFirst!();
+                                } else {
+                                  PlaybackController.instance.addToQueueFirst(widget.song);
+                                }
+                              },
+                            ),
+
+                            // 4. Add to End of Queue
+                            _buildIconButton(
+                              key: ValueKey('song_pill_queue_end_${widget.song.mediaStoreId}'),
+                              icon: Icons.add_to_queue_rounded,
+                              tooltip: 'Añadir al final de la cola',
+                              onTap: () {
+                                _close();
+                                HapticFeedback.lightImpact();
+                                if (widget.onQueueEnd != null) {
+                                  widget.onQueueEnd!();
+                                } else {
+                                  PlaybackController.instance.addToQueueEnd(widget.song);
+                                }
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
             ),
-          ),
-          const SizedBox(width: 2.0),
-        ],
 
-        // 3. The 3 Dots Trigger Button (morphs to Close when expanded)
-        IconButton(
-          key: ValueKey('song_options_button_${widget.song.mediaStoreId}'),
-          icon: Icon(
-            _isExpanded ? Icons.close_rounded : Icons.more_vert_rounded,
-            size: 20.0,
-            color: _isExpanded ? AppColors.accent : AppColors.onSurfaceVariant,
-          ),
-          padding: EdgeInsets.zero,
-          constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
-          splashRadius: 18.0,
-          tooltip: _isExpanded ? 'Cerrar opciones' : 'Más opciones',
-          onPressed: _toggle,
-        ),
-      ],
+            // 2. Track Duration (visible when pill is collapsed)
+            if (!isExpanded && durationStr != null && durationStr.isNotEmpty) ...[
+              Text(
+                durationStr,
+                style: GoogleFonts.inconsolata(
+                  fontSize: 12.0,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
+                ),
+              ),
+              const SizedBox(width: 2.0),
+            ],
+
+            // 3. The 3 Dots Trigger Button (morphs to Close when expanded)
+            IconButton(
+              key: ValueKey('song_options_button_${widget.song.mediaStoreId}'),
+              icon: Icon(
+                isExpanded ? Icons.close_rounded : Icons.more_vert_rounded,
+                size: 20.0,
+                color: isExpanded ? AppColors.accent : AppColors.onSurfaceVariant,
+              ),
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
+              splashRadius: 18.0,
+              tooltip: isExpanded ? 'Cerrar opciones' : 'Más opciones',
+              onPressed: _toggle,
+            ),
+          ],
+        );
+      },
     );
   }
 }

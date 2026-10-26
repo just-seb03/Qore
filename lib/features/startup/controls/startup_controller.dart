@@ -13,6 +13,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/permissions/audio_permission_service.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/selection/today_selection_service.dart';
@@ -93,26 +94,46 @@ class StartupController extends ChangeNotifier {
   final MusicIndexer _musicIndexer;
   final ArtworkService _artworkService;
   final TodaySelectionService _todaySelectionService;
+  final AppMetadataDao _appMetadataDao;
 
   StartupController({
     AudioPermissionService? permissionService,
     MusicIndexer? musicIndexer,
     ArtworkService? artworkService,
     TodaySelectionService? todaySelectionService,
+    AppMetadataDao? appMetadataDao,
   })  : _permissionService = permissionService ?? AudioPermissionService.instance,
         _musicIndexer = musicIndexer ?? MusicIndexer.instance,
         _artworkService = artworkService ?? ArtworkService.instance,
-        _todaySelectionService = todaySelectionService ?? TodaySelectionService.instance;
+        _todaySelectionService = todaySelectionService ?? TodaySelectionService.instance,
+        _appMetadataDao = appMetadataDao ?? AppMetadataDao.instance {
+    if (_appMetadataDao.isOnboardingCompletedSync) {
+      _isFirstLaunch = false;
+      _state = _state.copyWith(step: StartupStep.loading);
+    }
+  }
 
   StartupState _state = StartupState.initial();
   bool _hasStarted = false;
   bool _disposed = false;
+  bool _isFirstLaunch = true;
 
   /// Current immutable startup state.
   StartupState get state => _state;
 
   /// Active user-facing onboarding and initialization step.
   StartupStep get currentStep => _state.step;
+
+  /// AppMetadataDao for persistence checks.
+  AppMetadataDao get appMetadataDao => _appMetadataDao;
+
+  /// Whether this is the first time the app is launched (triggers full onboarding and celebration stars).
+  bool get isFirstLaunch => _isFirstLaunch;
+
+  /// Explicitly sets first-time launch state (for testing or overrides).
+  void setFirstLaunch(bool value) {
+    _isFirstLaunch = value;
+  }
 
   /// Whether the entire startup pipeline has completed and is ready for transition.
   bool get isReady => _state.stage == StartupStage.ready;
@@ -131,26 +152,79 @@ class StartupController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Checks whether first-time onboarding was completed.
+  /// If completed, skips splash/permissions/theme and immediately starts scanning.
+  Future<void> checkOnboardingAndInitialize() async {
+    final completed = await _appMetadataDao.isOnboardingCompleted();
+    _isFirstLaunch = !completed;
+    if (completed) {
+      _emit(_state.copyWith(
+        step: StartupStep.loading,
+        stage: StartupStage.scanning,
+        progress: 0.12,
+        statusText: StartupStage.scanning.label,
+      ));
+      await _runScanningAndIndexingSequence();
+    }
+  }
+
+  /// Explicitly starts background scanning sequence.
+  Future<void> startScanningSequence() async {
+    _emit(_state.copyWith(
+      step: StartupStep.loading,
+      stage: StartupStage.scanning,
+      progress: 0.12,
+      statusText: StartupStage.scanning.label,
+    ));
+    await _runScanningAndIndexingSequence();
+  }
+
+  /// Marks onboarding as permanently completed in SQLite app_metadata.
+  Future<void> markOnboardingCompleted() async {
+    _isFirstLaunch = false;
+    await _appMetadataDao.setOnboardingCompleted(completed: true);
+  }
+
   /// Advances from the splash screen to the permissions request step.
   void proceedFromSplash() {
     _emit(_state.copyWith(step: StartupStep.permissions));
   }
 
-  /// Requests runtime permissions (audio access & notification) and proceeds to the theme selector step.
-  Future<void> requestPermissionsAndProceed() async {
+  /// Requests runtime permissions (audio access & notification) and proceeds to the theme selector step if granted.
+  /// Returns `true` if all required permissions are granted, or `false` if denied.
+  Future<bool> requestPermissionsAndProceed() async {
+    bool audioGranted = false;
+    bool notificationGranted = true;
+
     try {
-      await _permissionService.requestPermission();
-      if (Platform.isAndroid || Platform.isIOS) {
+      final audioStatus = await _permissionService.requestPermission();
+      audioGranted = audioStatus.isGranted;
+
+      final isTest = Platform.environment.containsKey('FLUTTER_TEST');
+      if (!isTest && (Platform.isAndroid || Platform.isIOS)) {
         try {
-          await Permission.notification.request();
+          final notifStatus = await Permission.notification.request();
+          notificationGranted = notifStatus.isGranted;
         } catch (e) {
           debugPrint('⚠️ [StartupController] Notification permission request error: $e');
+          notificationGranted = true;
         }
       }
     } catch (e) {
       debugPrint('⚠️ [StartupController] Error requesting permissions: $e');
+      audioGranted = false;
     }
-    _emit(_state.copyWith(step: StartupStep.themeSelector));
+
+    final bool allGranted = audioGranted && notificationGranted;
+    if (allGranted) {
+      _emit(_state.copyWith(
+        step: StartupStep.themeSelector,
+        stage: StartupStage.checkingPermission,
+      ));
+      return true;
+    } else {
+      return false;
+    }
   }
 
   /// Accepts the chosen theme (or default) and initiates the background scanning and indexing sequence.

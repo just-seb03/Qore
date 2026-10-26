@@ -1468,6 +1468,113 @@ void main() {
       expect(queueEndCalled, isTrue);
     });
 
+    testWidgets('SongOptionsPillCoordinator ensures strictly only ONE pill is open across songs', (tester) async {
+      SongOptionsPillCoordinator.instance.reset();
+
+      final song1 = Song(
+        mediaStoreId: 101,
+        title: 'Song One',
+        artist: 'Artist A',
+        album: 'Album A',
+        duration: 180000,
+        path: '/song1.mp3',
+        dateAdded: 1,
+        dateModified: 2,
+      );
+
+      final song2 = Song(
+        mediaStoreId: 102,
+        title: 'Song Two',
+        artist: 'Artist B',
+        album: 'Album B',
+        duration: 200000,
+        path: '/song2.mp3',
+        dateAdded: 3,
+        dateModified: 4,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                SongOptionsPill(song: song1, durationText: '3:00'),
+                SongOptionsPill(song: song2, durationText: '3:20'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Initially both pills are collapsed
+      expect(find.byKey(const ValueKey('song_options_button_101')), findsOneWidget);
+      expect(find.byKey(const ValueKey('song_options_button_102')), findsOneWidget);
+      expect(SongOptionsPillCoordinator.instance.activeSongMediaStoreId, isNull);
+
+      // Open pill for song 1
+      await tester.tap(find.byKey(const ValueKey('song_options_button_101')));
+      await tester.pumpAndSettle();
+
+      expect(SongOptionsPillCoordinator.instance.isExpanded(101), isTrue);
+      expect(SongOptionsPillCoordinator.instance.isExpanded(102), isFalse);
+      expect(find.byKey(const ValueKey('song_pill_playlist_101')), findsOneWidget);
+      expect(find.byKey(const ValueKey('song_pill_playlist_102')), findsNothing);
+
+      // Now open pill for song 2 -> song 1 must close automatically
+      await tester.tap(find.byKey(const ValueKey('song_options_button_102')));
+      await tester.pumpAndSettle();
+
+      expect(SongOptionsPillCoordinator.instance.isExpanded(101), isFalse);
+      expect(SongOptionsPillCoordinator.instance.isExpanded(102), isTrue);
+      expect(find.byKey(const ValueKey('song_pill_playlist_101')), findsNothing);
+      expect(find.byKey(const ValueKey('song_pill_playlist_102')), findsOneWidget);
+
+      // Tap song 2's close button -> closes pill
+      await tester.tap(find.byKey(const ValueKey('song_options_button_102')));
+      await tester.pumpAndSettle();
+
+      expect(SongOptionsPillCoordinator.instance.activeSongMediaStoreId, isNull);
+      expect(find.byKey(const ValueKey('song_pill_playlist_102')), findsNothing);
+    });
+
+    testWidgets('Playing a song automatically closes any open SongOptionsPill', (tester) async {
+      SongOptionsPillCoordinator.instance.reset();
+
+      final song = Song(
+        mediaStoreId: 201,
+        title: 'Playing Track',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 150000,
+        path: '/track.mp3',
+        dateAdded: 1,
+        dateModified: 2,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SongOptionsPill(song: song, durationText: '2:30'),
+            ),
+          ),
+        ),
+      );
+
+      // Open the pill
+      await tester.tap(find.byKey(const ValueKey('song_options_button_201')));
+      await tester.pumpAndSettle();
+      expect(SongOptionsPillCoordinator.instance.isExpanded(201), isTrue);
+
+      // Simulate playback starting/changing
+      PlaybackController.instance.playSong(song);
+      await tester.pumpAndSettle();
+
+      // Pill must now be closed
+      expect(SongOptionsPillCoordinator.instance.isExpanded(201), isFalse);
+      expect(find.byKey(const ValueKey('song_pill_playlist_201')), findsNothing);
+    });
+
     test('Playlist track tile renders unrounded sharp cover (borderRadius: 0.0)', () {
       final tile = PlaylistTrackTile(
         song: testSong,

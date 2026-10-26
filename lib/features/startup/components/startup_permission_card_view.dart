@@ -1,232 +1,341 @@
 /// File: startup_permission_card_view.dart
-/// Description: Modern elevated card component presenting requests for audio storage access
-/// and playback notification access, accompanied by an action button initiating runtime permissions.
+/// Description: Full-screen staged permission onboarding view presented directly on the background
+/// (without bounding card containers) with top-to-bottom layout: centered icon badge, explanatory prompt,
+/// animated < 1 > / < 2 > indicators, bottom-docked Next button, screen dimming during system requests,
+/// and in-place monochrome alert handling on denial.
 ///
 /// Components / Classes / Functions:
-/// - StartupPermissionCardView: Container card displaying required permissions and request trigger.
+/// - StartupPermissionCardView: Full-screen staged permission onboarding widget.
 library;
 
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
-/// Interactive card detailing required audio and notification permissions
-/// and providing an explicit action to launch system permission dialogs.
-class StartupPermissionCardView extends StatelessWidget {
+/// Full-screen staged onboarding view guiding the user through audio and notification
+/// permissions with content directly on the background and bottom-docked navigation action.
+class StartupPermissionCardView extends StatefulWidget {
   /// Callback triggered when user accepts and requests device permissions.
-  final VoidCallback onRequestPermissions;
+  final FutureOr<dynamic> Function() onRequestPermissions;
+
+  /// Optional initial sub-step page (1 or 2). Defaults to 1.
+  final int initialPage;
+
+  /// Optional initial denied state override. Defaults to false.
+  final bool initialDenied;
+
+  /// External forced denied state from parent controller.
+  final bool? isDenied;
 
   const StartupPermissionCardView({
     super.key,
     required this.onRequestPermissions,
+    this.initialPage = 1,
+    this.initialDenied = false,
+    this.isDenied,
   });
+
+  @override
+  State<StartupPermissionCardView> createState() => _StartupPermissionCardViewState();
+}
+
+class _StartupPermissionCardViewState extends State<StartupPermissionCardView>
+    with SingleTickerProviderStateMixin {
+  late int _page;
+  late bool _isDenied;
+  bool _isDarkened = false;
+
+  late final AnimationController _indicatorController;
+  late final Animation<double> _chevronOffsetAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _page = widget.initialPage;
+    _isDenied = widget.isDenied ?? widget.initialDenied;
+
+    _indicatorController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 850),
+    );
+
+    _chevronOffsetAnimation = Tween<double>(begin: 0.0, end: 4.0).animate(
+      CurvedAnimation(
+        parent: _indicatorController,
+        curve: Curves.easeInOutSine,
+      ),
+    );
+
+    final isTest = Platform.environment.containsKey('FLUTTER_TEST') ||
+        WidgetsBinding.instance.runtimeType.toString().contains('Test');
+    if (!isTest) {
+      _indicatorController.repeat(reverse: true);
+    }
+  }
+
+  @override
+  void didUpdateWidget(covariant StartupPermissionCardView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.isDenied != null && widget.isDenied != _isDenied) {
+      setState(() {
+        _isDenied = widget.isDenied!;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _indicatorController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleNext() async {
+    if (_page == 1 && !_isDenied) {
+      setState(() {
+        _page = 2;
+      });
+      return;
+    }
+
+    // Page 2 or retrying after denial: darken screen and launch runtime permission requests
+    setState(() {
+      _isDarkened = true;
+    });
+
+    // Pacing delay to let screen dim smoothly
+    await Future.delayed(const Duration(milliseconds: 260));
+
+    try {
+      final dynamic res = await widget.onRequestPermissions();
+      if (!mounted) return;
+
+      setState(() {
+        _isDarkened = false;
+        final bool granted = res is bool ? res : true;
+        if (!granted) {
+          _isDenied = true;
+        } else {
+          _isDenied = false;
+        }
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _isDarkened = false;
+        _isDenied = true;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n.startup;
 
-    return Center(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400.0),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainer,
-            borderRadius: BorderRadius.circular(24.0),
-            border: Border.all(
-              color: AppColors.outline.withValues(alpha: 0.35),
-              width: 1.0,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.5),
-                blurRadius: 28.0,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          padding: const EdgeInsets.all(26.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header Badge & Title
-              Row(
-                children: [
-                  Container(
-                    width: 40.0,
-                    height: 40.0,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHigh,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.outline.withValues(alpha: 0.5),
-                        width: 1.0,
+    // Resolve active icon, badge border, and text based on current sub-step & denial state
+    final IconData activeIcon;
+    final String activeText;
+    final String activeKeyId;
+
+    if (_isDenied) {
+      activeIcon = Icons.warning_amber_rounded;
+      activeText = l10n.permissionDeniedPrompt;
+      activeKeyId = 'permission_denied_state';
+    } else if (_page == 1) {
+      activeIcon = Icons.music_note_rounded;
+      activeText = l10n.musicAccessPrompt;
+      activeKeyId = 'permission_page_1';
+    } else {
+      activeIcon = Icons.notifications_active_rounded;
+      activeText = l10n.notificationAccessPrompt;
+      activeKeyId = 'permission_page_2';
+    }
+
+    return Stack(
+      children: [
+        // Content laid out directly on the background (no bounding box)
+        SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Top spacing: flex 3 places the icon slightly above vertical center
+                const Spacer(flex: 3),
+
+                // 1. Icon Badge (Music, Notification, or Monochrome Alert)
+                Center(
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 280),
+                    transitionBuilder: (child, anim) => ScaleTransition(
+                      scale: CurvedAnimation(parent: anim, curve: Curves.easeOutBack),
+                      child: FadeTransition(opacity: anim, child: child),
+                    ),
+                    child: Container(
+                      key: ValueKey('icon_badge_$activeKeyId'),
+                      width: 72.0,
+                      height: 72.0,
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.5),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _isDenied
+                              ? AppColors.futuristicWhite.withValues(alpha: 0.7)
+                              : AppColors.outline.withValues(alpha: 0.45),
+                          width: _isDenied ? 1.5 : 1.0,
+                        ),
                       ),
-                    ),
-                    child: Icon(
-                      Icons.security_rounded,
-                      size: 20.0,
-                      color: AppColors.futuristicWhite,
-                    ),
-                  ),
-                  const SizedBox(width: 14.0),
-                  Expanded(
-                    child: Text(
-                      l10n.permissionsCardTitle,
-                      style: GoogleFonts.inconsolata(
-                        fontSize: 17.0,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: 2.0,
+                      child: Icon(
+                        activeIcon,
+                        size: 34.0,
                         color: AppColors.futuristicWhite,
                       ),
                     ),
                   ),
-                ],
-              ),
-              const SizedBox(height: 14.0),
-              // Explanatory note
-              Text(
-                l10n.permissionsCardDescription,
-                style: GoogleFonts.inconsolata(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w400,
-                  height: 1.45,
-                  letterSpacing: 0.3,
-                  color: AppColors.onSurfaceVariant,
                 ),
-              ),
-              const SizedBox(height: 24.0),
-              // Permission 1: Music / Audio Access
-              _PermissionRow(
-                icon: Icons.music_note_rounded,
-                title: l10n.musicAccessTitle,
-                description: l10n.musicAccessDescription,
-              ),
-              const SizedBox(height: 16.0),
-              // Permission 2: Playback Notifications
-              _PermissionRow(
-                icon: Icons.notifications_active_rounded,
-                title: l10n.notificationAccessTitle,
-                description: l10n.notificationAccessDescription,
-              ),
-              const SizedBox(height: 30.0),
-              // Action Button to request permissions
-              Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onRequestPermissions,
-                  borderRadius: BorderRadius.circular(16.0),
-                  child: Ink(
-                    height: 52.0,
-                    decoration: BoxDecoration(
-                      color: AppColors.accent,
-                      borderRadius: BorderRadius.circular(16.0),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.accent.withValues(alpha: 0.28),
-                          blurRadius: 12.0,
-                          offset: const Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    child: Center(
-                      child: Text(
-                        l10n.grantPermissionsButton,
-                        style: GoogleFonts.inconsolata(
-                          fontSize: 14.5,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 2.2,
-                          color: AppColors.onAccent,
-                        ),
+                const SizedBox(height: 24.0),
+
+                // 2. Explanatory / Error Text directly on background
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 260),
+                    child: Text(
+                      activeText,
+                      key: ValueKey('text_$activeKeyId'),
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.inconsolata(
+                        fontSize: 14.5,
+                        fontWeight: _isDenied ? FontWeight.w500 : FontWeight.w400,
+                        height: 1.5,
+                        letterSpacing: 0.4,
+                        color: _isDenied
+                            ? AppColors.futuristicWhite
+                            : AppColors.onSurfaceVariant,
                       ),
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+                const SizedBox(height: 28.0),
 
-/// Internal item displaying an icon badge, title, and descriptive body for a permission.
-class _PermissionRow extends StatelessWidget {
-  final IconData icon;
-  final String title;
-  final String description;
-
-  const _PermissionRow({
-    required this.icon,
-    required this.title,
-    required this.description,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 12.0),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(14.0),
-        border: Border.all(
-          color: AppColors.outline.withValues(alpha: 0.2),
-          width: 0.8,
-        ),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            width: 36.0,
-            height: 36.0,
-            decoration: BoxDecoration(
-              color: AppColors.background,
-              borderRadius: BorderRadius.circular(10.0),
-              border: Border.all(
-                color: AppColors.outline.withValues(alpha: 0.35),
-                width: 0.8,
-              ),
-            ),
-            child: Icon(
-              icon,
-              size: 19.0,
-              color: AppColors.futuristicWhite,
-            ),
-          ),
-          const SizedBox(width: 14.0),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.inconsolata(
-                    fontSize: 14.0,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: AppColors.futuristicWhite,
+                // 3. Animated Indicator < 1 > or < 2 > (Hidden on Denied state)
+                if (!_isDenied) ...[
+                  Semantics(
+                    label: '< $_page >',
+                    child: AnimatedBuilder(
+                      animation: _chevronOffsetAnimation,
+                      builder: (context, _) {
+                        final offset = _chevronOffsetAnimation.value;
+                        return Row(
+                          key: ValueKey('startup_indicator_page_$_page'),
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Transform.translate(
+                              offset: Offset(-offset, 0),
+                              child: Text(
+                                '<',
+                                style: GoogleFonts.inconsolata(
+                                  fontSize: 20.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurfaceVariant
+                                      .withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10.0),
+                            AnimatedSwitcher(
+                              duration: const Duration(milliseconds: 220),
+                              transitionBuilder: (child, anim) =>
+                                  FadeTransition(opacity: anim, child: child),
+                              child: Text(
+                                '$_page',
+                                key: ValueKey('page_number_$_page'),
+                                style: GoogleFonts.inconsolata(
+                                  fontSize: 18.0,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.futuristicWhite,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10.0),
+                            Transform.translate(
+                              offset: Offset(offset, 0),
+                              child: Text(
+                                '>',
+                                style: GoogleFonts.inconsolata(
+                                  fontSize: 20.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.onSurfaceVariant
+                                      .withValues(alpha: 0.8),
+                                ),
+                              ),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ),
-                ),
-                const SizedBox(height: 3.0),
-                Text(
-                  description,
-                  style: GoogleFonts.inconsolata(
-                    fontSize: 12.0,
-                    fontWeight: FontWeight.w400,
-                    height: 1.35,
-                    color: AppColors.onSurfaceVariant,
+                ],
+
+                // Bottom spacing: flex 4 pushes the Next button to the bottom of the screen
+                const Spacer(flex: 4),
+
+                // 4. Action Button docked at the bottom of the screen
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    key: const ValueKey('startup_permissions_next_button'),
+                    onTap: _isDarkened ? null : _handleNext,
+                    borderRadius: BorderRadius.circular(16.0),
+                    child: Ink(
+                      height: 50.0,
+                      decoration: BoxDecoration(
+                        color: AppColors.accent,
+                        borderRadius: BorderRadius.circular(16.0),
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.accent.withValues(alpha: 0.28),
+                            blurRadius: 12.0,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Center(
+                        child: Text(
+                          l10n.nextAction,
+                          style: GoogleFonts.inconsolata(
+                            fontSize: 15.0,
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: 2.2,
+                            color: AppColors.onAccent,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-        ],
-      ),
+        ),
+
+        // 5. Screen Darkening Scrim while permission dialogs are requested
+        Positioned.fill(
+          child: IgnorePointer(
+            ignoring: !_isDarkened,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 280),
+              curve: Curves.easeInOut,
+              color: _isDarkened
+                  ? Colors.black.withValues(alpha: 0.72)
+                  : Colors.transparent,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

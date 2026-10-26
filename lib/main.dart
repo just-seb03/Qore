@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/dimensions/adaptive_system_boundary.dart';
 import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -31,6 +32,18 @@ Future<void> main() async {
 
   ArtworkService.instance.initialize();
   LocalizationController.instance.init();
+
+  try {
+    await AppMetadataDao.instance.isOnboardingCompleted();
+  } catch (e) {
+    debugPrint('AppMetadataDao onboarding check warning: $e');
+  }
+
+  try {
+    await ThemeController.instance.init();
+  } catch (e) {
+    debugPrint('ThemeController init warning: $e');
+  }
 
   try {
     await SystemDimensionsCoordinator.instance.init();

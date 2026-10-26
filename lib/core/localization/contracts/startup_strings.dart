@@ -11,6 +11,27 @@ abstract class StartupStrings {
   /// Brand application title (e.g. 'PROJECT ANIMA').
   String get appTitle;
 
+  /// First line of initial welcome screen ('Bienvenido' / 'Welcome').
+  String get welcomeLine1;
+
+  /// Second line of initial welcome screen ('A' / 'To').
+  String get welcomeLine2;
+
+  /// Third line of initial welcome screen ('Anima').
+  String get welcomeLine3;
+
+  /// Explanatory prompt on page 1 of permissions menu for music files access.
+  String get musicAccessPrompt;
+
+  /// Explanatory prompt on page 2 of permissions menu for notification access.
+  String get notificationAccessPrompt;
+
+  /// Alert prompt shown on permissions menu when required permissions were denied.
+  String get permissionDeniedPrompt;
+
+  /// Action button label for staged navigation ('SIGUIENTE' / 'NEXT').
+  String get nextAction;
+
   /// Title for permission required screen (e.g. 'AUDIO ACCESS REQUIRED').
   String get audioAccessRequiredTitle;
 
@@ -43,6 +64,9 @@ abstract class StartupStrings {
 
   /// Header title for the theme selector screen (e.g. 'SELECT THEME').
   String get themeSelectorTitle;
+
+  /// Prompt question at the top of theme selector (e.g. '¿Cuál es tu estilo?' / "What's your style?").
+  String get themePromptTitle;
 
   /// Name of the initial monochrome dark theme ('Monochrome').
   String get themeNameMonochrome;

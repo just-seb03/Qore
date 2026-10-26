@@ -58,6 +58,7 @@ class ArtistTrackTile extends StatelessWidget {
             final durationStr = _formatDuration(song.duration);
 
             void handleTap() {
+              SongOptionsPillCoordinator.instance.close();
               if (isCurrentTrack) {
                 activeController.togglePlayPause();
               } else {

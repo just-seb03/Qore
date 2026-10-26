@@ -15,6 +15,30 @@ class EnStartupStrings implements StartupStrings {
   String get appTitle => 'PROJECT ANIMA';
 
   @override
+  String get welcomeLine1 => 'Welcome';
+
+  @override
+  String get welcomeLine2 => 'To';
+
+  @override
+  String get welcomeLine3 => 'Anima';
+
+  @override
+  String get musicAccessPrompt =>
+      'In order to use Anima you need to grant access to your music files';
+
+  @override
+  String get notificationAccessPrompt =>
+      'It also needs access to the notification system for background playback features';
+
+  @override
+  String get permissionDeniedPrompt =>
+      'The necessary permissions were not granted. Please try again to continue.';
+
+  @override
+  String get nextAction => 'NEXT';
+
+  @override
   String get audioAccessRequiredTitle => 'AUDIO ACCESS REQUIRED';
 
   @override
@@ -50,6 +74,9 @@ class EnStartupStrings implements StartupStrings {
 
   @override
   String get themeSelectorTitle => 'SELECT THEME';
+
+  @override
+  String get themePromptTitle => "What's your style?";
 
   @override
   String get themeNameMonochrome => 'Monochrome';

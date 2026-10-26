@@ -137,12 +137,13 @@ class StartupThemeOption {
     ],
   );
 
-  /// All selectable theme options in visual presentation order.
+  /// All selectable theme options in visual presentation order:
+  /// Monochrome, That Pad, Neo-Tokyo, Solar, Corporate.
   static const List<StartupThemeOption> all = [
-    solar,
-    thatPad,
-    corporate,
-    neoTokyo,
     monochrome,
+    thatPad,
+    neoTokyo,
+    solar,
+    corporate,
   ];
 }
