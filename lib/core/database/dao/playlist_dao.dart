@@ -322,4 +322,78 @@ class PlaylistDao {
     notifyPlaylistsChanged();
     PinnedFavoritesDao.revision.value++;
   }
+
+  /// Returns all playlist IDs that currently contain the given [mediaStoreId].
+  Future<List<int>> getPlaylistIdsContainingSong(int mediaStoreId) async {
+    final db = await _appDatabase.database;
+    final results = await db.query(
+      'playlist_songs',
+      columns: ['playlist_id'],
+      where: 'media_store_id = ?',
+      whereArgs: [mediaStoreId],
+    );
+    return results.map((r) => r['playlist_id'] as int).toList();
+  }
+
+  /// Adds a song to a playlist at the end of its track sequence.
+  Future<void> addSongToPlaylist(int playlistId, Song song) async {
+    final db = await _appDatabase.database;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.transaction((txn) async {
+      final maxOrderResult = await txn.rawQuery(
+        'SELECT MAX(track_order) as max_order FROM playlist_songs WHERE playlist_id = ?',
+        [playlistId],
+      );
+      final maxOrder = (maxOrderResult.first['max_order'] as int?) ?? -1;
+      await txn.insert('playlist_songs', {
+        'playlist_id': playlistId,
+        'song_id': song.id,
+        'media_store_id': song.mediaStoreId,
+        'track_order': maxOrder + 1,
+        'added_at': now,
+      });
+      await txn.update(
+        'playlists',
+        {'updated_at': now},
+        where: 'id = ?',
+        whereArgs: [playlistId],
+      );
+    });
+
+    notifyPlaylistsChanged();
+    PinnedFavoritesDao.revision.value++;
+  }
+
+  /// Removes a song from a playlist by its mediaStoreId.
+  Future<void> removeSongFromPlaylist(int playlistId, int mediaStoreId) async {
+    final db = await _appDatabase.database;
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await db.transaction((txn) async {
+      await txn.delete(
+        'playlist_songs',
+        where: 'playlist_id = ? AND media_store_id = ?',
+        whereArgs: [playlistId, mediaStoreId],
+      );
+      await txn.update(
+        'playlists',
+        {'updated_at': now},
+        where: 'id = ?',
+        whereArgs: [playlistId],
+      );
+    });
+
+    notifyPlaylistsChanged();
+    PinnedFavoritesDao.revision.value++;
+  }
+
+  /// Checks if a song is already present in a playlist.
+  Future<bool> isSongInPlaylist(int playlistId, int mediaStoreId) async {
+    final db = await _appDatabase.database;
+    final results = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM playlist_songs WHERE playlist_id = ? AND media_store_id = ?',
+      [playlistId, mediaStoreId],
+    );
+    final count = (results.first['count'] as int?) ?? 0;
+    return count > 0;
+  }
 }

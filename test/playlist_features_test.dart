@@ -29,12 +29,17 @@ import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dar
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/features/playlist/components/playlist_delete_dialog.dart';
 import 'package:project_anima/features/playlist/screens/playlist_tracks_edit_screen.dart';
+import 'package:project_anima/features/player/components/player_metadata_view.dart';
+import 'package:project_anima/features/player/components/song_context_sheet.dart';
+import 'package:project_anima/features/player/components/song_delete_dialog.dart';
+import 'package:project_anima/features/player/components/song_playlist_picker_sheet.dart';
 import 'package:project_anima/features/playlist/utils/playlist_effect_helper.dart';
 import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class FakeSongDao extends Fake implements SongDao {
   final List<Song> songs;
+  bool songDeleted = false;
   FakeSongDao(this.songs);
 
   @override
@@ -51,13 +56,21 @@ class FakeSongDao extends Fake implements SongDao {
     final q = query.trim().toLowerCase();
     return songs.where((s) => s.title.toLowerCase().contains(q)).toList();
   }
+
+  @override
+  Future<void> deleteSong(int mediaStoreId) async {
+    songDeleted = true;
+    songs.removeWhere((s) => s.mediaStoreId == mediaStoreId);
+  }
 }
 
 class FakePlaylistDao extends Fake implements PlaylistDao {
   Playlist? lastCreated;
   List<Song> playlistSongs;
+  final Set<int> songsInPlaylist = <int>{};
 
-  FakePlaylistDao({this.playlistSongs = const []});
+  FakePlaylistDao({List<Song> playlistSongs = const []})
+      : playlistSongs = List.of(playlistSongs);
 
   @override
   Future<Playlist> createPlaylist(
@@ -141,6 +154,34 @@ class FakePlaylistDao extends Fake implements PlaylistDao {
     wasDeleted = true;
     lastCreated = null;
     PlaylistDao.notifyPlaylistsChanged();
+  }
+
+  @override
+  Future<List<int>> getPlaylistIdsContainingSong(int mediaStoreId) async {
+    return songsInPlaylist.contains(mediaStoreId) && lastCreated?.id != null
+        ? [lastCreated!.id!]
+        : [];
+  }
+
+  @override
+  Future<void> addSongToPlaylist(int playlistId, Song song) async {
+    songsInPlaylist.add(song.mediaStoreId);
+    if (!playlistSongs.any((s) => s.mediaStoreId == song.mediaStoreId)) {
+      playlistSongs.add(song);
+    }
+    PlaylistDao.notifyPlaylistsChanged();
+  }
+
+  @override
+  Future<void> removeSongFromPlaylist(int playlistId, int mediaStoreId) async {
+    songsInPlaylist.remove(mediaStoreId);
+    playlistSongs.removeWhere((s) => s.mediaStoreId == mediaStoreId);
+    PlaylistDao.notifyPlaylistsChanged();
+  }
+
+  @override
+  Future<bool> isSongInPlaylist(int playlistId, int mediaStoreId) async {
+    return songsInPlaylist.contains(mediaStoreId);
   }
 }
 
@@ -1199,6 +1240,152 @@ void main() {
       // Search by artist "M83"
       final results2 = await searchEngine.searchOnlySongs('M83', limit: 10);
       expect(results2.any((s) => s.title == 'Midnight City'), isTrue);
+    });
+  });
+
+  group('SongContextSheet and Space Playlist Picker Tests', () {
+    final testSong = Song(
+      mediaStoreId: 888,
+      title: 'Starlight',
+      artist: 'Muse',
+      album: 'Black Holes and Revelations',
+      duration: 240000,
+      path: '/music/starlight.flac',
+      dateModified: 100,
+      size: 25165824, // 24.0 MB
+    );
+
+    testWidgets('PlayerMetadataView title is interactive and invokes onTitleTap', (tester) async {
+      bool tapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlayerMetadataView(
+              song: testSong,
+              onTitleTap: () => tapped = true,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('Starlight'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('player_metadata_title_button')));
+      await tester.pump();
+
+      expect(tapped, isTrue);
+    });
+
+    testWidgets('SongContextSheet displays 3 action buttons and audio technical specification card', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SongContextSheet(
+              song: testSong,
+              songDao: FakeSongDao([testSong]),
+              playlistDao: FakePlaylistDao(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Top action buttons
+      expect(find.byKey(const ValueKey('context_add_to_playlist_button')), findsOneWidget);
+      expect(find.byKey(const ValueKey('context_toggle_favorite_button')), findsOneWidget);
+      expect(find.byKey(const ValueKey('context_delete_song_button')), findsOneWidget);
+
+      // Audio specification card metrics
+      expect(find.text('FORMATO'), findsOneWidget);
+      expect(find.text('FLAC'), findsOneWidget);
+      expect(find.text('CALIDAD'), findsOneWidget);
+      expect(find.text('44.1 kHz'), findsOneWidget);
+      expect(find.text('PESO'), findsOneWidget);
+      expect(find.text('24.0 MB'), findsOneWidget);
+    });
+
+    testWidgets('SongContextSheet delete button opens SongDeleteDialog and deletes song on confirmation', (tester) async {
+      final fakeSongDao = FakeSongDao([testSong]);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SongContextSheet(
+              song: testSong,
+              songDao: fakeSongDao,
+              playlistDao: FakePlaylistDao(),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Tap delete action button
+      await tester.tap(find.byKey(const ValueKey('context_delete_song_button')));
+      await tester.pumpAndSettle();
+
+      // Delete confirmation dialog is visible
+      expect(find.text('Eliminar canción'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byType(SongDeleteDialog),
+          matching: find.textContaining('Starlight'),
+        ),
+        findsOneWidget,
+      );
+
+      // Confirm deletion
+      await tester.tap(find.byKey(const ValueKey('confirm_delete_song_button')));
+      await tester.pumpAndSettle();
+
+      expect(fakeSongDao.songDeleted, isTrue);
+    });
+
+    testWidgets('SongPlaylistPickerSheet renders Space 2:1 tiles and dims/undims on toggle', (tester) async {
+      const p1 = Playlist(
+        id: 101,
+        name: 'Rock Classics',
+        songCount: 0,
+        totalDuration: 0,
+        createdAt: 100,
+        updatedAt: 100,
+      );
+
+      final fakePlaylistDao = FakePlaylistDao();
+      fakePlaylistDao.lastCreated = p1;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SongPlaylistPickerSheet(
+              song: testSong,
+              playlistDao: fakePlaylistDao,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      expect(find.text('AÑADIR A PLAYLIST'), findsOneWidget);
+      expect(find.text('Rock Classics'), findsOneWidget);
+
+      // Initially not in playlist
+      expect(find.text('EN PLAYLIST'), findsNothing);
+
+      // Tap playlist card -> adds song and dims with EN PLAYLIST badge
+      await tester.tap(find.byKey(const ValueKey('playlist_picker_tile_101')));
+      await tester.pump();
+
+      expect(find.text('EN PLAYLIST'), findsOneWidget);
+      expect(fakePlaylistDao.songsInPlaylist.contains(888), isTrue);
+
+      // Tap again -> removes song and undims
+      await tester.tap(find.byKey(const ValueKey('playlist_picker_tile_101')));
+      await tester.pump();
+
+      expect(find.text('EN PLAYLIST'), findsNothing);
+      expect(fakePlaylistDao.songsInPlaylist.contains(888), isFalse);
     });
   });
 }

@@ -17,12 +17,14 @@ import 'package:project_anima/features/artist/screens/artist_detail_screen.dart'
 /// Centered track title, artist, and album presentation widget.
 class PlayerMetadataView extends StatelessWidget {
   final Song? song;
+  final VoidCallback? onTitleTap;
   final VoidCallback? onArtistTap;
   final VoidCallback? onAlbumTap;
 
   const PlayerMetadataView({
     super.key,
     required this.song,
+    this.onTitleTap,
     this.onArtistTap,
     this.onAlbumTap,
   });
@@ -85,12 +87,25 @@ class PlayerMetadataView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            title,
-            textAlign: TextAlign.center,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: _titleStyle,
+          Material(
+            color: Colors.transparent,
+            child: InkWell(
+              key: const ValueKey('player_metadata_title_button'),
+              borderRadius: BorderRadius.circular(8.0),
+              onTap: onTitleTap,
+              splashColor: Colors.white.withValues(alpha: 0.12),
+              highlightColor: Colors.white.withValues(alpha: 0.06),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+                child: Text(
+                  title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: _titleStyle,
+                ),
+              ),
+            ),
           ),
           const SizedBox(height: 6.0),
           _buildArtistSection(

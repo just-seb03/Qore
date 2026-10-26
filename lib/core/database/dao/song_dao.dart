@@ -1503,4 +1503,16 @@ class SongDao {
   /// Retrieves unique albums for search dictionary indexing.
   Future<List<AlbumDiscoveryItem>> getAllUniqueAlbums({int limit = 1000}) =>
       getDiscoveryAlbums(limit: limit);
+
+  /// Deletes a song from SQLite across songs, playlist_songs, favorite_songs, and playback_history.
+  Future<void> deleteSong(int mediaStoreId) async {
+    final db = await _appDatabase.database;
+    await db.transaction((txn) async {
+      await txn.delete('playlist_songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
+      await txn.delete('favorite_songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
+      await txn.delete('playback_history', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
+      await txn.delete('songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
+    });
+    notifyPlaybackHistoryChanged();
+  }
 }

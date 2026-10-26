@@ -17,6 +17,7 @@ import 'package:project_anima/features/player/components/player_controls.dart';
 import 'package:project_anima/features/player/components/player_dismiss_indicator.dart';
 import 'package:project_anima/features/player/components/player_metadata_view.dart';
 import 'package:project_anima/features/player/components/player_progress_bar.dart';
+import 'package:project_anima/features/player/components/song_context_sheet.dart';
 
 /// Full-screen maximized Sony Music-style player with interactive swipe-to-dismiss.
 class PlayerScreen extends StatefulWidget {
@@ -165,7 +166,12 @@ class _PlayerScreenState extends State<PlayerScreen>
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                                     children: [
-                                      PlayerMetadataView(song: song),
+                                      PlayerMetadataView(
+                                        song: song,
+                                        onTitleTap: song != null
+                                            ? () => SongContextSheet.show(context, song: song)
+                                            : null,
+                                      ),
                                       PlayerProgressBar(controller: controller),
                                       PlayerControls(controller: controller),
                                       PlayerDismissIndicator(
