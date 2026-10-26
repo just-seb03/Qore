@@ -242,7 +242,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
       child: ListView.builder(
         padding: const EdgeInsets.only(
           top: 0.0,
-          bottom: 24.0,
+          bottom: 160.0,
         ),
         physics: const BouncingScrollPhysics(),
         itemCount: rows.length,

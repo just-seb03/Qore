@@ -716,7 +716,7 @@ void main() {
       expect(artwork.borderRadius, equals(0.0));
     });
 
-    testWidgets('MiniPlayer renders unrounded cover artwork (borderRadius: 0.0)', (tester) async {
+    testWidgets('MiniPlayer renders rounded cover artwork (borderRadius: 10.0)', (tester) async {
       final song = Song(
         mediaStoreId: 4001,
         title: 'Ghost Voices',
@@ -749,7 +749,7 @@ void main() {
       final artworkFinder = find.byType(AnimaArtworkImage);
       expect(artworkFinder, findsOneWidget);
       final artwork = tester.widget<AnimaArtworkImage>(artworkFinder);
-      expect(artwork.borderRadius, equals(0.0));
+      expect(artwork.borderRadius, equals(10.0));
 
       PlaybackController.instance.pause();
     });

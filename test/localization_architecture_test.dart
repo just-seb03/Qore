@@ -258,8 +258,8 @@ void main() {
     test('Navigation strings return valid English text', () {
       expect(strings.navigation.homeTab, equals('Space'));
       expect(strings.navigation.homeTabTooltip, equals('Space'));
-      expect(strings.navigation.searchTab, equals('Search'));
-      expect(strings.navigation.searchTabTooltip, equals('Search'));
+      expect(strings.navigation.searchTab, equals('Explore'));
+      expect(strings.navigation.searchTabTooltip, equals('Explore'));
       expect(strings.navigation.libraryTab, equals('Library'));
       expect(strings.navigation.libraryTabTooltip, equals('Library'));
     });
@@ -324,7 +324,7 @@ void main() {
 
     test('Navigation and Player strings return valid Spanish text', () {
       expect(es.navigation.homeTab, equals('Space'));
-      expect(es.navigation.searchTab, equals('Buscar'));
+      expect(es.navigation.searchTab, equals('Explorar'));
       expect(es.navigation.libraryTab, equals('Biblioteca'));
       expect(es.player.nowPlayingHeader, equals('EN REPRODUCCIÓN'));
       expect(es.player.noPlayback, equals('Sin reproducción'));
@@ -513,7 +513,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Space'), findsOneWidget);
-      expect(find.text('Search'), findsOneWidget);
+      expect(find.text('Explore'), findsOneWidget);
       expect(find.text('Library'), findsOneWidget);
     });
 
@@ -560,7 +560,8 @@ void main() {
       expect(find.text('Biblioteca'), findsNWidgets(2)); // in body and bottom nav
       expect(find.text('EN REPRODUCCIÓN'), findsOneWidget);
       expect(find.text('LISTA'), findsOneWidget);
-      expect(find.text('Buscar'), findsNWidgets(2)); // in body and bottom nav
+      expect(find.text('Buscar'), findsOneWidget); // in body search bar
+      expect(find.text('Explorar'), findsOneWidget); // in bottom nav
       expect(find.text('PROJECT ANIMA'), findsOneWidget);
       expect(find.text('Space'), findsOneWidget); // bottom nav home tab
     });

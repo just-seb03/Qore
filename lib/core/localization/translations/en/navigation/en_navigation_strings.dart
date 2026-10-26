@@ -18,10 +18,10 @@ class EnNavigationStrings implements NavigationStrings {
   String get homeTabTooltip => 'Space';
 
   @override
-  String get searchTab => 'Search';
+  String get searchTab => 'Explore';
 
   @override
-  String get searchTabTooltip => 'Search';
+  String get searchTabTooltip => 'Explore';
 
   @override
   String get libraryTab => 'Library';

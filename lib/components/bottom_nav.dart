@@ -10,6 +10,7 @@
 /// - AppBottomNav: The primary reusable navigation widget with M3 Expressive destinations.
 library;
 
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/film_grain.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
@@ -81,18 +82,21 @@ class AppBottomNav extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showMiniPlayer) const MiniPlayer(),
-        Container(
-          decoration: BoxDecoration(
-            color: AppColors.bottomNavBackground,
-            border: Border(
-              top: BorderSide(
-                color: AppColors.outlineVariant,
-                width: 0.8,
+        ClipRect(
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.bottomNavBackground.withValues(alpha: 0.85),
+                border: Border(
+                  top: BorderSide(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                    width: 0.8,
+                  ),
+                ),
               ),
-            ),
-          ),
-          child: SafeArea(
-            top: false,
+              child: SafeArea(
+                top: false,
             child: FilmGrain(
               intensity: grainIntensity,
               child: NavigationBar(
@@ -131,7 +135,9 @@ class AppBottomNav extends StatelessWidget {
             ),
           ),
         ),
-      ],
-    );
-  }
+      ),
+    ),
+  ],
+);
+}
 }

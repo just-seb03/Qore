@@ -18,10 +18,10 @@ class EsNavigationStrings implements NavigationStrings {
   String get homeTabTooltip => 'Space';
 
   @override
-  String get searchTab => 'Buscar';
+  String get searchTab => 'Explorar';
 
   @override
-  String get searchTabTooltip => 'Buscar';
+  String get searchTabTooltip => 'Explorar';
 
   @override
   String get libraryTab => 'Biblioteca';

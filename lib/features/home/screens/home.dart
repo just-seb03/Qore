@@ -57,6 +57,7 @@ class HomeScreen extends StatelessWidget {
 
           // Space screen with full-screen Windows Phone Metro live tiles grid
           Scaffold(
+            extendBody: true,
             backgroundColor: Colors.transparent,
             body: SpaceTilesGrid(
               initialPinnedItems: initialPinnedItems,

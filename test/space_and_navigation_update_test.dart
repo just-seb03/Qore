@@ -218,9 +218,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // MenuTransitionControl should show Search header
+      // MenuTransitionControl should show Search header and Explore bottom nav tab
       expect(find.byType(SearchScreen), findsOneWidget);
-      expect(find.text('Search'), findsNWidgets(2)); // Header + bottom nav tab
+      expect(find.text('Search'), findsOneWidget); // Header
+      expect(find.text('Explore'), findsOneWidget); // Bottom nav tab
     });
   });
 }

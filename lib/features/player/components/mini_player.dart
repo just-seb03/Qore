@@ -63,9 +63,15 @@ class MiniPlayer extends StatelessWidget {
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.45),
-                          blurRadius: 16.0,
-                          offset: const Offset(0, 5),
+                          color: Colors.black.withValues(alpha: 0.60),
+                          blurRadius: 22.0,
+                          spreadRadius: 1.0,
+                          offset: const Offset(0, 8),
+                        ),
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.30),
+                          blurRadius: 8.0,
+                          offset: const Offset(0, 2),
                         ),
                       ],
                     ),
@@ -103,7 +109,7 @@ class MiniPlayer extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                                   child: Row(
                                     children: [
-                                    // 1. Album Artwork Thumbnail (Dual-Tier fast cache)
+                                    // 1. Album Artwork Thumbnail (Dual-Tier fast cache) with rounded corners
                                     AnimaArtworkImage(
                                       mediaStoreId: currentSong.mediaStoreId,
                                       albumId: currentSong.albumId,
@@ -111,7 +117,7 @@ class MiniPlayer extends StatelessWidget {
                                       artistName: currentSong.albumArtist ?? currentSong.artist,
                                       width: 46.0,
                                       height: 46.0,
-                                      borderRadius: 0.0,
+                                      borderRadius: 10.0,
                                       isThumbnail: true,
                                       fit: BoxFit.cover,
                                       fallbackIcon: Icons.music_note_rounded,
