@@ -12,6 +12,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
+import 'package:project_anima/components/scroll_edge_fade_mask.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
@@ -26,6 +27,25 @@ import 'package:project_anima/features/library/components/library_filter_pills.d
 import 'package:project_anima/features/library/components/playlists/library_playlists_view.dart';
 import 'package:project_anima/features/library/controls/library_transition_controller.dart';
 import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
+
+/// Dedicated FloatingActionButtonLocation for Library that elevates the FAB
+/// above the bottom navigation bar and active mini player, avoiding obstruction.
+class LibraryPlaylistsFabLocation extends FloatingActionButtonLocation {
+  final double bottomOffset;
+
+  const LibraryPlaylistsFabLocation(this.bottomOffset);
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry scaffoldGeometry) {
+    final double fabX = scaffoldGeometry.scaffoldSize.width -
+        scaffoldGeometry.floatingActionButtonSize.width -
+        16.0;
+    final double fabY = scaffoldGeometry.scaffoldSize.height -
+        scaffoldGeometry.floatingActionButtonSize.height -
+        bottomOffset;
+    return Offset(fabX, fabY);
+  }
+}
 
 /// Type alias allowing both `Library` and `LibraryScreen` across the codebase.
 typedef Library = LibraryScreen;
@@ -144,6 +164,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
       ]),
       builder: (context, _) {
         final currentFilter = _transitionController.currentFilter;
+        final hasMiniPlayer = PlaybackController.instance.currentSong != null;
+        final bottomInset = MediaQuery.paddingOf(context).bottom;
+        final fabBottomOffset =
+            (hasMiniPlayer ? 72.0 : 0.0) + 64.0 + bottomInset + 16.0;
+
         return Scaffold(
           extendBody: true,
           backgroundColor: AppColors.bottomNavBackground,
@@ -159,27 +184,34 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   onPrevious: () => _transitionController.animateToPrevious(),
                   onNext: () => _transitionController.animateToNext(),
                 ),
+                const SizedBox(height: 8.0),
                 Expanded(
-                  child: LibraryTransitionControl(
-                    controller: _transitionController,
-                    children: [
-                      LibraryAlbumsGrid(
-                        key: const ValueKey('library_albums_view'),
-                        albums: widget.initialAlbums,
-                        songDao: widget.songDao,
-                      ),
-                      LibraryArtistsList(
-                        key: const ValueKey('library_artists_view'),
-                        artists: widget.initialArtists,
-                        songDao: widget.songDao,
-                      ),
-                      LibraryPlaylistsView(
-                        key: _playlistsViewKey,
-                        playlists: widget.initialPlaylists,
-                        playlistDao: widget.playlistDao,
-                        songDao: widget.songDao,
-                      ),
-                    ],
+                  child: ScrollEdgeFadeMask(
+                    key: const ValueKey('library_scroll_edge_fade_mask'),
+                    topFadeExtent: 36.0,
+                    bottomFadeExtent: 64.0,
+                    child: LibraryTransitionControl(
+                      controller: _transitionController,
+                      children: [
+                        LibraryAlbumsGrid(
+                          key: const ValueKey('library_albums_view'),
+                          albums: widget.initialAlbums,
+                          songDao: widget.songDao,
+                        ),
+                        LibraryArtistsList(
+                          key: const ValueKey('library_artists_view'),
+                          artists: widget.initialArtists,
+                          songDao: widget.songDao,
+                        ),
+                        LibraryPlaylistsView(
+                          key: _playlistsViewKey,
+                          playlists: widget.initialPlaylists,
+                          playlistDao: widget.playlistDao,
+                          songDao: widget.songDao,
+                          onCreatePlaylist: _openCreatePlaylistScreen,
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -202,7 +234,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   child: const Icon(Icons.add_rounded, size: 28.0),
                 )
               : null,
-          floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
+          floatingActionButtonLocation: currentFilter == LibraryFilter.playlists
+              ? LibraryPlaylistsFabLocation(fabBottomOffset)
+              : null,
           bottomNavigationBar: widget.showBottomNav
               ? const AppBottomNav(
                   currentIndex: 2,

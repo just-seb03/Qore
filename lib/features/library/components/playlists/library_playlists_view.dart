@@ -36,6 +36,9 @@ class LibraryPlaylistsView extends StatefulWidget {
   /// Optional scroll controller.
   final ScrollController? scrollController;
 
+  /// Optional callback invoked to create a playlist.
+  final VoidCallback? onCreatePlaylist;
+
   const LibraryPlaylistsView({
     super.key,
     this.playlists,
@@ -43,6 +46,7 @@ class LibraryPlaylistsView extends StatefulWidget {
     this.songDao,
     this.onPlaylistTap,
     this.scrollController,
+    this.onCreatePlaylist,
   });
 
   @override
@@ -177,8 +181,9 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
     final playlists = _playlists ?? [];
 
     if (playlists.isEmpty) {
-      return const LibraryPlaylistsPlaceholder(
-        key: ValueKey('library_playlists_empty_placeholder'),
+      return LibraryPlaylistsPlaceholder(
+        key: const ValueKey('library_playlists_empty_placeholder'),
+        onCreatePlaylist: widget.onCreatePlaylist,
       );
     }
 
@@ -189,7 +194,7 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
       padding: const EdgeInsets.only(
         left: 16.0,
         right: 16.0,
-        top: 4.0,
+        top: 10.0,
         bottom: 160.0,
       ),
       separatorBuilder: (context, index) => const SizedBox(height: 14.0),

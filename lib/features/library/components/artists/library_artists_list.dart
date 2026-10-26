@@ -157,7 +157,7 @@ class _LibraryArtistsListState extends State<LibraryArtistsList> {
       controller: widget.scrollController,
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(
-        top: 4.0,
+        top: 10.0,
         bottom: 160.0,
       ),
       itemCount: artists.length,

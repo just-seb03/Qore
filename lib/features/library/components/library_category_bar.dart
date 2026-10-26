@@ -43,7 +43,7 @@ class LibraryCategoryBar extends StatefulWidget {
     this.onPrevious,
     this.onNext,
     this.animate = true,
-    this.padding = const EdgeInsets.symmetric(vertical: 6.0),
+    this.padding = const EdgeInsets.only(top: 8.0, bottom: 12.0),
   });
 
   @override
