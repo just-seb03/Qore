@@ -31,6 +31,9 @@ class MaterialArtistAvatar extends StatelessWidget {
   /// Artist name used to query persistent custom artwork.
   final String? artistName;
 
+  /// Optional direct file path to custom avatar image.
+  final String? customImagePath;
+
   const MaterialArtistAvatar({
     super.key,
     this.radius = 24.0,
@@ -38,6 +41,7 @@ class MaterialArtistAvatar extends StatelessWidget {
     this.iconColor,
     this.icon = Icons.person_rounded,
     this.artistName,
+    this.customImagePath,
   });
 
   @override
@@ -48,8 +52,13 @@ class MaterialArtistAvatar extends StatelessWidget {
     return ListenableBuilder(
       listenable: ArtworkService.instance,
       builder: (context, _) {
-        final customPath = ArtworkService.instance.getCustomArtistAvatar(artistName);
-        if (customPath != null) {
+        final directPath = customImagePath != null && File(customImagePath!).existsSync()
+            ? customImagePath
+            : null;
+        final customPath = directPath ??
+            ArtworkService.instance.getCustomArtistAvatar(artistName);
+
+        if (customPath != null && File(customPath).existsSync()) {
           return CircleAvatar(
             radius: radius,
             backgroundColor: effectiveBg,

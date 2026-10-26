@@ -20,6 +20,7 @@ import 'package:project_anima/features/artist/components/artist_header_view.dart
 import 'package:project_anima/features/home/components/home_artist_card.dart';
 import 'package:project_anima/features/home/components/home_pinned_section.dart';
 import 'package:project_anima/features/home/components/space_header.dart';
+import 'package:project_anima/features/home/components/space_tiles_grid.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/playlist/components/playlist_detail_header.dart';
@@ -322,7 +323,7 @@ void main() {
   });
 
   group('HomeScreen Integration & Space Tests', () {
-    testWidgets('HomeScreen renders Space header and AmbientParticlesCanvas without Welcome or Today Selection', (tester) async {
+    testWidgets('HomeScreen renders SpaceTilesGrid and AmbientParticlesCanvas without SpaceHeader or legacy content', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: HomeScreen(
@@ -333,8 +334,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.text('Space'), findsOneWidget);
+      expect(find.byType(SpaceTilesGrid), findsOneWidget);
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+      expect(find.byType(SpaceHeader), findsNothing);
       expect(find.text('WELCOME'), findsNothing);
       expect(find.text('Today Selection'), findsNothing);
       expect(find.text('Favorites'), findsNothing);

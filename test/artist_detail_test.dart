@@ -269,6 +269,12 @@ void main() {
       final retrieved = service.getCustomArtistAvatar(artist);
       expect(retrieved, isNotNull);
       expect(retrieved, savedPath);
+      expect(savedPath, contains('_round.png'));
+
+      // Square photo for Space
+      final squareRetrieved = service.getCustomArtistSquarePhoto(artist);
+      expect(squareRetrieved, isNotNull);
+      expect(squareRetrieved, contains('_square.png'));
 
       // Case insensitivity & trimming test
       final retrievedCaseInsensitive = service.getCustomArtistAvatar(' the strokes ');
@@ -278,6 +284,7 @@ void main() {
       // 4. Remove custom avatar
       await service.removeCustomArtistAvatar(artist);
       expect(service.getCustomArtistAvatar(artist), isNull);
+      expect(service.getCustomArtistSquarePhoto(artist), isNull);
       expect(savedFile.existsSync(), isFalse);
     });
   });

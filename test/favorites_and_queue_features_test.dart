@@ -16,6 +16,7 @@ import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/features/home/components/home_favorites_hero_card.dart';
+import 'package:project_anima/features/home/components/space_tiles_grid.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/player/components/playback_queue_sheet.dart';
 
@@ -326,7 +327,7 @@ void main() {
   });
 
   group('HomeScreen Integration with Space Screen Tests', () {
-    testWidgets('HomeScreen renders Space header and no legacy hero banners', (tester) async {
+    testWidgets('HomeScreen renders SpaceTilesGrid and no legacy hero banners', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: HomeScreen(
@@ -341,7 +342,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.text('Space'), findsOneWidget);
+      expect(find.byType(SpaceTilesGrid), findsOneWidget);
       expect(find.text('WELCOME'), findsNothing);
       expect(find.text('Today Selection'), findsNothing);
       expect(find.text('Favorites'), findsNothing);

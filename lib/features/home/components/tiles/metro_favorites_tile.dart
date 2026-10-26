@@ -14,6 +14,7 @@ import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/home/components/metro_live_tile.dart';
+import 'package:project_anima/features/home/components/tiles/metro_tile_glass_back.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 
 /// Square Windows Phone Metro live tile for Favorite Songs.
@@ -26,7 +27,7 @@ class MetroFavoritesTile extends StatelessWidget {
 
   const MetroFavoritesTile({
     super.key,
-    this.initialDelay = const Duration(seconds: 3),
+    this.initialDelay = const Duration(seconds: 16),
     this.initialSongs,
   });
 
@@ -60,10 +61,13 @@ class MetroFavoritesTile extends StatelessWidget {
       child: MetroLiveTile(
         flipAxis: MetroFlipAxis.horizontal,
         initialDelay: initialDelay,
-        interval: const Duration(seconds: 13),
+        interval: const Duration(seconds: 55),
         onTap: () => _handleTap(context),
         front: _buildFront(context),
-        back: _buildBack(context),
+        back: const MetroTileGlassBack(
+          icon: Icons.favorite_rounded,
+          label: 'CANCIONES',
+        ),
       ),
     );
   }
@@ -101,34 +105,6 @@ class MetroFavoritesTile extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBack(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.favorite_rounded,
-              size: 48.0,
-              color: AppColors.accent,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'CANCIONES',
-              style: GoogleFonts.inconsolata(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

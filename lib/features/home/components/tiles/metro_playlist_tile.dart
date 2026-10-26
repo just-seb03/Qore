@@ -15,6 +15,7 @@ import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/home/components/metro_live_tile.dart';
+import 'package:project_anima/features/home/components/tiles/metro_tile_glass_back.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 
@@ -35,7 +36,7 @@ class MetroPlaylistTile extends StatelessWidget {
   const MetroPlaylistTile({
     super.key,
     required this.playlistItem,
-    this.initialDelay = const Duration(seconds: 6),
+    this.initialDelay = const Duration(seconds: 48),
     this.onTap,
     this.onLongPress,
   });
@@ -71,11 +72,14 @@ class MetroPlaylistTile extends StatelessWidget {
       child: MetroLiveTile(
         flipAxis: MetroFlipAxis.vertical,
         initialDelay: initialDelay,
-        interval: const Duration(seconds: 16),
+        interval: const Duration(seconds: 82),
         onTap: () => _handleTap(context),
         onLongPress: onLongPress,
         front: _buildFront(context),
-        back: _buildBack(context),
+        back: const MetroTileGlassBack(
+          icon: Icons.queue_music_rounded,
+          label: 'PLAYLIST',
+        ),
       ),
     );
   }
@@ -159,6 +163,8 @@ class MetroPlaylistTile extends StatelessWidget {
     if (playlistItem.coverPath != null && File(playlistItem.coverPath!).existsSync()) {
       return Image.file(
         File(playlistItem.coverPath!),
+        width: double.infinity,
+        height: double.infinity,
         fit: BoxFit.cover,
         filterQuality: FilterQuality.high,
       );
@@ -168,6 +174,8 @@ class MetroPlaylistTile extends StatelessWidget {
         playlistItem.representativeSongId! > 0) {
       return AnimaArtworkImage(
         mediaStoreId: playlistItem.representativeSongId!,
+        width: double.infinity,
+        height: double.infinity,
         borderRadius: 0.0,
         fallbackIcon: Icons.queue_music_rounded,
         isThumbnail: false,
@@ -191,34 +199,6 @@ class MetroPlaylistTile extends StatelessWidget {
           Icons.queue_music_rounded,
           size: 48.0,
           color: AppColors.onSurfaceVariant.withValues(alpha: 0.35),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBack(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.queue_music_rounded,
-              size: 48.0,
-              color: AppColors.accent,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'PLAYLIST',
-              style: GoogleFonts.inconsolata(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-          ],
         ),
       ),
     );

@@ -50,8 +50,8 @@ class MetroLiveTile extends StatefulWidget {
     required this.front,
     required this.back,
     this.flipAxis = MetroFlipAxis.horizontal,
-    this.initialDelay = const Duration(seconds: 4),
-    this.interval = const Duration(seconds: 14),
+    this.initialDelay = const Duration(seconds: 20),
+    this.interval = const Duration(seconds: 60),
     this.onTap,
     this.onLongPress,
   });
@@ -103,9 +103,9 @@ class _MetroLiveTileState extends State<MetroLiveTile>
       await _controller.forward();
       if (!mounted || _isDisposed) return;
 
-      // 2. Pause on the back to show entity icon
+      // 2. Pause on the back to show entity icon (half a second: 500ms)
       _pauseCompleter = Completer<void>();
-      _pauseTimer = Timer(const Duration(milliseconds: 2400), () {
+      _pauseTimer = Timer(const Duration(milliseconds: 500), () {
         if (_pauseCompleter != null && !_pauseCompleter!.isCompleted) {
           _pauseCompleter!.complete();
         }

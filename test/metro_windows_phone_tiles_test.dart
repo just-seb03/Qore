@@ -4,6 +4,7 @@
 /// zero elevation shadows, sharp corners, square artist & album covers, and top-left Favorites tile.
 library;
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,6 +17,7 @@ import 'package:project_anima/features/home/components/tiles/metro_album_tile.da
 import 'package:project_anima/features/home/components/tiles/metro_artist_tile.dart';
 import 'package:project_anima/features/home/components/tiles/metro_favorites_tile.dart';
 import 'package:project_anima/features/home/components/tiles/metro_playlist_tile.dart';
+import 'package:project_anima/features/home/components/tiles/metro_tile_glass_back.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 
 Song createMockSong({
@@ -75,6 +77,15 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
 
       expect(find.text('BACK_SIDE'), findsOneWidget);
+
+      // Back side stays for half a second (500ms) then reverses
+      await tester.pump(const Duration(milliseconds: 600));
+      // Mid-reversal
+      await tester.pump(const Duration(milliseconds: 400));
+      // Settled on front
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('FRONT_SIDE'), findsOneWidget);
     });
 
     testWidgets('vertical flip configures Matrix4 rotationX', (tester) async {
@@ -145,7 +156,7 @@ void main() {
   });
 
   group('MetroArtistTile Widget Tests', () {
-    testWidgets('renders square tile with circular avatar and artist name inside',
+    testWidgets('renders square tile with silhouette and large bold artist name when no custom photo',
         (tester) async {
       final artist = PinnedFavorite(
         id: 1,
@@ -171,11 +182,81 @@ void main() {
 
       expect(find.text('The Weeknd'), findsOneWidget);
       expect(find.byIcon(Icons.person_rounded), findsOneWidget);
+
+      final Text nameText = tester.widget(find.text('The Weeknd'));
+      expect(nameText.style?.fontWeight, equals(FontWeight.w800));
+      expect(nameText.style?.fontSize, equals(16.0));
+    });
+
+    testWidgets('renders custom saved artist square photo when coverPath exists',
+        (tester) async {
+      final tempFile = File('${Directory.systemTemp.path}/test_artist_avatar.png');
+      tempFile.writeAsBytesSync([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+      addTearDown(() {
+        if (tempFile.existsSync()) tempFile.deleteSync();
+      });
+
+      final artist = PinnedFavorite(
+        id: 1,
+        itemKey: 'artist::the weeknd',
+        itemType: PinnedItemType.artist,
+        title: 'The Weeknd',
+        coverPath: tempFile.path,
+        pinnedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 180,
+              height: 180,
+              child: MetroArtistTile(
+                artist: artist,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('The Weeknd'), findsOneWidget);
+      final imageFinder = find.byType(Image);
+      expect(imageFinder, findsOneWidget);
+      final Image imageWidget = tester.widget(imageFinder);
+      expect(imageWidget.image, isA<FileImage>());
+
+      final Text nameText = tester.widget(find.text('The Weeknd'));
+      expect(nameText.style?.fontWeight, equals(FontWeight.w800));
+      expect(nameText.style?.fontSize, equals(16.0));
+    });
+  });
+
+  group('MetroTileGlassBack Widget Tests', () {
+    testWidgets('renders BackdropFilter with frosted glass blur and theme styling',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 150,
+              height: 150,
+              child: MetroTileGlassBack(
+                icon: Icons.album_rounded,
+                label: 'ÁLBUM',
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('ÁLBUM'), findsOneWidget);
+      expect(find.byIcon(Icons.album_rounded), findsOneWidget);
+      expect(find.byType(BackdropFilter), findsOneWidget);
     });
   });
 
   group('MetroAlbumTile Widget Tests', () {
-    testWidgets('renders square full-bleed artwork and album title', (tester) async {
+    testWidgets('renders square full-bleed HD artwork and album title', (tester) async {
       final album = PinnedFavorite(
         id: 2,
         itemKey: 'album::after hours::the weeknd',

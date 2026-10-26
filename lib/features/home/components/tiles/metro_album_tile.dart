@@ -14,6 +14,7 @@ import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/home/components/metro_live_tile.dart';
+import 'package:project_anima/features/home/components/tiles/metro_tile_glass_back.dart';
 
 /// Square Windows Phone Metro live tile for a pinned album.
 class MetroAlbumTile extends StatelessWidget {
@@ -32,7 +33,7 @@ class MetroAlbumTile extends StatelessWidget {
   const MetroAlbumTile({
     super.key,
     required this.album,
-    this.initialDelay = const Duration(seconds: 4),
+    this.initialDelay = const Duration(seconds: 30),
     this.onTap,
     this.onLongPress,
   });
@@ -59,11 +60,14 @@ class MetroAlbumTile extends StatelessWidget {
       child: MetroLiveTile(
         flipAxis: MetroFlipAxis.horizontal,
         initialDelay: initialDelay,
-        interval: const Duration(seconds: 14),
+        interval: const Duration(seconds: 68),
         onTap: () => _handleTap(context),
         onLongPress: onLongPress,
         front: _buildFront(context),
-        back: _buildBack(context),
+        back: const MetroTileGlassBack(
+          icon: Icons.album_rounded,
+          label: 'ÁLBUM',
+        ),
       ),
     );
   }
@@ -74,15 +78,17 @@ class MetroAlbumTile extends StatelessWidget {
       child: Stack(
         fit: StackFit.expand,
         children: [
-          // Full-bleed artwork with 0 border radius
+          // Full-bleed HD artwork with 0 border radius
           AnimaArtworkImage(
             mediaStoreId: album.representativeSongId ?? 0,
             albumId: album.albumId,
             albumName: album.title,
             artistName: album.subtitle,
+            width: double.infinity,
+            height: double.infinity,
             borderRadius: 0.0,
             fallbackIcon: Icons.album_rounded,
-            isThumbnail: true,
+            isThumbnail: false,
             fit: BoxFit.cover,
           ),
 
@@ -133,34 +139,6 @@ class MetroAlbumTile extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildBack(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.album_rounded,
-              size: 48.0,
-              color: AppColors.accent,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'ÁLBUM',
-              style: GoogleFonts.inconsolata(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

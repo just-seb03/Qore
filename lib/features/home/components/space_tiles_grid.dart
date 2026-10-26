@@ -204,7 +204,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
   }
 
   Widget _buildSquareTile(PinnedFavorite item, int index) {
-    final staggerDelay = Duration(seconds: 4 + (index % 6) * 2);
+    final staggerDelay = Duration(seconds: 22 + (index % 6) * 10);
 
     if (item.isAlbum) {
       return MetroAlbumTile(
@@ -236,49 +236,56 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
     final items = _pinnedItems ?? [];
     final rows = _packRows(items);
 
-    return ListView.builder(
-      padding: const EdgeInsets.only(bottom: 24.0),
-      physics: const BouncingScrollPhysics(),
-      itemCount: rows.length,
-      itemBuilder: (context, index) {
-        final row = rows[index];
-        return switch (row) {
-          _MetroTopRowItem(:final rightItem) => Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: MetroFavoritesTile(
-                    initialSongs: widget.initialFavoriteSongs,
+    return MediaQuery.removePadding(
+      context: context,
+      removeTop: true,
+      child: ListView.builder(
+        padding: const EdgeInsets.only(
+          top: 0.0,
+          bottom: 24.0,
+        ),
+        physics: const BouncingScrollPhysics(),
+        itemCount: rows.length,
+        itemBuilder: (context, index) {
+          final row = rows[index];
+          return switch (row) {
+            _MetroTopRowItem(:final rightItem) => Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: MetroFavoritesTile(
+                      initialSongs: widget.initialFavoriteSongs,
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: rightItem != null
-                      ? _buildSquareTile(rightItem, 0)
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ),
-          _MetroPlaylistRowItem(:final playlist) => MetroPlaylistTile(
-              key: ValueKey('metro_playlist_${playlist.id ?? playlist.itemKey}'),
-              playlistItem: playlist,
-              initialDelay: Duration(seconds: 5 + (index % 5) * 2),
-              onLongPress: () => _confirmUnpin(playlist),
-            ),
-          _MetroPairRowItem(:final first, :final second) => Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: _buildSquareTile(first, index),
-                ),
-                Expanded(
-                  child: second != null
-                      ? _buildSquareTile(second, index + 1)
-                      : const SizedBox.shrink(),
-                ),
-              ],
-            ),
-        };
-      },
+                  Expanded(
+                    child: rightItem != null
+                        ? _buildSquareTile(rightItem, 0)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+            _MetroPlaylistRowItem(:final playlist) => MetroPlaylistTile(
+                key: ValueKey('metro_playlist_${playlist.id ?? playlist.itemKey}'),
+                playlistItem: playlist,
+                initialDelay: Duration(seconds: 36 + (index % 5) * 12),
+                onLongPress: () => _confirmUnpin(playlist),
+              ),
+            _MetroPairRowItem(:final first, :final second) => Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: _buildSquareTile(first, index),
+                  ),
+                  Expanded(
+                    child: second != null
+                        ? _buildSquareTile(second, index + 1)
+                        : const SizedBox.shrink(),
+                  ),
+                ],
+              ),
+          };
+        },
+      ),
     );
   }
 }

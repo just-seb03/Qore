@@ -1,19 +1,21 @@
 /// File: metro_artist_tile.dart
 /// Description: Windows Phone Metro square live tile for a pinned Artist.
-/// Displays circular avatar with artist photo and name inside the square tile container,
-/// sharp 90-degree corners, zero shadows, and horizontal 3D flip revealing the Artist icon.
+/// Displays square full-bleed artist photo with bottom typography scrim, large bold artist name,
+/// sharp 90-degree corners, zero shadows, and horizontal 3D flip with frosted glass back.
 ///
 /// Components / Classes / Functions:
 /// - MetroArtistTile: Square live tile presenting a pinned artist with horizontal flip.
 library;
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/home/components/metro_live_tile.dart';
+import 'package:project_anima/features/home/components/tiles/metro_tile_glass_back.dart';
 
 /// Square Windows Phone Metro live tile for a pinned artist.
 class MetroArtistTile extends StatelessWidget {
@@ -32,7 +34,7 @@ class MetroArtistTile extends StatelessWidget {
   const MetroArtistTile({
     super.key,
     required this.artist,
-    this.initialDelay = const Duration(seconds: 5),
+    this.initialDelay = const Duration(seconds: 40),
     this.onTap,
     this.onLongPress,
   });
@@ -54,80 +56,92 @@ class MetroArtistTile extends StatelessWidget {
       child: MetroLiveTile(
         flipAxis: MetroFlipAxis.horizontal,
         initialDelay: initialDelay,
-        interval: const Duration(seconds: 15),
+        interval: const Duration(seconds: 75),
         onTap: () => _handleTap(context),
         onLongPress: onLongPress,
         front: _buildFront(context),
-        back: _buildBack(context),
+        back: const MetroTileGlassBack(
+          icon: Icons.person_rounded,
+          label: 'ARTISTA',
+        ),
       ),
     );
   }
 
   Widget _buildFront(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 12.0),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Circular avatar inside the square cover tile
-          AnimaArtworkImage(
-            mediaStoreId: artist.representativeSongId ?? 0,
-            albumId: artist.albumId,
-            artistName: artist.title,
-            isCircular: true,
-            width: 82.0,
-            height: 82.0,
-            borderRadius: 41.0,
-            fallbackIcon: Icons.person_rounded,
-            isThumbnail: true,
-            fit: BoxFit.cover,
-          ),
-          const SizedBox(height: 10.0),
+    return ListenableBuilder(
+      listenable: ArtworkService.instance,
+      builder: (context, _) {
+        final directPath = artist.coverPath != null && File(artist.coverPath!).existsSync()
+            ? artist.coverPath
+            : null;
+        final photoPath = directPath ??
+            ArtworkService.instance.getCustomArtistSquarePhoto(artist.title);
 
-          // Artist name inside the square cover tile
-          Text(
-            artist.title,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            textAlign: TextAlign.center,
-            style: GoogleFonts.inconsolata(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onSurface,
-              letterSpacing: 0.1,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        final bool hasPhoto = photoPath != null && File(photoPath).existsSync();
 
-  Widget _buildBack(BuildContext context) {
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.person_rounded,
-              size: 48.0,
-              color: AppColors.accent,
-            ),
-            const SizedBox(height: 8.0),
-            Text(
-              'ARTISTA',
-              style: GoogleFonts.inconsolata(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.5,
-                color: AppColors.onSurfaceVariant,
+        return Container(
+          color: AppColors.surfaceContainerHigh,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 1. Square Artist Photo or Native Silhouette
+              if (hasPhoto)
+                Image.file(
+                  File(photoPath),
+                  width: double.infinity,
+                  height: double.infinity,
+                  fit: BoxFit.cover,
+                  filterQuality: FilterQuality.high,
+                )
+              else
+                Center(
+                  child: Icon(
+                    Icons.person_rounded,
+                    size: 72.0,
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
+                  ),
+                ),
+
+              // 2. Bottom gradient scrim with prominent bold artist name
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: hasPhoto
+                          ? const [
+                              Colors.black87,
+                              Colors.transparent,
+                            ]
+                          : [
+                              Colors.black45,
+                              Colors.transparent,
+                            ],
+                    ),
+                  ),
+                  child: Text(
+                    artist.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inconsolata(
+                      fontSize: 16.0,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                ),
               ),
-            ),
-          ],
-        ),
-      ),
+            ],
+          ),
+        );
+      },
     );
   }
 }

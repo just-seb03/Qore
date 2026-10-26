@@ -13,6 +13,7 @@ import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/home/components/space_header.dart';
+import 'package:project_anima/features/home/components/space_tiles_grid.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
 import 'package:project_anima/features/library/screens/library.dart';
@@ -83,7 +84,7 @@ void main() {
   });
 
   group('HomeScreen (Space) Isolation Tests', () {
-    testWidgets('HomeScreen renders empty with Space header and AmbientParticlesCanvas',
+    testWidgets('HomeScreen renders with SpaceTilesGrid and AmbientParticlesCanvas',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -101,8 +102,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.text('Space'), findsOneWidget);
+      expect(find.byType(SpaceTilesGrid), findsOneWidget);
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+      expect(find.byType(SpaceHeader), findsNothing);
 
       // Verify absence of legacy content
       expect(find.text('WELCOME'), findsNothing);

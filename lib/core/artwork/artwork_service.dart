@@ -8,7 +8,10 @@
 library;
 
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
+import 'package:flutter/painting.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:project_anima/core/artwork/artwork_processor.dart';
@@ -34,6 +37,8 @@ class ArtworkService extends ChangeNotifier {
   final Map<int, String> _thumbnailCache = {};
   final Map<int, String> _coverCache = {};
   final Map<String, String> _customArtistAvatarCache = {};
+  final Map<String, String> _customArtistRoundCache = {};
+  final Map<String, String> _customArtistSquareCache = {};
   final Map<String, int> _albumRepresentativeCache = {};
   final Map<String, List<Song>> _albumPendingSongs = {};
   final Map<int, String> _songAlbumKeyCache = {};
@@ -297,7 +302,8 @@ class ArtworkService extends ChangeNotifier {
     return artist.trim().toLowerCase().replaceAll(RegExp(r'[^a-z0-9_\-]'), '_');
   }
 
-  /// Scans the artists directory and populates the in-memory custom artist avatar cache.
+  /// Scans the artists directory and populates the in-memory custom artist avatar cache
+  /// differentiating square photos (for Space) and round photos (for avatars).
   void _populateArtistCacheFromDisk(Directory dir) {
     try {
       final entities = dir.listSync(followLinks: false);
@@ -306,7 +312,15 @@ class ArtworkService extends ChangeNotifier {
         final filename = p.basename(entity.path);
         if (!filename.endsWith('.png') && !filename.endsWith('.jpg')) continue;
         final rawKey = p.withoutExtension(filename);
-        _customArtistAvatarCache[rawKey] = entity.path;
+        if (rawKey.endsWith('_round')) {
+          final baseKey = rawKey.substring(0, rawKey.length - 6);
+          _customArtistRoundCache[baseKey] = entity.path;
+        } else if (rawKey.endsWith('_square')) {
+          final baseKey = rawKey.substring(0, rawKey.length - 7);
+          _customArtistSquareCache[baseKey] = entity.path;
+        } else {
+          _customArtistAvatarCache[rawKey] = entity.path;
+        }
       }
     } catch (e) {
       debugPrint('⚠️ [ArtworkService] Error reading artist avatars: $e');
@@ -314,32 +328,81 @@ class ArtworkService extends ChangeNotifier {
   }
 
   /// Returns the local path to a custom artist avatar in O(1) time if available.
+  /// Prefers the circular rasterized version if present, falling back to legacy or square.
   String? getCustomArtistAvatar(String? artist) {
     if (artist == null || artist.trim().isEmpty) return null;
     final key = _normalizeArtistKey(artist);
+    final round = _customArtistRoundCache[key];
+    if (round != null && File(round).existsSync()) {
+      return round;
+    }
     final direct = _customArtistAvatarCache[key];
     if (direct != null && File(direct).existsSync()) {
       return direct;
     }
+    final square = _customArtistSquareCache[key];
+    if (square != null && File(square).existsSync()) {
+      return square;
+    }
     return null;
   }
 
-  /// Saves a custom artist avatar to persistent disk storage and updates in-memory cache.
-  Future<String> setCustomArtistAvatar(String artist, Uint8List imageBytes) async {
+  /// Returns the local path to a custom artist square photo (for Space) in O(1) time if available.
+  /// Prefers the 1:1 square version if present, falling back to legacy or round.
+  String? getCustomArtistSquarePhoto(String? artist) {
+    if (artist == null || artist.trim().isEmpty) return null;
     final key = _normalizeArtistKey(artist);
-    final targetPath = p.join(_artistsDir, '$key.png');
-    final targetFile = File(targetPath);
-    await targetFile.writeAsBytes(imageBytes, flush: true);
-    _customArtistAvatarCache[key] = targetPath;
-    notifyListeners();
-    return targetPath;
+    final square = _customArtistSquareCache[key];
+    if (square != null && File(square).existsSync()) {
+      return square;
+    }
+    final direct = _customArtistAvatarCache[key];
+    if (direct != null && File(direct).existsSync()) {
+      return direct;
+    }
+    final round = _customArtistRoundCache[key];
+    if (round != null && File(round).existsSync()) {
+      return round;
+    }
+    return null;
   }
 
-  /// Removes custom artist avatar from disk and memory cache.
+  /// Saves custom artist avatar to persistent disk storage in both 1:1 square format (for Space)
+  /// and circular rasterized format (for avatars), and updates in-memory caches.
+  Future<String> setCustomArtistAvatar(String artist, Uint8List imageBytes) async {
+    final key = _normalizeArtistKey(artist);
+
+    // 1. Save 1:1 square photo for Space and general usage
+    final squarePath = p.join(_artistsDir, '${key}_square.png');
+    final standardPath = p.join(_artistsDir, '$key.png');
+    await File(squarePath).writeAsBytes(imageBytes, flush: true);
+    await File(standardPath).writeAsBytes(imageBytes, flush: true);
+    _customArtistSquareCache[key] = squarePath;
+    _customArtistAvatarCache[key] = standardPath;
+
+    // 2. Generate circular rasterized version for round avatar usage
+    final roundBytes = await _createCircularImage(imageBytes);
+    final roundPath = p.join(_artistsDir, '${key}_round.png');
+    await File(roundPath).writeAsBytes(roundBytes, flush: true);
+    _customArtistRoundCache[key] = roundPath;
+
+    notifyListeners();
+    return roundPath;
+  }
+
+  /// Removes custom artist avatar from disk and memory cache (both square and round versions).
   Future<void> removeCustomArtistAvatar(String artist) async {
     final key = _normalizeArtistKey(artist);
-    final path = _customArtistAvatarCache.remove(key);
-    if (path != null) {
+    _customArtistSquareCache.remove(key);
+    _customArtistRoundCache.remove(key);
+    _customArtistAvatarCache.remove(key);
+
+    final paths = [
+      p.join(_artistsDir, '${key}_square.png'),
+      p.join(_artistsDir, '${key}_round.png'),
+      p.join(_artistsDir, '$key.png'),
+    ];
+    for (final path in paths) {
       final file = File(path);
       if (await file.exists()) {
         try {
@@ -348,6 +411,43 @@ class ArtworkService extends ChangeNotifier {
       }
     }
     notifyListeners();
+  }
+
+  /// Helper generating a circular rasterized PNG from square image bytes.
+  Future<Uint8List> _createCircularImage(Uint8List squareBytes) async {
+    try {
+      final codec = await ui.instantiateImageCodec(squareBytes);
+      final frame = await codec.getNextFrame();
+      final image = frame.image;
+      final int size = math.min(image.width, image.height);
+
+      final recorder = ui.PictureRecorder();
+      final canvas = Canvas(
+        recorder,
+        Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()),
+      );
+
+      final clipPath = Path()
+        ..addOval(Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble()));
+      canvas.clipPath(clipPath);
+
+      final src = Rect.fromLTWH(
+        (image.width - size) / 2.0,
+        (image.height - size) / 2.0,
+        size.toDouble(),
+        size.toDouble(),
+      );
+      final dst = Rect.fromLTWH(0, 0, size.toDouble(), size.toDouble());
+      canvas.drawImageRect(image, src, dst, Paint()..isAntiAlias = true);
+
+      final picture = recorder.endRecording();
+      final circularImage = await picture.toImage(size, size);
+      final byteData = await circularImage.toByteData(format: ui.ImageByteFormat.png);
+      return byteData?.buffer.asUint8List() ?? squareBytes;
+    } catch (e) {
+      debugPrint('⚠️ [ArtworkService] Fallback to square bytes for circular avatar: $e');
+      return squareBytes;
+    }
   }
 
   /// Extracts base artist name by removing collaboration markers.
