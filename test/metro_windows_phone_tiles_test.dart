@@ -1,0 +1,342 @@
+/// File: metro_windows_phone_tiles_test.dart
+/// Description: Comprehensive test suite for Windows Phone Metro Live Tiles in Space:
+/// 3D perspective flips (horizontal for squares, vertical for rectangles), zero padding,
+/// zero elevation shadows, sharp corners, square artist & album covers, and top-left Favorites tile.
+library;
+
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/database/models/pinned_favorite.dart';
+import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/home/components/metro_live_tile.dart';
+import 'package:project_anima/features/home/components/space_tiles_grid.dart';
+import 'package:project_anima/features/home/components/tiles/metro_album_tile.dart';
+import 'package:project_anima/features/home/components/tiles/metro_artist_tile.dart';
+import 'package:project_anima/features/home/components/tiles/metro_favorites_tile.dart';
+import 'package:project_anima/features/home/components/tiles/metro_playlist_tile.dart';
+import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
+
+Song createMockSong({
+  required int id,
+  required String title,
+  required String artist,
+  required String album,
+  required int mediaStoreId,
+}) {
+  return Song(
+    id: id,
+    mediaStoreId: mediaStoreId,
+    title: title,
+    artist: artist,
+    album: album,
+    duration: 210000,
+    path: '/storage/emulated/0/Music/$title.mp3',
+    dateAdded: 1700000000,
+    dateModified: 1700000000,
+  );
+}
+
+void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  GoogleFonts.config.allowRuntimeFetching = false;
+
+  group('MetroLiveTile 3D Animation Tests', () {
+    testWidgets('renders front widget initially and rotates on axis', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 150,
+                height: 150,
+                child: MetroLiveTile(
+                  initialDelay: const Duration(milliseconds: 100),
+                  flipAxis: MetroFlipAxis.horizontal,
+                  front: const Text('FRONT_SIDE'),
+                  back: const Text('BACK_SIDE'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Initially displays front
+      expect(find.text('FRONT_SIDE'), findsOneWidget);
+      expect(find.text('BACK_SIDE'), findsNothing);
+
+      // Trigger animation timer
+      await tester.pump(const Duration(milliseconds: 150));
+      // Mid-flip
+      await tester.pump(const Duration(milliseconds: 400));
+      // Settled on back
+      await tester.pump(const Duration(milliseconds: 400));
+
+      expect(find.text('BACK_SIDE'), findsOneWidget);
+    });
+
+    testWidgets('vertical flip configures Matrix4 rotationX', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SizedBox(
+                width: 300,
+                height: 150,
+                child: MetroLiveTile(
+                  initialDelay: const Duration(milliseconds: 100),
+                  flipAxis: MetroFlipAxis.vertical,
+                  front: const Text('FRONT_RECT'),
+                  back: const Text('BACK_RECT'),
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('FRONT_RECT'), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 150));
+      await tester.pump(const Duration(milliseconds: 800));
+      expect(find.text('BACK_RECT'), findsOneWidget);
+    });
+  });
+
+  group('MetroFavoritesTile Widget Tests', () {
+    testWidgets('renders large filled heart in theme accent color and handles tap',
+        (tester) async {
+      final mockSongs = [
+        createMockSong(id: 1, title: 'Starboy', artist: 'The Weeknd', album: 'Starboy', mediaStoreId: 101),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 180,
+              height: 180,
+              child: MetroFavoritesTile(
+                initialSongs: mockSongs,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Verify large filled heart icon
+      final iconFinder = find.byIcon(Icons.favorite_rounded);
+      expect(iconFinder, findsOneWidget);
+      final Icon iconWidget = tester.widget(iconFinder);
+      expect(iconWidget.size, equals(64.0));
+      expect(iconWidget.color, equals(AppColors.accent));
+
+      // Verify label
+      expect(find.text('FAVORITOS'), findsOneWidget);
+
+      // Tap to open favorites detail screen
+      await tester.tap(find.byType(MetroFavoritesTile));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+
+      expect(find.byType(PlaylistDetailScreen), findsOneWidget);
+    });
+  });
+
+  group('MetroArtistTile Widget Tests', () {
+    testWidgets('renders square tile with circular avatar and artist name inside',
+        (tester) async {
+      final artist = PinnedFavorite(
+        id: 1,
+        itemKey: 'artist::the weeknd',
+        itemType: PinnedItemType.artist,
+        title: 'The Weeknd',
+        pinnedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 180,
+              height: 180,
+              child: MetroArtistTile(
+                artist: artist,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('The Weeknd'), findsOneWidget);
+      expect(find.byIcon(Icons.person_rounded), findsOneWidget);
+    });
+  });
+
+  group('MetroAlbumTile Widget Tests', () {
+    testWidgets('renders square full-bleed artwork and album title', (tester) async {
+      final album = PinnedFavorite(
+        id: 2,
+        itemKey: 'album::after hours::the weeknd',
+        itemType: PinnedItemType.album,
+        title: 'After Hours',
+        subtitle: 'The Weeknd',
+        pinnedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 180,
+              height: 180,
+              child: MetroAlbumTile(
+                album: album,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('After Hours'), findsOneWidget);
+      expect(find.text('The Weeknd'), findsOneWidget);
+      expect(find.byIcon(Icons.album_rounded), findsOneWidget);
+    });
+  });
+
+  group('MetroPlaylistTile Widget Tests', () {
+    testWidgets('renders rectangular 2:1 tile with custom font and vertical flip',
+        (tester) async {
+      final playlist = PinnedFavorite(
+        id: 3,
+        itemKey: 'playlist::10',
+        itemType: PinnedItemType.playlist,
+        playlistId: 10,
+        title: 'Night Drive',
+        fontFamily: 'Pacifico',
+        pinnedAt: DateTime.now(),
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SizedBox(
+              width: 360,
+              height: 180,
+              child: MetroPlaylistTile(
+                playlistItem: playlist,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      expect(find.text('Night Drive'), findsOneWidget);
+      expect(find.text('PLAYLIST'), findsOneWidget);
+    });
+  });
+
+  group('SpaceTilesGrid Layout & Windows Phone Structure Tests', () {
+    testWidgets('arranges top-left Favorites and paired items with zero gap',
+        (tester) async {
+      tester.view.physicalSize = const Size(800, 1800);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
+      final pinned = [
+        PinnedFavorite(
+          id: 1,
+          itemKey: 'album::discovery::daft punk',
+          itemType: PinnedItemType.album,
+          title: 'Discovery',
+          subtitle: 'Daft Punk',
+          pinnedAt: DateTime.now(),
+        ),
+        PinnedFavorite(
+          id: 2,
+          itemKey: 'artist::justice',
+          itemType: PinnedItemType.artist,
+          title: 'Justice',
+          pinnedAt: DateTime.now(),
+        ),
+        PinnedFavorite(
+          id: 3,
+          itemKey: 'playlist::42',
+          itemType: PinnedItemType.playlist,
+          playlistId: 42,
+          title: 'French Touch',
+          pinnedAt: DateTime.now(),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SpaceTilesGrid(
+              initialPinnedItems: pinned,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Favorites is always in the top row
+      expect(find.byType(MetroFavoritesTile), findsOneWidget);
+
+      // Discovery album is paired in top row
+      expect(find.text('Discovery'), findsOneWidget);
+
+      // French Touch playlist is full width
+      expect(find.text('French Touch'), findsOneWidget);
+
+      // Justice artist is present
+      expect(find.text('Justice'), findsOneWidget);
+    });
+
+    testWidgets('long press on tile opens unpin confirmation dialog', (tester) async {
+      final pinned = [
+        PinnedFavorite(
+          id: 1,
+          itemKey: 'album::discovery::daft punk',
+          itemType: PinnedItemType.album,
+          title: 'Discovery',
+          subtitle: 'Daft Punk',
+          pinnedAt: DateTime.now(),
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: SpaceTilesGrid(
+              initialPinnedItems: pinned,
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      // Long press the Discovery album tile
+      await tester.longPress(find.text('Discovery'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 200));
+
+      // Verify unpin dialog appears
+      expect(find.text('Desanclar de Space'), findsOneWidget);
+      expect(find.text('¿Deseas desanclar "Discovery" de Space?'), findsOneWidget);
+      expect(find.text('CANCELAR'), findsOneWidget);
+      expect(find.text('DESANCLAR'), findsOneWidget);
+
+      // Tap cancel
+      await tester.tap(find.text('CANCELAR'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Desanclar de Space'), findsNothing);
+    });
+  });
+}

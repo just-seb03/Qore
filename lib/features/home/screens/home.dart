@@ -17,6 +17,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/home/components/space_header.dart';
+import 'package:project_anima/features/home/components/space_tiles_grid.dart';
 
 /// Type alias allowing both `Space` / `SpaceScreen` and `Home` / `HomeScreen` to be used cleanly.
 typedef Space = HomeScreen;
@@ -55,14 +56,21 @@ class HomeScreen extends StatelessWidget {
           // Exclusive dynamic PS3-style ambient particles
           const AmbientParticlesCanvas(),
 
-          // Empty Space screen with centered 'Space' title
+          // Space screen with centered 'Space' title and Windows Phone Metro live tiles grid
           Scaffold(
             backgroundColor: Colors.transparent,
             body: SafeArea(
+              bottom: false,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: const [
-                  SpaceHeader(),
+                children: [
+                  const SpaceHeader(),
+                  Expanded(
+                    child: SpaceTilesGrid(
+                      initialPinnedItems: initialPinnedItems,
+                      initialFavoriteSongs: initialFavoriteSongs,
+                    ),
+                  ),
                 ],
               ),
             ),
