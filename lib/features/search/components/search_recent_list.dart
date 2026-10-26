@@ -57,7 +57,8 @@ class SearchRecentList extends StatelessWidget {
 
         return ListView.builder(
           controller: scrollController,
-          padding: const EdgeInsets.only(top: 8.0, bottom: 32.0),
+          physics: const BouncingScrollPhysics(),
+          padding: const EdgeInsets.only(top: 8.0, bottom: 160.0),
           itemCount: items.length + 1, // Header + Items
           itemBuilder: (context, index) {
             if (index == 0) {

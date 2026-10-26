@@ -6,6 +6,7 @@
 /// - SongDao: Data access class managing queries and atomic transactions for songs.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
@@ -15,6 +16,15 @@ import 'package:sqflite/sqflite.dart';
 
 /// Data Access Object for managing track persistence and querying in SQLite.
 class SongDao {
+  /// Global change notifier incremented whenever playback history changes.
+  /// Allows all recent history presentation widgets to reactively reload without app restarts.
+  static final ValueNotifier<int> playbackHistoryRevision = ValueNotifier<int>(0);
+
+  /// Dispatches a reactive update notification to all playback history listeners.
+  static void notifyPlaybackHistoryChanged() {
+    playbackHistoryRevision.value++;
+  }
+
   final AppDatabase _appDatabase;
 
   SongDao({AppDatabase? appDatabase})
@@ -517,6 +527,7 @@ class SongDao {
       'artist': artist,
       'played_at': playedAt,
     });
+    notifyPlaybackHistoryChanged();
   }
 
   /// Retrieves the newest distinct albums added to the library, ordered by newest addition.
@@ -636,13 +647,14 @@ class SongDao {
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
       SELECT s.*
-      FROM (
+      FROM songs s
+      JOIN (
         SELECT song_id, MAX(played_at) as max_played_at
         FROM playback_history
         GROUP BY song_id
-      ) ph
-      JOIN songs s ON ph.song_id = s.id
-      ORDER BY ph.max_played_at DESC
+      ) ph ON (s.id = ph.song_id OR s.media_store_id = ph.song_id)
+      GROUP BY s.id
+      ORDER BY MAX(ph.max_played_at) DESC
       LIMIT ?;
       ''',
       [limit],

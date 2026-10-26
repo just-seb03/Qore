@@ -139,10 +139,15 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
       });
 
     PlaylistDao.playlistRevision.addListener(_onPlaylistRevisionChanged);
+    if (_playlist.id == -2) {
+      SongDao.playbackHistoryRevision.addListener(_onPlaybackHistoryChanged);
+    }
 
     if (widget.initialSongs != null) {
       _songs = List.of(widget.initialSongs!);
       _isLoading = false;
+    } else if (_playlist.id == -2) {
+      _loadRecentSongs();
     } else if (_playlist.id != null) {
       _loadPlaylistSongs();
     } else {
@@ -218,14 +223,37 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   }
 
   void _onPlaylistRevisionChanged() {
-    if (mounted && _playlist.id != null) {
+    if (mounted && _playlist.id != null && _playlist.id! > 0) {
       _loadPlaylistSongs();
+    }
+  }
+
+  void _onPlaybackHistoryChanged() {
+    if (mounted && _playlist.id == -2) {
+      _loadRecentSongs();
+    }
+  }
+
+  Future<void> _loadRecentSongs() async {
+    try {
+      final songs = await SongDao().getRecentlyPlayedSongs(limit: 50);
+      if (mounted) {
+        setState(() {
+          _songs = songs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ [PlaylistDetailScreen] Error reloading recent songs: $e');
     }
   }
 
   @override
   void dispose() {
     PlaylistDao.playlistRevision.removeListener(_onPlaylistRevisionChanged);
+    if (_playlist.id == -2) {
+      SongDao.playbackHistoryRevision.removeListener(_onPlaybackHistoryChanged);
+    }
     _springController.dispose();
     super.dispose();
   }

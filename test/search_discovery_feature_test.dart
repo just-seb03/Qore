@@ -133,6 +133,39 @@ void main() {
       expect(recents[1].id, 3);
       expect(recents[2].id, 2);
     });
+
+    test('recordPlayback increments playbackHistoryRevision and notifies listeners', () async {
+      final database = await db.database;
+      await database.insert('songs', {
+        'id': 1,
+        'media_store_id': 301,
+        'title': 'Recent Track 1',
+        'artist': 'Artist 1',
+        'album': 'Album 1',
+        'path': '/music/recent1.mp3',
+        'duration': 200000,
+        'date_modified': 1700000000,
+      });
+
+      final initialRevision = SongDao.playbackHistoryRevision.value;
+      bool notified = false;
+      void listener() {
+        notified = true;
+      }
+
+      SongDao.playbackHistoryRevision.addListener(listener);
+
+      await songDao.recordPlayback(
+        songId: 1,
+        artist: 'Artist 1',
+        timestampSeconds: 500,
+      );
+
+      expect(SongDao.playbackHistoryRevision.value, initialRevision + 1);
+      expect(notified, isTrue);
+
+      SongDao.playbackHistoryRevision.removeListener(listener);
+    });
   });
 
   group('SearchDiscoveryCard Widget Tests', () {
@@ -348,6 +381,61 @@ void main() {
 
       expect(find.byType(PlaylistDetailScreen), findsOneWidget);
       expect(find.text('Harder, Better, Faster, Stronger'), findsOneWidget);
+    });
+
+    testWidgets('renders Destacadas at top with today and clock icons above newest albums', (tester) async {
+      final mockAlbums = [
+        const AlbumDiscoveryItem(
+          name: 'Discovery',
+          artist: 'Daft Punk',
+          representativeSongId: 10,
+          songCount: 14,
+          totalDuration: 3600,
+        ),
+      ];
+
+      final List<Song> mockSongs = [
+        const Song(
+          id: 1,
+          mediaStoreId: 10,
+          title: 'One More Time',
+          artist: 'Daft Punk',
+          album: 'Discovery',
+          path: '/music/one_more_time.mp3',
+          duration: 320000,
+          dateModified: 1700000000,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('es'),
+          home: Scaffold(
+            body: SearchDiscoveryView(
+              initialSongCount: 10,
+              initialAlbums: mockAlbums,
+              initialArtists: const [],
+              initialTodaySongs: mockSongs,
+              initialRecentSongs: mockSongs,
+            ),
+          ),
+        ),
+      );
+
+      // Verify Destacadas header is rendered
+      expect(find.text('DESTACADAS'), findsOneWidget);
+      expect(find.text('NUEVOS ÁLBUMES'), findsOneWidget);
+
+      // Verify Destacadas is positioned ABOVE Nuevos Álbumes
+      final destacadasDy = tester.getTopLeft(find.text('DESTACADAS')).dy;
+      final albumesDy = tester.getTopLeft(find.text('NUEVOS ÁLBUMES')).dy;
+      expect(destacadasDy, lessThan(albumesDy));
+
+      // Verify today and clock icons are rendered
+      expect(find.byIcon(Icons.today_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.access_time_rounded), findsOneWidget);
     });
   });
 

@@ -28,7 +28,6 @@ import 'package:project_anima/features/artist/screens/artist_detail_screen.dart'
 import 'package:project_anima/features/player/screens/player_screen.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_discovery_view.dart';
-import 'package:project_anima/features/search/components/search_header.dart';
 import 'package:project_anima/features/search/components/search_results_list.dart';
 
 /// Type alias allowing both `Search` and `SearchScreen` across the codebase.
@@ -258,60 +257,109 @@ class _SearchScreenState extends State<SearchScreen>
   Widget build(BuildContext context) {
     super.build(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.bottomNavBackground,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const SearchHeader(),
-            AppSearchBar(
-              controller: _searchController,
-              focusNode: _searchFocusNode,
-              onChanged: (text) => _searchEngine.onQueryChanged(text),
-              onClear: () => _searchEngine.clear(),
-            ),
-            Expanded(
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                switchInCurve: Curves.easeOutCubic,
-                switchOutCurve: Curves.easeInCubic,
-                transitionBuilder: (child, animation) {
-                  return FadeTransition(
-                    opacity: animation,
-                    child: child,
-                  );
-                },
-                child: _isSearching
-                    ? SearchResultsList(
-                        key: const ValueKey('search_results_list'),
-                        controller: _searchEngine,
-                        scrollController: _scrollController,
-                        onSongTap: _handleSongTap,
-                        onSongPlayTap: _handleSongTap,
-                        onTopSongCardTap: _handleTopSongCardTap,
-                        onAlbumTap: _handleAlbumTap,
-                        onAlbumPlayTap: _handleAlbumPlayTap,
-                        onArtistTap: _handleArtistTap,
-                        onArtistPlayTap: _handleArtistPlayTap,
-                        onRecentItemTap: _handleRecentItemTap,
-                      )
-                    : SearchDiscoveryView(
-                        key: const ValueKey('search_discovery_view'),
-                        scrollController: _scrollController,
-                        onAlbumTap: _handleAlbumTap,
-                        onArtistTap: _handleArtistTap,
-                      ),
+    return PopScope(
+      canPop: !_searchFocusNode.hasFocus &&
+          !_isSearching &&
+          _searchController.text.isEmpty,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+
+        // 1. If keyboard / search bar is focused, just close keyboard
+        if (_searchFocusNode.hasFocus) {
+          _searchFocusNode.unfocus();
+          return;
+        }
+
+        // 2. If keyboard is already closed and in search results / query mode, return to explore discovery
+        if (_isSearching || _searchController.text.isNotEmpty) {
+          _searchController.clear();
+          _searchEngine.clear();
+          _searchFocusNode.unfocus();
+          if (mounted) {
+            setState(() {
+              _isSearching = false;
+            });
+          }
+          return;
+        }
+      },
+      child: Scaffold(
+        extendBody: true,
+        backgroundColor: AppColors.bottomNavBackground,
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              AppSearchBar(
+                controller: _searchController,
+                focusNode: _searchFocusNode,
+                onChanged: (text) => _searchEngine.onQueryChanged(text),
+                onClear: () => _searchEngine.clear(),
               ),
-            ),
-          ],
+              Expanded(
+                child: ShaderMask(
+                  shaderCallback: (Rect bounds) {
+                    return const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.transparent,
+                        Colors.white,
+                        Colors.white,
+                        Colors.transparent,
+                      ],
+                      stops: [
+                        0.0,
+                        0.04,
+                        0.92,
+                        1.0,
+                      ],
+                    ).createShader(bounds);
+                  },
+                  blendMode: BlendMode.dstIn,
+                  child: AnimatedSwitcher(
+                    duration: const Duration(milliseconds: 250),
+                    switchInCurve: Curves.easeOutCubic,
+                    switchOutCurve: Curves.easeInCubic,
+                    transitionBuilder: (child, animation) {
+                      return FadeTransition(
+                        opacity: animation,
+                        child: child,
+                      );
+                    },
+                    child: _isSearching
+                        ? SearchResultsList(
+                            key: const ValueKey('search_results_list'),
+                            controller: _searchEngine,
+                            scrollController: _scrollController,
+                            onSongTap: _handleSongTap,
+                            onSongPlayTap: _handleSongTap,
+                            onTopSongCardTap: _handleTopSongCardTap,
+                            onAlbumTap: _handleAlbumTap,
+                            onAlbumPlayTap: _handleAlbumPlayTap,
+                            onArtistTap: _handleArtistTap,
+                            onArtistPlayTap: _handleArtistPlayTap,
+                            onRecentItemTap: _handleRecentItemTap,
+                          )
+                        : SearchDiscoveryView(
+                            key: const ValueKey('search_discovery_view'),
+                            scrollController: _scrollController,
+                            onAlbumTap: _handleAlbumTap,
+                            onArtistTap: _handleArtistTap,
+                          ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
+        bottomNavigationBar: widget.showBottomNav
+            ? const AppBottomNav(
+                currentIndex: 1,
+              )
+            : null,
       ),
-      bottomNavigationBar: widget.showBottomNav
-          ? const AppBottomNav(
-              currentIndex: 1,
-            )
-          : null,
     );
   }
 }

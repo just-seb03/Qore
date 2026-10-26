@@ -70,4 +70,7 @@ class EnSearchStrings implements SearchStrings {
 
   @override
   String get recentlyPlayedTitle => 'Recently Played';
+
+  @override
+  String get featuredSectionHeader => 'FEATURED';
 }

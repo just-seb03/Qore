@@ -67,4 +67,7 @@ abstract class SearchStrings {
 
   /// Title for the Recently Played system playlist card.
   String get recentlyPlayedTitle;
+
+  /// Section header for the featured/highlighted playlists section (e.g. 'DESTACADAS').
+  String get featuredSectionHeader;
 }

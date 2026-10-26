@@ -70,4 +70,7 @@ class EsSearchStrings implements SearchStrings {
 
   @override
   String get recentlyPlayedTitle => 'Recientes';
+
+  @override
+  String get featuredSectionHeader => 'DESTACADAS';
 }

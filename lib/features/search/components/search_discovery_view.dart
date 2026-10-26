@@ -22,6 +22,7 @@ import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 import 'package:project_anima/features/search/components/cards/search_discovery_card.dart';
+import 'package:project_anima/features/search/components/common/search_section_header.dart';
 import 'package:project_anima/features/search/components/sections/search_albums_section.dart';
 import 'package:project_anima/features/search/components/sections/search_artists_section.dart';
 
@@ -93,6 +94,8 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
     _todaySelectionService =
         widget.todaySelectionService ?? TodaySelectionService.instance;
 
+    SongDao.playbackHistoryRevision.addListener(_onPlaybackHistoryChanged);
+
     if (widget.initialSongCount != null) {
       _songCount = widget.initialSongCount!;
       _newestAlbums = widget.initialAlbums ?? const [];
@@ -102,6 +105,30 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
       _isLoading = false;
     } else {
       _loadDiscoveryData();
+    }
+  }
+
+  @override
+  void dispose() {
+    SongDao.playbackHistoryRevision.removeListener(_onPlaybackHistoryChanged);
+    super.dispose();
+  }
+
+  void _onPlaybackHistoryChanged() {
+    _reloadRecentlyPlayed();
+  }
+
+  Future<void> _reloadRecentlyPlayed() async {
+    try {
+      final recentSongs = await _songDao.getRecentlyPlayedSongs(limit: 20);
+      if (!mounted) return;
+      setState(() {
+        _recentlyPlayedSongs = recentSongs;
+      });
+      final repIds = recentSongs.take(4).map((s) => s.mediaStoreId).toList();
+      ArtworkService.instance.prioritizeSongIds(repIds);
+    } catch (e) {
+      debugPrint('⚠️ [SearchDiscoveryView] Error reloading recently played: $e');
     }
   }
 
@@ -244,33 +271,16 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
 
     return SingleChildScrollView(
       controller: widget.scrollController,
-      padding: const EdgeInsets.only(top: 8.0, bottom: 96.0),
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(top: 8.0, bottom: 160.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Nuevos Álbumes Section (top 5 newest albums)
-          if (_newestAlbums.isNotEmpty) ...[
-            SearchAlbumsSection(
-              albums: _newestAlbums,
-              showHeader: true,
-              headerTitle: l10n.search.newAlbumsSectionHeader,
-              onAlbumTap: _handleAlbumTap,
-            ),
-            const SizedBox(height: 18.0),
-          ],
-
-          // 2. Artistas Nuevos Section (top 5 newest artists)
-          if (_newestArtists.isNotEmpty) ...[
-            SearchArtistsSection(
-              artists: _newestArtists,
-              showHeader: true,
-              headerTitle: l10n.search.newArtistsSectionHeader,
-              onArtistTap: _handleArtistTap,
-            ),
-            const SizedBox(height: 24.0),
-          ],
-
-          // 3. Two Covers in a Row (Today Selection and Recientes)
+          // 1. Destacadas Section (Today Selection and Recientes)
+          SearchSectionHeader(
+            title: l10n.search.featuredSectionHeader,
+          ),
+          const SizedBox(height: 6.0),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             child: Row(
@@ -282,6 +292,7 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
                     title: l10n.search.todaySelectionTitle,
                     subtitle: l10n.search.songCount(_todaySongs.length),
                     songs: _todaySongs,
+                    icon: Icons.today_rounded,
                     onTap: () => _handleOpenTodaySelection(context),
                   ),
                 ),
@@ -293,12 +304,35 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
                     title: l10n.search.recentlyPlayedTitle,
                     subtitle: l10n.search.songCount(_recentlyPlayedSongs.length),
                     songs: _recentlyPlayedSongs,
+                    icon: Icons.access_time_rounded,
                     onTap: () => _handleOpenRecientes(context),
                   ),
                 ),
               ],
             ),
           ),
+          const SizedBox(height: 18.0),
+
+          // 2. Nuevos Álbumes Section (top 5 newest albums)
+          if (_newestAlbums.isNotEmpty) ...[
+            SearchAlbumsSection(
+              albums: _newestAlbums,
+              showHeader: true,
+              headerTitle: l10n.search.newAlbumsSectionHeader,
+              onAlbumTap: _handleAlbumTap,
+            ),
+            const SizedBox(height: 18.0),
+          ],
+
+          // 3. Artistas Nuevos Section (top 5 newest artists)
+          if (_newestArtists.isNotEmpty) ...[
+            SearchArtistsSection(
+              artists: _newestArtists,
+              showHeader: true,
+              headerTitle: l10n.search.newArtistsSectionHeader,
+              onArtistTap: _handleArtistTap,
+            ),
+          ],
         ],
       ),
     );

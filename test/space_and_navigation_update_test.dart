@@ -17,6 +17,7 @@ import 'package:project_anima/features/home/components/space_tiles_grid.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
 import 'package:project_anima/features/library/screens/library.dart';
+import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_header.dart';
 import 'package:project_anima/features/search/screens/search.dart';
 
@@ -218,9 +219,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // MenuTransitionControl should show Search header and Explore bottom nav tab
+      // MenuTransitionControl should show SearchScreen with AppSearchBar and Explore bottom nav tab
       expect(find.byType(SearchScreen), findsOneWidget);
-      expect(find.text('Search'), findsOneWidget); // Header
+      expect(find.byType(AppSearchBar), findsOneWidget); // Search bar at top
       expect(find.text('Explore'), findsOneWidget); // Bottom nav tab
     });
   });

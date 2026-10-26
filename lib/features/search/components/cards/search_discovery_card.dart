@@ -22,8 +22,11 @@ class SearchDiscoveryCard extends StatelessWidget {
   /// Secondary subtitle (e.g. '20 canciones').
   final String subtitle;
 
-  /// Songs used to construct the 4-cover compilation.
+  /// Songs used to construct the 4-cover compilation (when [icon] is null).
   final List<Song> songs;
+
+  /// Optional icon displayed on the square cover (e.g. today or clock).
+  final IconData? icon;
 
   /// Callback when the card is tapped.
   final VoidCallback? onTap;
@@ -33,6 +36,7 @@ class SearchDiscoveryCard extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.songs,
+    this.icon,
     this.onTap,
   });
 
@@ -104,6 +108,25 @@ class SearchDiscoveryCard extends StatelessWidget {
   }
 
   Widget _buildCover(BuildContext context) {
+    if (icon != null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerHigh,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.06),
+            width: 0.5,
+          ),
+        ),
+        child: Center(
+          child: Icon(
+            icon,
+            size: 52.0,
+            color: AppColors.accent,
+          ),
+        ),
+      );
+    }
+
     if (songs.isEmpty) {
       return _buildEmptyCover(context);
     }
