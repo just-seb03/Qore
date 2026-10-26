@@ -8,20 +8,18 @@
 /// - PlaylistDetailHeader: Cohesive header component for playlist presentation.
 library;
 
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/components/favorite_heart_button.dart';
-import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/playlist/components/playlist_text_banner.dart';
 import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 
-/// Cohesive header for PlaylistDetailScreen displaying a 1920x620 hero banner, title, metadata,
-/// and Shuffle toggle (left) and Play (right) icon action triggers.
+/// Cohesive header for PlaylistDetailScreen displaying a 2:1 Space-styled banner with custom typography,
+/// metadata, and Shuffle toggle (left), Play (center), and Favorite Heart (right) icon action triggers.
 class PlaylistDetailHeader extends StatelessWidget {
   final Playlist playlist;
   final int songCount;
@@ -36,7 +34,7 @@ class PlaylistDetailHeader extends StatelessWidget {
   /// Callback when the favorite heart button is tapped.
   final VoidCallback? onToggleFavorite;
 
-  /// Whether to render the 1920x620 hero banner cover.
+  /// Whether to render the 2:1 hero banner cover.
   final bool showHeroCover;
 
   /// Whether the playlist can be edited.
@@ -97,53 +95,52 @@ class PlaylistDetailHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (showHeroCover) ...[
-          // 1. Large 1920x620 Widescreen Hero Banner with Rounded Corners (Border removed)
+          // 1. Space-styled 2:1 Rectangular Hero Banner (sharp unrounded corners)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: AspectRatio(
-              aspectRatio: 1920 / 620,
-              child: Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(12.0),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      blurRadius: 32.0,
-                      spreadRadius: 2.0,
-                      offset: const Offset(0, 14),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.35),
-                      blurRadius: 10.0,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: _buildCoverWidget(context),
-                ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.zero,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    blurRadius: 28.0,
+                    spreadRadius: 1.0,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: PlaylistTextBanner(
+                title: playlist.name,
+                coverPath: playlist.coverPath,
+                representativeSongId: playlist.firstMediaStoreId,
+                fontFamily: playlist.fontFamily,
+                textAlignX: playlist.textAlignX,
+                textAlignY: playlist.textAlignY,
+                textColor: playlist.textColor,
+                textGradientColor: playlist.textGradientColor,
+                fontSize: playlist.fontSize,
+                textEffect: playlist.textEffect,
+                isInteractive: false,
               ),
             ),
           ),
           const SizedBox(height: 14.0),
         ] else ...[
           const SizedBox(height: 12.0),
-        ],
-
-        // 2. Playlist Name (Centered)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Text(
-            playlist.name,
-            textAlign: TextAlign.center,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: titleStyle,
+          // 2. Playlist Name (Centered fallback if no hero cover)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0),
+            child: Text(
+              playlist.name,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: titleStyle,
+            ),
           ),
-        ),
-        const SizedBox(height: 6.0),
+          const SizedBox(height: 6.0),
+        ],
 
         // 3. Cantidad de canciones & duration (Centered)
         Text(
@@ -216,66 +213,6 @@ class PlaylistDetailHeader extends StatelessWidget {
           ],
         ),
       ],
-    );
-  }
-
-  Widget _buildCoverWidget(BuildContext context) {
-    if (playlist.coverPath != null && File(playlist.coverPath!).existsSync()) {
-      return Image.file(
-        File(playlist.coverPath!),
-        width: double.infinity,
-        height: double.infinity,
-        fit: BoxFit.cover,
-        filterQuality: FilterQuality.high,
-      );
-    }
-
-    if (playlist.firstMediaStoreId != null && playlist.firstMediaStoreId! > 0) {
-      return AnimaArtworkImage(
-        mediaStoreId: playlist.firstMediaStoreId!,
-        width: double.infinity,
-        height: double.infinity,
-        borderRadius: 0.0,
-        isThumbnail: false,
-        fit: BoxFit.cover,
-        fallbackIcon: Symbols.queue_music_rounded,
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.surfaceContainerHigh,
-            AppColors.surfaceContainer,
-            AppColors.background,
-          ],
-        ),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Symbols.crop_landscape_rounded,
-              size: 52.0,
-              color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
-            ),
-            const SizedBox(height: 6.0),
-            Text(
-              context.l10n.playlist.heroBannerPlaceholder,
-              style: GoogleFonts.inconsolata(
-                fontSize: 12.0,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.4,
-                color: AppColors.onSurfaceVariant.withValues(alpha: 0.70),
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

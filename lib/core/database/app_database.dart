@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 11;
+  static const int databaseVersion = 14;
 
   Database? _db;
 
@@ -268,6 +268,51 @@ class AppDatabase {
         );
       } catch (_) {}
     }
+
+    if (oldVersion < 12) {
+      try {
+        await db.execute('ALTER TABLE playlists ADD COLUMN text_align_x REAL DEFAULT 0.0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE playlists ADD COLUMN text_align_y REAL DEFAULT 0.0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE playlists ADD COLUMN text_color INTEGER DEFAULT 4294967295');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE playlists ADD COLUMN text_gradient_color INTEGER');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN text_align_x REAL DEFAULT 0.0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN text_align_y REAL DEFAULT 0.0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN text_color INTEGER DEFAULT 4294967295');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN text_gradient_color INTEGER');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 13) {
+      try {
+        await db.execute('ALTER TABLE playlists ADD COLUMN font_size REAL DEFAULT 26.0');
+      } catch (_) {}
+      try {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN font_size REAL DEFAULT 26.0');
+      } catch (_) {}
+    }
+
+    if (oldVersion < 14) {
+      try {
+        await db.execute("ALTER TABLE playlists ADD COLUMN text_effect TEXT DEFAULT 'none'");
+      } catch (_) {}
+      try {
+        await db.execute("ALTER TABLE pinned_favorites ADD COLUMN text_effect TEXT DEFAULT 'none'");
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
@@ -353,6 +398,25 @@ class AppDatabase {
       if (!hasFontFamily) {
         await db.execute('ALTER TABLE playlists ADD COLUMN font_family TEXT');
       }
+      if (!playlistCols.any((col) => col['name'] == 'text_align_x')) {
+        await db.execute('ALTER TABLE playlists ADD COLUMN text_align_x REAL DEFAULT 0.0');
+      }
+      if (!playlistCols.any((col) => col['name'] == 'text_align_y')) {
+        await db.execute('ALTER TABLE playlists ADD COLUMN text_align_y REAL DEFAULT 0.0');
+      }
+      if (!playlistCols.any((col) => col['name'] == 'text_color')) {
+        await db.execute('ALTER TABLE playlists ADD COLUMN text_color INTEGER DEFAULT 4294967295');
+      }
+      if (!playlistCols.any((col) => col['name'] == 'text_gradient_color')) {
+        await db.execute('ALTER TABLE playlists ADD COLUMN text_gradient_color INTEGER');
+      }
+      if (!playlistCols.any((col) => col['name'] == 'font_size')) {
+        await db.execute('ALTER TABLE playlists ADD COLUMN font_size REAL DEFAULT 26.0');
+      }
+      if (!playlistCols.any((col) => col['name'] == 'text_effect')) {
+        await db.execute("ALTER TABLE playlists ADD COLUMN text_effect TEXT DEFAULT 'none'");
+      }
+
       await db.execute('''
         CREATE TABLE IF NOT EXISTS playlist_songs (
           id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -383,9 +447,34 @@ class AppDatabase {
           playlist_id INTEGER,
           cover_path TEXT,
           font_family TEXT,
+          text_align_x REAL DEFAULT 0.0,
+          text_align_y REAL DEFAULT 0.0,
+          text_color INTEGER DEFAULT 4294967295,
+          text_gradient_color INTEGER,
+          font_size REAL DEFAULT 26.0,
           pinned_at INTEGER NOT NULL
         )
       ''');
+      final pinnedCols = await db.rawQuery('PRAGMA table_info(pinned_favorites)');
+      if (!pinnedCols.any((col) => col['name'] == 'text_align_x')) {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN text_align_x REAL DEFAULT 0.0');
+      }
+      if (!pinnedCols.any((col) => col['name'] == 'text_align_y')) {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN text_align_y REAL DEFAULT 0.0');
+      }
+      if (!pinnedCols.any((col) => col['name'] == 'text_color')) {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN text_color INTEGER DEFAULT 4294967295');
+      }
+      if (!pinnedCols.any((col) => col['name'] == 'text_gradient_color')) {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN text_gradient_color INTEGER');
+      }
+      if (!pinnedCols.any((col) => col['name'] == 'font_size')) {
+        await db.execute('ALTER TABLE pinned_favorites ADD COLUMN font_size REAL DEFAULT 26.0');
+      }
+      if (!pinnedCols.any((col) => col['name'] == 'text_effect')) {
+        await db.execute("ALTER TABLE pinned_favorites ADD COLUMN text_effect TEXT DEFAULT 'none'");
+      }
+
       await db.execute(
         'CREATE INDEX IF NOT EXISTS idx_pinned_favorites_pinned_at ON pinned_favorites (pinned_at DESC)',
       );
@@ -513,6 +602,12 @@ class AppDatabase {
         name TEXT NOT NULL,
         cover_path TEXT,
         font_family TEXT,
+        text_align_x REAL DEFAULT 0.0,
+        text_align_y REAL DEFAULT 0.0,
+        text_color INTEGER DEFAULT 4294967295,
+        text_gradient_color INTEGER,
+        font_size REAL DEFAULT 26.0,
+        text_effect TEXT DEFAULT 'none',
         created_at INTEGER NOT NULL,
         updated_at INTEGER NOT NULL
       )
@@ -584,6 +679,12 @@ class AppDatabase {
         playlist_id INTEGER,
         cover_path TEXT,
         font_family TEXT,
+        text_align_x REAL DEFAULT 0.0,
+        text_align_y REAL DEFAULT 0.0,
+        text_color INTEGER DEFAULT 4294967295,
+        text_gradient_color INTEGER,
+        font_size REAL DEFAULT 26.0,
+        text_effect TEXT DEFAULT 'none',
         pinned_at INTEGER NOT NULL
       )
     ''');

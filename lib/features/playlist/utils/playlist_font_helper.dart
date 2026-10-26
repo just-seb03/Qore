@@ -26,31 +26,31 @@ class PlaylistFontOption {
   });
 }
 
-/// Curated selection of expressive fonts for playlist presentation.
+/// Curated selection of expressive Google Fonts for playlist presentation.
 const List<PlaylistFontOption> availablePlaylistFonts = [
-  PlaylistFontOption(id: 'Inconsolata', displayName: 'Inconsolata'),
-  PlaylistFontOption(id: 'Outfit', displayName: 'Outfit'),
-  PlaylistFontOption(id: 'Cinzel', displayName: 'Cinzel'),
-  PlaylistFontOption(id: 'Playfair Display', displayName: 'Playfair'),
-  PlaylistFontOption(id: 'Bebas Neue', displayName: 'Bebas Neue'),
-  PlaylistFontOption(id: 'Caveat', displayName: 'Caveat'),
-  PlaylistFontOption(id: 'Space Grotesk', displayName: 'Space Grotesk'),
-  PlaylistFontOption(id: 'Syne', displayName: 'Syne'),
-  PlaylistFontOption(id: 'Montserrat', displayName: 'Montserrat'),
-  PlaylistFontOption(id: 'Lobster', displayName: 'Lobster'),
+  PlaylistFontOption(id: 'UnifrakturMaguntia', displayName: 'UnifrakturMaguntia'),
+  PlaylistFontOption(id: 'Fascinate Inline', displayName: 'Fascinate Inline'),
+  PlaylistFontOption(id: 'Permanent Marker', displayName: 'Permanent Marker'),
+  PlaylistFontOption(id: 'Splash', displayName: 'Splash'),
+  PlaylistFontOption(id: 'Monoton', displayName: 'Monoton'),
+  PlaylistFontOption(id: 'Alien Block', displayName: 'Alien Block'),
+  PlaylistFontOption(id: 'Michroma', displayName: 'Michroma'),
+  PlaylistFontOption(id: 'Silkscreen', displayName: 'Silkscreen'),
+  PlaylistFontOption(id: 'DotGothic16', displayName: 'DotGothic16'),
+  PlaylistFontOption(id: 'Press Start 2P', displayName: 'Press Start 2P'),
+  PlaylistFontOption(id: 'Rubik Glitch', displayName: 'Rubik Glitch'),
+  PlaylistFontOption(id: 'Audiowide', displayName: 'Audiowide'),
 ];
 
 /// Safely resolves a [TextStyle] for the requested [fontFamily] using GoogleFonts.
 /// Falls back gracefully to Inconsolata if offline or in unit tests.
 TextStyle getPlaylistTitleFont(String? fontFamily, {TextStyle? baseStyle}) {
   final cleanFamily = fontFamily?.trim();
-  if (cleanFamily == null ||
-      cleanFamily.isEmpty ||
-      cleanFamily.toLowerCase() == 'inconsolata') {
+  if (cleanFamily == null || cleanFamily.isEmpty) {
     try {
-      return GoogleFonts.inconsolata(textStyle: baseStyle);
+      return GoogleFonts.unifrakturMaguntia(textStyle: baseStyle);
     } catch (_) {
-      return (baseStyle ?? const TextStyle()).copyWith(fontFamily: 'Inconsolata');
+      return (baseStyle ?? const TextStyle()).copyWith(fontFamily: 'UnifrakturMaguntia');
     }
   }
 
@@ -60,7 +60,7 @@ TextStyle getPlaylistTitleFont(String? fontFamily, {TextStyle? baseStyle}) {
     try {
       return GoogleFonts.inconsolata(textStyle: baseStyle);
     } catch (_) {
-      return baseStyle ?? const TextStyle();
+      return (baseStyle ?? const TextStyle()).copyWith(fontFamily: cleanFamily);
     }
   }
 }

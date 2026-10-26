@@ -194,6 +194,12 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
           coverPath: _playlist.coverPath,
           fontFamily: _playlist.fontFamily,
           representativeSongId: _playlist.firstMediaStoreId,
+          textAlignX: _playlist.textAlignX,
+          textAlignY: _playlist.textAlignY,
+          textColor: _playlist.textColor,
+          textGradientColor: _playlist.textGradientColor,
+          fontSize: _playlist.fontSize,
+          textEffect: _playlist.textEffect,
           pinnedAt: DateTime.now(),
         ),
       );

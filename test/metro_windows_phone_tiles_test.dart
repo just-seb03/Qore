@@ -319,7 +319,13 @@ void main() {
         ),
       );
 
+      // Front has user custom title overlay and no subtitle
       expect(find.text('Night Drive'), findsOneWidget);
+      expect(find.text('PLAYLIST'), findsNothing);
+
+      // Trigger flip to back face
+      await tester.pump(const Duration(seconds: 49));
+      await tester.pump(const Duration(milliseconds: 500));
       expect(find.text('PLAYLIST'), findsOneWidget);
     });
   });

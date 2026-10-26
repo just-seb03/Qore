@@ -35,6 +35,24 @@ class Playlist {
   /// Custom typography font family for the playlist title, if specified.
   final String? fontFamily;
 
+  /// Proportional horizontal alignment of the text inside the 2:1 banner (-1.0 left to 1.0 right).
+  final double textAlignX;
+
+  /// Proportional vertical alignment of the text inside the 2:1 banner (-1.0 top to 1.0 bottom).
+  final double textAlignY;
+
+  /// Primary 32-bit ARGB color integer for the title text (defaults to white 0xFFFFFFFF).
+  final int textColor;
+
+  /// Optional second 32-bit ARGB color integer for a dual-color text gradient.
+  final int? textGradientColor;
+
+  /// Typography font size in logical pixels (defaults to 26.0).
+  final double fontSize;
+
+  /// Visual styling effect identifier (e.g. 'none', 'shadow', 'neon', 'glitch', 'outline', 'retro3d').
+  final String textEffect;
+
   const Playlist({
     this.id,
     required this.name,
@@ -45,6 +63,12 @@ class Playlist {
     this.totalDuration = 0,
     this.firstMediaStoreId,
     this.fontFamily,
+    this.textAlignX = 0.0,
+    this.textAlignY = 0.0,
+    this.textColor = 0xFFFFFFFF,
+    this.textGradientColor,
+    this.fontSize = 26.0,
+    this.textEffect = 'none',
   });
 
   /// Instantiates a [Playlist] from an SQLite query row.
@@ -59,6 +83,12 @@ class Playlist {
       totalDuration: (map['total_duration'] as num?)?.toInt() ?? 0,
       firstMediaStoreId: (map['first_media_store_id'] as num?)?.toInt(),
       fontFamily: map['font_family'] as String?,
+      textAlignX: (map['text_align_x'] as num?)?.toDouble() ?? 0.0,
+      textAlignY: (map['text_align_y'] as num?)?.toDouble() ?? 0.0,
+      textColor: (map['text_color'] as num?)?.toInt() ?? 0xFFFFFFFF,
+      textGradientColor: (map['text_gradient_color'] as num?)?.toInt(),
+      fontSize: (map['font_size'] as num?)?.toDouble() ?? 26.0,
+      textEffect: (map['text_effect'] as String?) ?? 'none',
     );
   }
 
@@ -69,6 +99,12 @@ class Playlist {
       'name': name,
       'cover_path': coverPath,
       if (fontFamily != null) 'font_family': fontFamily,
+      'text_align_x': textAlignX,
+      'text_align_y': textAlignY,
+      'text_color': textColor,
+      if (textGradientColor != null) 'text_gradient_color': textGradientColor,
+      'font_size': fontSize,
+      'text_effect': textEffect,
       'created_at': createdAt,
       'updated_at': updatedAt,
     };
@@ -84,6 +120,13 @@ class Playlist {
     int? totalDuration,
     int? firstMediaStoreId,
     String? fontFamily,
+    double? textAlignX,
+    double? textAlignY,
+    int? textColor,
+    int? textGradientColor,
+    double? fontSize,
+    String? textEffect,
+    bool clearGradient = false,
   }) {
     return Playlist(
       id: id ?? this.id,
@@ -95,6 +138,12 @@ class Playlist {
       totalDuration: totalDuration ?? this.totalDuration,
       firstMediaStoreId: firstMediaStoreId ?? this.firstMediaStoreId,
       fontFamily: fontFamily ?? this.fontFamily,
+      textAlignX: textAlignX ?? this.textAlignX,
+      textAlignY: textAlignY ?? this.textAlignY,
+      textColor: textColor ?? this.textColor,
+      textGradientColor: clearGradient ? null : (textGradientColor ?? this.textGradientColor),
+      fontSize: fontSize ?? this.fontSize,
+      textEffect: textEffect ?? this.textEffect,
     );
   }
 

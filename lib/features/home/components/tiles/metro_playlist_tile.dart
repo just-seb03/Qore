@@ -1,23 +1,21 @@
 /// File: metro_playlist_tile.dart
 /// Description: Windows Phone Metro rectangular live tile for a pinned Playlist.
 /// Spans across 2 columns (2:1 aspect ratio), sharp 90-degree corners, zero shadows,
-/// zero padding, custom typography, and vertical 3D perspective flip revealing the Playlist icon.
+/// zero padding, rendering the user's custom-positioned and styled typography overlay
+/// directly over the artwork without bottom-left scrims or subtitles, and vertical 3D
+/// perspective flip revealing the Playlist icon on solid theme background.
 ///
 /// Components / Classes / Functions:
 /// - MetroPlaylistTile: Rectangular live tile presenting a pinned playlist with vertical flip.
 library;
 
-import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
-import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/home/components/metro_live_tile.dart';
 import 'package:project_anima/features/home/components/tiles/metro_tile_glass_back.dart';
+import 'package:project_anima/features/playlist/components/playlist_text_banner.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
-import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 
 /// Rectangular Windows Phone Metro live tile for a pinned playlist.
 class MetroPlaylistTile extends StatelessWidget {
@@ -48,6 +46,12 @@ class MetroPlaylistTile extends StatelessWidget {
       coverPath: playlistItem.coverPath,
       fontFamily: playlistItem.fontFamily,
       firstMediaStoreId: playlistItem.representativeSongId,
+      textAlignX: playlistItem.textAlignX,
+      textAlignY: playlistItem.textAlignY,
+      textColor: playlistItem.textColor,
+      textGradientColor: playlistItem.textGradientColor,
+      fontSize: playlistItem.fontSize,
+      textEffect: playlistItem.textEffect,
       createdAt: playlistItem.pinnedAt.millisecondsSinceEpoch,
       updatedAt: playlistItem.pinnedAt.millisecondsSinceEpoch,
     );
@@ -85,122 +89,18 @@ class MetroPlaylistTile extends StatelessWidget {
   }
 
   Widget _buildFront(BuildContext context) {
-    final titleStyle = getPlaylistTitleFont(
-      playlistItem.fontFamily,
-      baseStyle: const TextStyle(
-        fontSize: 20.0,
-        fontWeight: FontWeight.w800,
-        color: Colors.white,
-        letterSpacing: -0.3,
-        shadows: [
-          Shadow(
-            color: Colors.black,
-            blurRadius: 6.0,
-            offset: Offset(0, 2),
-          ),
-        ],
-      ),
-    );
-
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: Stack(
-        fit: StackFit.expand,
-        children: [
-          // 1. Cover artwork
-          _buildCover(),
-
-          // 2. Linear gradient scrim for legibility
-          Container(
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [
-                  Colors.black.withValues(alpha: 0.85),
-                  Colors.black.withValues(alpha: 0.40),
-                  Colors.transparent,
-                ],
-                stops: const [0.0, 0.55, 1.0],
-              ),
-            ),
-          ),
-
-          // 3. Playlist title & subtitle
-          Positioned(
-            left: 14.0,
-            right: 14.0,
-            bottom: 12.0,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  playlistItem.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: titleStyle,
-                ),
-                const SizedBox(height: 2.0),
-                Text(
-                  'PLAYLIST',
-                  style: GoogleFonts.inconsolata(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                    color: Colors.white70,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCover() {
-    if (playlistItem.coverPath != null && File(playlistItem.coverPath!).existsSync()) {
-      return Image.file(
-        File(playlistItem.coverPath!),
-        width: double.infinity,
-        height: double.infinity,
-        fit: BoxFit.cover,
-        filterQuality: FilterQuality.high,
-      );
-    }
-
-    if (playlistItem.representativeSongId != null &&
-        playlistItem.representativeSongId! > 0) {
-      return AnimaArtworkImage(
-        mediaStoreId: playlistItem.representativeSongId!,
-        width: double.infinity,
-        height: double.infinity,
-        borderRadius: 0.0,
-        fallbackIcon: Icons.queue_music_rounded,
-        isThumbnail: false,
-        fit: BoxFit.cover,
-      );
-    }
-
-    return Container(
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            AppColors.surfaceContainerHigh,
-            AppColors.surfaceContainerHighest,
-          ],
-        ),
-      ),
-      child: Center(
-        child: Icon(
-          Icons.queue_music_rounded,
-          size: 48.0,
-          color: AppColors.onSurfaceVariant.withValues(alpha: 0.35),
-        ),
-      ),
+    return PlaylistTextBanner(
+      title: playlistItem.title,
+      coverPath: playlistItem.coverPath,
+      representativeSongId: playlistItem.representativeSongId,
+      fontFamily: playlistItem.fontFamily,
+      textAlignX: playlistItem.textAlignX,
+      textAlignY: playlistItem.textAlignY,
+      textColor: playlistItem.textColor,
+      textGradientColor: playlistItem.textGradientColor,
+      isInteractive: false,
+      fontSize: playlistItem.fontSize,
+      textEffect: playlistItem.textEffect,
     );
   }
 }

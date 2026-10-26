@@ -61,6 +61,24 @@ class PinnedFavorite {
   /// Optional custom typography font family (for playlists).
   final String? fontFamily;
 
+  /// Proportional horizontal alignment of the text inside the 2:1 banner (-1.0 left to 1.0 right).
+  final double textAlignX;
+
+  /// Proportional vertical alignment of the text inside the 2:1 banner (-1.0 top to 1.0 bottom).
+  final double textAlignY;
+
+  /// Primary 32-bit ARGB color integer for the title text (defaults to white 0xFFFFFFFF).
+  final int textColor;
+
+  /// Optional second 32-bit ARGB color integer for a dual-color text gradient.
+  final int? textGradientColor;
+
+  /// Typography font size in logical pixels (defaults to 26.0).
+  final double fontSize;
+
+  /// Visual styling effect identifier (e.g. 'none', 'shadow', 'neon', 'glitch', 'outline', 'retro3d').
+  final String textEffect;
+
   /// Timestamp when the item was pinned.
   final DateTime pinnedAt;
 
@@ -75,6 +93,12 @@ class PinnedFavorite {
     this.playlistId,
     this.coverPath,
     this.fontFamily,
+    this.textAlignX = 0.0,
+    this.textAlignY = 0.0,
+    this.textColor = 0xFFFFFFFF,
+    this.textGradientColor,
+    this.fontSize = 26.0,
+    this.textEffect = 'none',
     required this.pinnedAt,
   });
 
@@ -94,6 +118,12 @@ class PinnedFavorite {
       'playlist_id': playlistId,
       'cover_path': coverPath,
       'font_family': fontFamily,
+      'text_align_x': textAlignX,
+      'text_align_y': textAlignY,
+      'text_color': textColor,
+      if (textGradientColor != null) 'text_gradient_color': textGradientColor,
+      'font_size': fontSize,
+      'text_effect': textEffect,
       'pinned_at': pinnedAt.millisecondsSinceEpoch,
     };
   }
@@ -110,6 +140,12 @@ class PinnedFavorite {
       playlistId: (map['playlist_id'] as num?)?.toInt(),
       coverPath: map['cover_path'] as String?,
       fontFamily: map['font_family'] as String?,
+      textAlignX: (map['text_align_x'] as num?)?.toDouble() ?? 0.0,
+      textAlignY: (map['text_align_y'] as num?)?.toDouble() ?? 0.0,
+      textColor: (map['text_color'] as num?)?.toInt() ?? 0xFFFFFFFF,
+      textGradientColor: (map['text_gradient_color'] as num?)?.toInt(),
+      fontSize: (map['font_size'] as num?)?.toDouble() ?? 26.0,
+      textEffect: (map['text_effect'] as String?) ?? 'none',
       pinnedAt: DateTime.fromMillisecondsSinceEpoch(
         (map['pinned_at'] as num?)?.toInt() ?? 0,
       ),

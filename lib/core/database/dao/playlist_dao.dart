@@ -8,6 +8,7 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/app_database.dart';
+import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 
@@ -39,6 +40,12 @@ class PlaylistDao {
         p.name,
         p.cover_path,
         p.font_family,
+        p.text_align_x,
+        p.text_align_y,
+        p.text_color,
+        p.text_gradient_color,
+        p.font_size,
+        p.text_effect,
         p.created_at,
         p.updated_at,
         COUNT(ps.id) AS song_count,
@@ -72,6 +79,12 @@ class PlaylistDao {
         p.name,
         p.cover_path,
         p.font_family,
+        p.text_align_x,
+        p.text_align_y,
+        p.text_color,
+        p.text_gradient_color,
+        p.font_size,
+        p.text_effect,
         p.created_at,
         p.updated_at,
         COUNT(ps.id) AS song_count,
@@ -114,11 +127,17 @@ class PlaylistDao {
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
-  /// Creates a new playlist with optional initial songs, custom cover path, and font family.
+  /// Creates a new playlist with optional initial songs, custom cover path, font family, and typography styling.
   Future<Playlist> createPlaylist(
     String name, {
     String? coverPath,
     String? fontFamily,
+    double textAlignX = 0.0,
+    double textAlignY = 0.0,
+    int textColor = 0xFFFFFFFF,
+    int? textGradientColor,
+    double fontSize = 26.0,
+    String textEffect = 'none',
     List<Song>? songs,
   }) async {
     final db = await _appDatabase.database;
@@ -130,6 +149,12 @@ class PlaylistDao {
         'name': name.trim().isEmpty ? 'Untitled Playlist' : name.trim(),
         'cover_path': coverPath,
         'font_family': fontFamily,
+        'text_align_x': textAlignX,
+        'text_align_y': textAlignY,
+        'text_color': textColor,
+        'text_gradient_color': textGradientColor,
+        'font_size': fontSize,
+        'text_effect': textEffect,
         'created_at': now,
         'updated_at': now,
       });
@@ -160,6 +185,12 @@ class PlaylistDao {
         name: name.trim().isEmpty ? 'Untitled Playlist' : name.trim(),
         coverPath: coverPath,
         fontFamily: fontFamily,
+        textAlignX: textAlignX,
+        textAlignY: textAlignY,
+        textColor: textColor,
+        textGradientColor: textGradientColor,
+        fontSize: fontSize,
+        textEffect: textEffect,
         createdAt: now,
         updatedAt: now,
         songCount: songs?.length ?? 0,
@@ -169,6 +200,7 @@ class PlaylistDao {
     });
 
     notifyPlaylistsChanged();
+    PinnedFavoritesDao.revision.value++;
     return result;
   }
 
@@ -178,6 +210,13 @@ class PlaylistDao {
     String? name,
     String? coverPath,
     String? fontFamily,
+    double? textAlignX,
+    double? textAlignY,
+    int? textColor,
+    int? textGradientColor,
+    double? fontSize,
+    String? textEffect,
+    bool clearGradient = false,
     List<Song>? songs,
   }) async {
     final db = await _appDatabase.database;
@@ -191,6 +230,16 @@ class PlaylistDao {
       if (name != null) updateFields['name'] = name.trim();
       if (coverPath != null) updateFields['cover_path'] = coverPath;
       if (fontFamily != null) updateFields['font_family'] = fontFamily;
+      if (textAlignX != null) updateFields['text_align_x'] = textAlignX;
+      if (textAlignY != null) updateFields['text_align_y'] = textAlignY;
+      if (textColor != null) updateFields['text_color'] = textColor;
+      if (fontSize != null) updateFields['font_size'] = fontSize;
+      if (textEffect != null) updateFields['text_effect'] = textEffect;
+      if (clearGradient) {
+        updateFields['text_gradient_color'] = null;
+      } else if (textGradientColor != null) {
+        updateFields['text_gradient_color'] = textGradientColor;
+      }
 
       await txn.update(
         'playlists',
@@ -198,6 +247,31 @@ class PlaylistDao {
         where: 'id = ?',
         whereArgs: [playlistId],
       );
+
+      // Sync changes to pinned_favorites if this playlist is pinned
+      final Map<String, dynamic> pinnedUpdate = {};
+      if (name != null) pinnedUpdate['title'] = name.trim();
+      if (coverPath != null) pinnedUpdate['cover_path'] = coverPath;
+      if (fontFamily != null) pinnedUpdate['font_family'] = fontFamily;
+      if (textAlignX != null) pinnedUpdate['text_align_x'] = textAlignX;
+      if (textAlignY != null) pinnedUpdate['text_align_y'] = textAlignY;
+      if (textColor != null) pinnedUpdate['text_color'] = textColor;
+      if (fontSize != null) pinnedUpdate['font_size'] = fontSize;
+      if (textEffect != null) pinnedUpdate['text_effect'] = textEffect;
+      if (clearGradient) {
+        pinnedUpdate['text_gradient_color'] = null;
+      } else if (textGradientColor != null) {
+        pinnedUpdate['text_gradient_color'] = textGradientColor;
+      }
+
+      if (pinnedUpdate.isNotEmpty) {
+        await txn.update(
+          'pinned_favorites',
+          pinnedUpdate,
+          where: 'playlist_id = ?',
+          whereArgs: [playlistId],
+        );
+      }
 
       // 2. Update song list and order if supplied
       if (songs != null) {
@@ -221,6 +295,7 @@ class PlaylistDao {
     });
 
     notifyPlaylistsChanged();
+    PinnedFavoritesDao.revision.value++;
   }
 
   /// Deletes a playlist and its track associations.
