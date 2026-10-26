@@ -14,6 +14,7 @@ import 'package:flutter/foundation.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
+import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/permissions/audio_permission_service.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/selection/today_selection_service.dart';
@@ -363,6 +364,13 @@ class StartupController extends ChangeNotifier {
         await _todaySelectionService.getTodaySelection();
       } catch (e) {
         debugPrint('⚠️ [StartupController] TodaySelection pre-warm warning: $e');
+      }
+
+      // Pre-warm Favorite Songs cache so favorite badges render immediately
+      try {
+        await FavoriteSongsDao.instance.ensureLoaded();
+      } catch (e) {
+        debugPrint('⚠️ [StartupController] FavoriteSongsDao pre-warm warning: $e');
       }
 
       _emit(_state.copyWith(progress: 0.96));

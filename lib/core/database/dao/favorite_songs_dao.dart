@@ -31,9 +31,17 @@ class FavoriteSongsDao {
   factory FavoriteSongsDao.create({AppDatabase? dbProvider}) =>
       FavoriteSongsDao(dbProvider: dbProvider);
 
+  Future<void>? _loadingFuture;
+
   /// Helper to ensure the in-memory cache is populated from SQLite.
   Future<void> ensureLoaded() async {
     if (_isCacheLoaded) return;
+    if (_loadingFuture != null) return _loadingFuture!;
+    _loadingFuture = _loadCache();
+    await _loadingFuture;
+  }
+
+  Future<void> _loadCache() async {
     try {
       final db = await _dbProvider.database;
       final rows = await db.query(
@@ -48,13 +56,19 @@ class FavoriteSongsDao {
         }
       }
       _isCacheLoaded = true;
+      favoritesRevision.value++;
     } catch (e) {
       debugPrint('⚠️ [FavoriteSongsDao] Error loading favorites cache: $e');
+    } finally {
+      _loadingFuture = null;
     }
   }
 
   /// Fast synchronous check whether a song is currently marked as favorite.
   bool isFavorite(int mediaStoreId) {
+    if (!_isCacheLoaded) {
+      ensureLoaded();
+    }
     return _cachedFavoriteIds.contains(mediaStoreId);
   }
 

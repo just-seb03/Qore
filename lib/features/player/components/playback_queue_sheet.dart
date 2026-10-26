@@ -48,11 +48,11 @@ class PlaybackQueueSheet extends StatelessWidget {
     return Container(
       height: screenHeight * 0.82,
       decoration: BoxDecoration(
-        color: const Color(0xFF131317),
+        color: AppColors.surface,
         borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.80),
+            color: Colors.black.withValues(alpha: 0.45),
             blurRadius: 28.0,
             offset: const Offset(0, -6),
           ),
@@ -63,7 +63,7 @@ class PlaybackQueueSheet extends StatelessWidget {
         shape: RoundedRectangleBorder(
           borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
           side: BorderSide(
-            color: Colors.white.withValues(alpha: 0.08),
+            color: AppColors.outline.withValues(alpha: 0.20),
             width: 1.0,
           ),
         ),
@@ -121,7 +121,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                           color: AppColors.surfaceContainerHigh,
                           borderRadius: BorderRadius.circular(16.0),
                           border: Border.all(
-                            color: Colors.white.withValues(alpha: 0.10),
+                            color: AppColors.outline.withValues(alpha: 0.25),
                             width: 1.0,
                           ),
                         ),

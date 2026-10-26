@@ -131,6 +131,22 @@ void main() {
       final favorites = await favoriteDao.getAllFavorites();
       expect(favorites, isEmpty);
     });
+
+    test('ensureLoaded populates cached favorites and notifies revision without calling getAllFavorites', () async {
+      await favoriteDao.toggleFavorite(testSong1);
+
+      // Simulate a fresh DAO instance on startup where in-memory cache is empty
+      final freshDao = FavoriteSongsDao(dbProvider: db);
+      int revisionFired = 0;
+      freshDao.favoritesRevision.addListener(() => revisionFired++);
+
+      // Call ensureLoaded (as done in main() and StartupController)
+      await freshDao.ensureLoaded();
+
+      expect(freshDao.isFavorite(101), isTrue);
+      expect(freshDao.isFavorite(102), isFalse);
+      expect(revisionFired, greaterThanOrEqualTo(1));
+    });
   });
 
   group('PlaybackController Queue Operations Tests', () {

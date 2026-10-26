@@ -14,6 +14,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
+import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/dimensions/adaptive_system_boundary.dart';
 import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -25,6 +26,12 @@ import 'package:project_anima/features/startup/screens/startup_loading_screen.da
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Lock application strictly to vertical portrait mode (disable horizontal orientation)
+  await SystemChrome.setPreferredOrientations(const [
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
 
   // Configure high-performance RAM ImageCache for HD album artwork (250MB buffer)
   PaintingBinding.instance.imageCache.maximumSizeBytes = 250 * 1024 * 1024;
@@ -43,6 +50,12 @@ Future<void> main() async {
     await ThemeController.instance.init();
   } catch (e) {
     debugPrint('ThemeController init warning: $e');
+  }
+
+  try {
+    await FavoriteSongsDao.instance.ensureLoaded();
+  } catch (e) {
+    debugPrint('FavoriteSongsDao ensureLoaded warning: $e');
   }
 
   try {
