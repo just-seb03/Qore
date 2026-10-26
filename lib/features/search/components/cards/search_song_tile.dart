@@ -7,13 +7,11 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
-import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
-import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Reusable Spotify-styled song row item.
@@ -46,12 +44,6 @@ class SearchSongTile extends StatelessWidget {
     color: AppColors.onSurfaceVariant,
   );
 
-  static TextStyle get _durationStyle => GoogleFonts.inconsolata(
-    fontSize: 12.5,
-    fontWeight: FontWeight.w400,
-    color: AppColors.onSurfaceVariant,
-  );
-
   String _formatDuration(int ms) {
     final int totalSeconds = ms ~/ 1000;
     final int minutes = totalSeconds ~/ 60;
@@ -61,22 +53,18 @@ class SearchSongTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: FavoriteSongsDao.instance.favoritesRevision,
-      builder: (context, _) {
-        final isFav = FavoriteSongsDao.instance.isFavorite(song.mediaStoreId);
-        final artist = (song.artist != null &&
-                song.artist!.isNotEmpty &&
-                song.artist != "<Desconocido>" &&
-                song.artist != "Unknown Artist")
-            ? song.artist!
-            : context.l10n.common.unknownArtist;
-        final album = (song.album != null &&
-                song.album!.isNotEmpty &&
-                song.album != "<Desconocido>" &&
-                song.album != "Unknown Album")
-            ? song.album!
-            : context.l10n.common.unknownAlbum;
+    final artist = (song.artist != null &&
+            song.artist!.isNotEmpty &&
+            song.artist != "<Desconocido>" &&
+            song.artist != "Unknown Artist")
+        ? song.artist!
+        : context.l10n.common.unknownArtist;
+    final album = (song.album != null &&
+            song.album!.isNotEmpty &&
+            song.album != "<Desconocido>" &&
+            song.album != "Unknown Album")
+        ? song.album!
+        : context.l10n.common.unknownAlbum;
 
         return Material(
           color: Colors.transparent,
@@ -120,66 +108,16 @@ class SearchSongTile extends StatelessWidget {
                       ],
                     ),
                   ),
-                  const SizedBox(width: 4.0),
-                  // Favorite Heart Button (Direct toggle without playing)
-                  IconButton(
-                    icon: Icon(
-                      isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                      size: 20.0,
-                      color: isFav ? AppColors.accent : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
-                    splashRadius: 16.0,
-                    tooltip: isFav
-                        ? context.l10n.common.removeFromFavorites
-                        : context.l10n.common.addToFavorites,
-                    onPressed: () {
-                      FavoriteSongsDao.instance.toggleFavorite(song);
-                      HapticFeedback.lightImpact();
-                    },
-                  ),
-                  // Add to queue icon
-                  IconButton(
-                    icon: Icon(
-                      Icons.playlist_add_rounded,
-                      size: 20.0,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28.0, minHeight: 28.0),
-                    splashRadius: 16.0,
-                    tooltip: context.l10n.common.addToQueue,
-                    onPressed: () {
-                      PlaybackController.instance.addToQueue(song);
-                      HapticFeedback.lightImpact();
-                    },
-                  ),
-                  const SizedBox(width: 4.0),
-                  // Duration
-                  Text(
-                    _formatDuration(song.duration),
-                    style: _durationStyle,
-                  ),
-                  const SizedBox(width: 8.0),
-                  // Spotify more-options icon
-                  IconButton(
-                    icon: Icon(
-                      Icons.more_vert_rounded,
-                      size: 20.0,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(minWidth: 28.0, minHeight: 28.0),
-                    splashRadius: 18.0,
-                    onPressed: onOptionsTap,
+                  const SizedBox(width: 6.0),
+                  // Track Options Pill (beside duration with 3-dots trigger)
+                  SongOptionsPill(
+                    song: song,
+                    durationText: _formatDuration(song.duration),
                   ),
                 ],
               ),
             ),
           ),
         );
-      },
-    );
   }
 }

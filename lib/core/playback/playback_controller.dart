@@ -654,7 +654,10 @@ class PlaybackController extends ChangeNotifier {
 
   /// Adds a song to the beginning of the active queue (next up to play) without interrupting playback.
   /// Dynamically inserts the track into the pre-buffering engine so it is preloaded next.
-  void addToQueue(Song song) {
+  void addToQueue(Song song) => addToQueueFirst(song);
+
+  /// Adds a song to the beginning of upcoming queue (play next) without interrupting playback.
+  void addToQueueFirst(Song song) {
     if (_queue.isEmpty || _currentIndex < 0) {
       _queue.insert(0, song);
       _currentIndex = 0;
@@ -664,6 +667,20 @@ class PlaybackController extends ChangeNotifier {
       final insertIndex = (_currentIndex + 1).clamp(0, _queue.length);
       _queue.insert(insertIndex, song);
       unawaited(_audioBuffer.insert(insertIndex, song));
+    }
+    notifyListeners();
+  }
+
+  /// Appends a song to the very end of the playback queue without interrupting playback.
+  void addToQueueEnd(Song song) {
+    if (_queue.isEmpty || _currentIndex < 0) {
+      _queue.add(song);
+      _currentIndex = 0;
+      _currentSong = song;
+      unawaited(_audioBuffer.add(song));
+    } else {
+      _queue.add(song);
+      unawaited(_audioBuffer.add(song));
     }
     notifyListeners();
   }

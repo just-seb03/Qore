@@ -9,10 +9,9 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
-import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
@@ -51,15 +50,11 @@ class ArtistTrackTile extends StatelessWidget {
       child: SizedBox(
         height: tileHeight,
         child: ListenableBuilder(
-          listenable: Listenable.merge([
-            activeController,
-            FavoriteSongsDao.instance.favoritesRevision,
-          ]),
+          listenable: activeController,
           builder: (context, _) {
             final isCurrentTrack =
                 activeController.currentSong?.mediaStoreId == song.mediaStoreId;
             final isPlaying = isCurrentTrack && activeController.isPlaying;
-            final isFav = FavoriteSongsDao.instance.isFavorite(song.mediaStoreId);
             final durationStr = _formatDuration(song.duration);
 
             void handleTap() {
@@ -144,69 +139,11 @@ class ArtistTrackTile extends StatelessWidget {
                           ],
                         ),
                       ),
-                      // 3. Favorite Toggle Button
-                      Tooltip(
-                        message: isFav
-                            ? context.l10n.common.removeFromFavorites
-                            : context.l10n.common.addToFavorites,
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20.0),
-                            onTap: () {
-                              HapticFeedback.lightImpact();
-                              FavoriteSongsDao.instance.toggleFavorite(song);
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(6.0),
-                              child: Icon(
-                                isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                                size: 19.0,
-                                color: isFav ? AppColors.accent : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
-                              ),
-                            ),
-                          ),
-                        ),
+                      // 3. Track Options Pill (beside duration with 3-dots trigger)
+                      SongOptionsPill(
+                        song: song,
+                        durationText: isCurrentTrack ? null : durationStr,
                       ),
-                      const SizedBox(width: 2.0),
-
-                      // 4. Add to Queue Button
-                      Tooltip(
-                        message: context.l10n.common.addToQueue,
-                        child: Material(
-                          color: Colors.transparent,
-                          child: InkWell(
-                            borderRadius: BorderRadius.circular(20.0),
-                            onTap: () {
-                              activeController.addToQueue(song);
-                              HapticFeedback.lightImpact();
-                            },
-                            child: Padding(
-                              padding: const EdgeInsets.all(6.0),
-                              child: Icon(
-                                Icons.playlist_add_rounded,
-                                size: 20.0,
-                                color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8.0),
-
-                      // 5. Duration at the very end (or active play/pause indicator)
-                      if (durationStr.isNotEmpty && !isCurrentTrack)
-                        SizedBox(
-                          width: 36.0,
-                          child: Text(
-                            durationStr,
-                            textAlign: TextAlign.end,
-                            style: GoogleFonts.inconsolata(
-                              fontSize: 12.0,
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                        ),
                       if (isCurrentTrack)
                         SizedBox(
                           width: 36.0,

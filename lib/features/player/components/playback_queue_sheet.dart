@@ -1,13 +1,12 @@
 /// File: playback_queue_sheet.dart
-/// Description: Global modal bottom sheet displaying the active playback queue.
-/// Features a blurred backdrop, elevated dark container, Now Playing card header,
-/// and reorderable track list with drag-and-drop reordering, swipe deletion, and direct playback.
+/// Description: Optimized modal bottom sheet displaying the active playback queue.
+/// Lightweight and responsive without blur/bloom overhead, featuring Now Playing
+/// header and reorderable list of upcoming tracks following the currently playing song.
 ///
 /// Components / Classes / Functions:
-/// - PlaybackQueueSheet: Global bottom sheet coordinator for playback queue management.
+/// - PlaybackQueueSheet: Global bottom sheet coordinator for upcoming playback queue.
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -17,7 +16,7 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
-/// Global modal bottom sheet presenting the audio playback queue with reordering.
+/// Highly optimized modal bottom sheet presenting the audio playback queue.
 class PlaybackQueueSheet extends StatelessWidget {
   const PlaybackQueueSheet({super.key});
 
@@ -28,7 +27,7 @@ class PlaybackQueueSheet extends StatelessWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      barrierColor: Colors.black.withValues(alpha: 0.65),
+      barrierColor: Colors.black.withValues(alpha: 0.70),
       builder: (ctx) => const PlaybackQueueSheet(),
     );
   }
@@ -45,37 +44,44 @@ class PlaybackQueueSheet extends StatelessWidget {
     final controller = PlaybackController.instance;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
-      child: Container(
-        height: screenHeight * 0.82,
-        decoration: BoxDecoration(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.75),
-              blurRadius: 32.0,
-              offset: const Offset(0, -8),
-            ),
-          ],
-        ),
-        child: Material(
-          color: const Color(0xFF131317),
-          shape: RoundedRectangleBorder(
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-            side: BorderSide(
-              color: Colors.white.withValues(alpha: 0.08),
-              width: 1.0,
-            ),
+    // Direct solid elevated container without BackdropFilter/blur for maximum performance
+    return Container(
+      height: screenHeight * 0.82,
+      decoration: BoxDecoration(
+        color: const Color(0xFF131317),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.80),
+            blurRadius: 28.0,
+            offset: const Offset(0, -6),
           ),
-          child: SafeArea(
-            top: false,
-            child: ListenableBuilder(
-              listenable: controller,
-              builder: (context, _) {
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
+          side: BorderSide(
+            color: Colors.white.withValues(alpha: 0.08),
+            width: 1.0,
+          ),
+        ),
+        child: SafeArea(
+          top: false,
+          child: ListenableBuilder(
+            listenable: controller,
+            builder: (context, _) {
               final queue = controller.queue;
               final currentSong = controller.currentSong;
               final currentIndex = controller.currentIndex;
+
+              // Display only upcoming tracks (excluding past songs and active current song)
+              final upcomingSongs = (currentIndex >= 0 && currentIndex + 1 < queue.length)
+                  ? queue.sublist(currentIndex + 1)
+                  : (currentIndex < 0 && queue.isNotEmpty ? queue : const []);
+
+              final int upcomingStartIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,7 +98,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 14.0),
 
-                  // 2. Now Playing Mini Card Header (visual effect of mini-player sliding up)
+                  // 2. Now Playing Mini Card Header (visual representation of currently playing track)
                   if (currentSong != null) ...[
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
@@ -128,7 +134,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                               artistName: currentSong.artist,
                               width: 44.0,
                               height: 44.0,
-                              borderRadius: 10.0,
+                              borderRadius: 8.0,
                               isThumbnail: true,
                             ),
                             const SizedBox(width: 12.0),
@@ -184,7 +190,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          context.l10n.player.upNextHeader(queue.length),
+                          context.l10n.player.upNextHeader(upcomingSongs.length),
                           style: GoogleFonts.inconsolata(
                             fontSize: 12.0,
                             fontWeight: FontWeight.w700,
@@ -192,7 +198,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                             color: AppColors.onSurfaceVariant,
                           ),
                         ),
-                        if (queue.length > 1)
+                        if (upcomingSongs.isNotEmpty)
                           TextButton(
                             onPressed: () {
                               controller.clearUpcomingQueue();
@@ -212,9 +218,9 @@ class PlaybackQueueSheet extends StatelessWidget {
                   ),
                   const SizedBox(height: 4.0),
 
-                  // 4. Reorderable Queue List
+                  // 4. Reorderable Queue List of upcoming tracks
                   Expanded(
-                    child: queue.isEmpty
+                    child: upcomingSongs.isEmpty
                         ? Center(
                             child: Text(
                               context.l10n.player.emptyQueue,
@@ -226,128 +232,123 @@ class PlaybackQueueSheet extends StatelessWidget {
                           )
                         : ReorderableListView.builder(
                             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 4.0),
-                            itemCount: queue.length,
+                            itemCount: upcomingSongs.length,
                             onReorderItem: (oldIndex, newIndex) {
-                              controller.reorderQueue(oldIndex, newIndex);
+                              controller.reorderQueue(
+                                upcomingStartIndex + oldIndex,
+                                upcomingStartIndex + newIndex,
+                              );
                             },
                             itemBuilder: (context, index) {
-                              final song = queue[index];
-                              final isCurrent = index == currentIndex;
+                              final song = upcomingSongs[index];
+                              final realIndex = upcomingStartIndex + index;
 
                               return Padding(
                                 key: ValueKey('queue_song_${song.mediaStoreId}_$index'),
                                 padding: const EdgeInsets.symmetric(vertical: 2.0),
                                 child: Material(
-                                  color: isCurrent
-                                      ? AppColors.surfaceContainerHigh.withValues(alpha: 0.65)
-                                      : Colors.transparent,
+                                  color: Colors.transparent,
                                   borderRadius: BorderRadius.circular(10.0),
                                   child: ListTile(
-                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 0.0),
-                                  dense: true,
-                                  leading: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      SizedBox(
-                                        width: 24.0,
-                                        child: isCurrent && controller.isPlaying
-                                            ? Icon(
-                                                Icons.equalizer_rounded,
-                                                size: 16.0,
-                                                color: AppColors.accent,
-                                              )
-                                            : Text(
-                                                '${index + 1}',
-                                                textAlign: TextAlign.center,
-                                                style: GoogleFonts.inconsolata(
-                                                  fontSize: 12.0,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: isCurrent
-                                                      ? AppColors.accent
-                                                      : AppColors.onSurfaceVariant,
-                                                ),
-                                              ),
-                                      ),
-                                      const SizedBox(width: 8.0),
-                                      AnimaArtworkImage(
-                                        mediaStoreId: song.mediaStoreId,
-                                        albumId: song.albumId,
-                                        albumName: song.album,
-                                        artistName: song.artist,
-                                        width: 38.0,
-                                        height: 38.0,
-                                        borderRadius: 8.0,
-                                        isThumbnail: true,
-                                      ),
-                                    ],
-                                  ),
-                                  title: Text(
-                                    song.title,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.outfit(
-                                      fontSize: 14.5,
-                                      fontWeight: isCurrent ? FontWeight.w600 : FontWeight.w500,
-                                      color: isCurrent ? AppColors.accent : AppColors.onSurface,
-                                    ),
-                                  ),
-                                  subtitle: Text(
-                                    '${song.artist ?? context.l10n.common.unknownArtist} • ${_formatDuration(song.duration)}',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inconsolata(
-                                      fontSize: 12.0,
-                                      color: AppColors.onSurfaceVariant,
-                                    ),
-                                  ),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      // Remove from queue button
-                                      IconButton(
-                                        icon: Icon(
-                                          Icons.close_rounded,
-                                          size: 18.0,
-                                          color: AppColors.onSurfaceVariant,
-                                        ),
-                                        padding: EdgeInsets.zero,
-                                        constraints: const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
-                                        splashRadius: 16.0,
-                                        tooltip: 'Remove',
-                                        onPressed: () {
-                                          controller.removeFromQueue(index);
-                                        },
-                                      ),
-                                      // Drag reorder handle
-                                      ReorderableDragStartListener(
-                                        index: index,
-                                        child: Padding(
-                                          padding: EdgeInsets.symmetric(horizontal: 6.0, vertical: 8.0),
-                                          child: Icon(
-                                            Icons.drag_handle_rounded,
-                                            size: 20.0,
-                                            color: AppColors.onSurfaceVariant,
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(horizontal: 10.0, vertical: 0.0),
+                                    dense: true,
+                                    leading: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        SizedBox(
+                                          width: 24.0,
+                                          child: Text(
+                                            '${index + 1}',
+                                            textAlign: TextAlign.center,
+                                            style: GoogleFonts.inconsolata(
+                                              fontSize: 12.0,
+                                              fontWeight: FontWeight.w600,
+                                              color: AppColors.onSurfaceVariant,
+                                            ),
                                           ),
                                         ),
+                                        const SizedBox(width: 8.0),
+                                        AnimaArtworkImage(
+                                          mediaStoreId: song.mediaStoreId,
+                                          albumId: song.albumId,
+                                          albumName: song.album,
+                                          artistName: song.artist,
+                                          width: 38.0,
+                                          height: 38.0,
+                                          borderRadius: 8.0,
+                                          isThumbnail: true,
+                                        ),
+                                      ],
+                                    ),
+                                    title: Text(
+                                      song.title,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.outfit(
+                                        fontSize: 14.5,
+                                        fontWeight: FontWeight.w500,
+                                        color: AppColors.onSurface,
                                       ),
-                                    ],
+                                    ),
+                                    subtitle: Text(
+                                      '${song.artist ?? context.l10n.common.unknownArtist} • ${_formatDuration(song.duration)}',
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: GoogleFonts.inconsolata(
+                                        fontSize: 12.0,
+                                        color: AppColors.onSurfaceVariant,
+                                      ),
+                                    ),
+                                    trailing: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        // Remove from queue button
+                                        IconButton(
+                                          icon: Icon(
+                                            Icons.close_rounded,
+                                            size: 18.0,
+                                            color: AppColors.onSurfaceVariant,
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                          constraints:
+                                              const BoxConstraints(minWidth: 32.0, minHeight: 32.0),
+                                          splashRadius: 16.0,
+                                          tooltip: 'Remove',
+                                          onPressed: () {
+                                            controller.removeFromQueue(realIndex);
+                                          },
+                                        ),
+                                        // Drag reorder handle
+                                        ReorderableDragStartListener(
+                                          index: index,
+                                          child: Padding(
+                                            padding: const EdgeInsets.symmetric(
+                                                horizontal: 6.0, vertical: 8.0),
+                                            child: Icon(
+                                              Icons.drag_handle_rounded,
+                                              size: 20.0,
+                                              color: AppColors.onSurfaceVariant,
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    onTap: () {
+                                      controller.playFromQueue(realIndex);
+                                    },
                                   ),
-                                  onTap: () {
-                                    controller.playFromQueue(index);
-                                  },
                                 ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-              ],
-            );
-          },
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              );
+            },
+          ),
         ),
       ),
-    ),
-  ),
-);
-}
+    );
+  }
 }

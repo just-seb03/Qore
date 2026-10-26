@@ -7,9 +7,8 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
+import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
@@ -54,12 +53,11 @@ class AlbumTrackTile extends StatelessWidget {
     final activeController = PlaybackController.instance;
 
     return ListenableBuilder(
-      listenable: Listenable.merge([activeController, FavoriteSongsDao.instance.favoritesRevision]),
+      listenable: activeController,
       builder: (context, _) {
         final isCurrentTrack =
             activeController.currentSong?.mediaStoreId == song.mediaStoreId;
         final isPlaying = isCurrentTrack && activeController.isPlaying;
-        final isFav = FavoriteSongsDao.instance.isFavorite(song.mediaStoreId);
         final durationStr = _formatDuration(song.duration);
 
         void handleTap() {
@@ -133,56 +131,13 @@ class AlbumTrackTile extends StatelessWidget {
                       ),
                     ),
 
-                    // 3. Favorite Heart Button (Direct toggle without playing)
-                    IconButton(
-                      icon: Icon(
-                        isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        size: 19.0,
-                        color: isFav ? AppColors.accent : AppColors.onSurfaceVariant.withValues(alpha: 0.65),
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
-                      splashRadius: 16.0,
-                      tooltip: isFav
-                          ? context.l10n.common.removeFromFavorites
-                          : context.l10n.common.addToFavorites,
-                      onPressed: () {
-                        FavoriteSongsDao.instance.toggleFavorite(song);
-                        HapticFeedback.lightImpact();
-                      },
+                    // 3. Track Options Pill (beside duration with 3-dots trigger)
+                    SongOptionsPill(
+                      song: song,
+                      durationText: isCurrentTrack ? null : durationStr,
                     ),
 
-                    // 4. Add to Playback Queue Icon
-                    IconButton(
-                      icon: Icon(
-                        Icons.playlist_add_rounded,
-                        size: 20.0,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(minWidth: 30.0, minHeight: 30.0),
-                      splashRadius: 16.0,
-                      tooltip: context.l10n.common.addToQueue,
-                      onPressed: () {
-                        activeController.addToQueue(song);
-                        HapticFeedback.lightImpact();
-                      },
-                    ),
-
-                    // 5. Track Duration
-                    if (durationStr.isNotEmpty && !isCurrentTrack)
-                      Padding(
-                        padding: const EdgeInsets.only(left: 4.0, right: 4.0),
-                        child: Text(
-                          durationStr,
-                          style: GoogleFonts.inconsolata(
-                            fontSize: 12.0,
-                            color: AppColors.onSurfaceDisabled,
-                          ),
-                        ),
-                      ),
-
-                    // 6. Active Play/Pause Indicator Icon
+                    // 4. Active Play/Pause Indicator Icon
                     if (isCurrentTrack)
                       Padding(
                         padding: const EdgeInsets.only(left: 4.0, right: 2.0),

@@ -87,7 +87,7 @@ class PlaylistSongSearchResults extends StatelessWidget {
                 albumId: song.albumId,
                 width: 44.0,
                 height: 44.0,
-                borderRadius: 4.0,
+                borderRadius: 0.0,
                 fallbackIcon: Icons.music_note_rounded,
                 isThumbnail: true,
               ),

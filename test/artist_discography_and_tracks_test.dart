@@ -444,6 +444,12 @@ void main() {
       expect(find.text('Fake Plastic Trees'), findsOneWidget);
       expect(find.text('The Bends'), findsOneWidget);
       expect(find.text('4:50'), findsOneWidget);
+      expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
+
+      // Tap 3-dots trigger to expand action pill
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+
       expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget);
       expect(find.byIcon(Icons.playlist_add_rounded), findsOneWidget);
     });

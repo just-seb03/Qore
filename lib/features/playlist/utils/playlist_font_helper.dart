@@ -28,6 +28,7 @@ class PlaylistFontOption {
 
 /// Curated selection of expressive Google Fonts for playlist presentation.
 const List<PlaylistFontOption> availablePlaylistFonts = [
+  PlaylistFontOption(id: 'Inconsolata', displayName: 'Inconsolata'),
   PlaylistFontOption(id: 'UnifrakturMaguntia', displayName: 'UnifrakturMaguntia'),
   PlaylistFontOption(id: 'Fascinate Inline', displayName: 'Fascinate Inline'),
   PlaylistFontOption(id: 'Permanent Marker', displayName: 'Permanent Marker'),
@@ -43,14 +44,14 @@ const List<PlaylistFontOption> availablePlaylistFonts = [
 ];
 
 /// Safely resolves a [TextStyle] for the requested [fontFamily] using GoogleFonts.
-/// Falls back gracefully to Inconsolata if offline or in unit tests.
+/// Defaults to Inconsolata.
 TextStyle getPlaylistTitleFont(String? fontFamily, {TextStyle? baseStyle}) {
   final cleanFamily = fontFamily?.trim();
-  if (cleanFamily == null || cleanFamily.isEmpty) {
+  if (cleanFamily == null || cleanFamily.isEmpty || cleanFamily.toLowerCase() == 'inconsolata') {
     try {
-      return GoogleFonts.unifrakturMaguntia(textStyle: baseStyle);
+      return GoogleFonts.inconsolata(textStyle: baseStyle);
     } catch (_) {
-      return (baseStyle ?? const TextStyle()).copyWith(fontFamily: 'UnifrakturMaguntia');
+      return (baseStyle ?? const TextStyle()).copyWith(fontFamily: 'Inconsolata');
     }
   }
 

@@ -11,6 +11,7 @@ import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/playlist/components/playlist_color_picker_dialog.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlist_tile.dart';
@@ -33,6 +34,8 @@ import 'package:project_anima/features/player/components/player_metadata_view.da
 import 'package:project_anima/features/player/components/song_context_sheet.dart';
 import 'package:project_anima/features/player/components/song_delete_dialog.dart';
 import 'package:project_anima/features/player/components/song_playlist_picker_sheet.dart';
+import 'package:project_anima/components/song_options_pill.dart';
+import 'package:project_anima/features/player/components/playback_queue_sheet.dart';
 import 'package:project_anima/features/playlist/utils/playlist_effect_helper.dart';
 import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
@@ -589,10 +592,11 @@ void main() {
       expect(find.text('Save'), findsOneWidget);
     });
 
-    test('availablePlaylistFonts includes 12 curated fonts with dot and futuristic options', () {
-      expect(availablePlaylistFonts.length, 12);
+    test('availablePlaylistFonts includes 13 curated fonts with Inconsolata default, dot and futuristic options', () {
+      expect(availablePlaylistFonts.length, 13);
       final ids = availablePlaylistFonts.map((f) => f.id).toList();
       expect(ids, containsAll([
+        'Inconsolata',
         'UnifrakturMaguntia',
         'Fascinate Inline',
         'Permanent Marker',
@@ -1386,6 +1390,185 @@ void main() {
 
       expect(find.text('EN PLAYLIST'), findsNothing);
       expect(fakePlaylistDao.songsInPlaylist.contains(888), isFalse);
+    });
+  });
+
+  group('SongOptionsPill and Optimized Queue Tests', () {
+    final testSong = Song(
+      mediaStoreId: 999,
+      title: 'Quantum Horizon',
+      artist: 'Starlight Echoes',
+      album: 'Cosmic Dreams',
+      duration: 215000,
+      path: '/path/quantum.mp3',
+      dateAdded: 100,
+      dateModified: 200,
+    );
+
+    testWidgets('SongOptionsPill renders 3 dots and duration, tapping expands horizontal pill with 4 action icons without text', (tester) async {
+      bool playlistAdded = false;
+      bool queueFirstCalled = false;
+      bool queueEndCalled = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Center(
+              child: SongOptionsPill(
+                song: testSong,
+                durationText: '3:35',
+                onPlaylistAdd: () => playlistAdded = true,
+                onQueueFirst: () => queueFirstCalled = true,
+                onQueueEnd: () => queueEndCalled = true,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Initially duration and 3-dots trigger are visible
+      expect(find.text('3:35'), findsOneWidget);
+      expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.playlist_add_rounded), findsNothing);
+
+      // Tap 3 dots to expand pill horizontally
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+
+      // Close icon morphs in
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+
+      // The 4 action icons are present without text
+      expect(find.byKey(const ValueKey('song_pill_playlist_999')), findsOneWidget);
+      expect(find.byKey(const ValueKey('song_pill_favorite_999')), findsOneWidget);
+      expect(find.byKey(const ValueKey('song_pill_queue_first_999')), findsOneWidget);
+      expect(find.byKey(const ValueKey('song_pill_queue_end_999')), findsOneWidget);
+
+      // Verify actions
+      await tester.tap(find.byKey(const ValueKey('song_pill_playlist_999')));
+      await tester.pumpAndSettle();
+      expect(playlistAdded, isTrue);
+
+      // Verify collapsed after action
+      expect(find.byIcon(Icons.more_vert_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.playlist_add_rounded), findsNothing);
+
+      // Re-expand and tap queue first
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('song_pill_queue_first_999')));
+      await tester.pumpAndSettle();
+      expect(queueFirstCalled, isTrue);
+
+      // Re-expand and tap queue end
+      await tester.tap(find.byIcon(Icons.more_vert_rounded));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('song_pill_queue_end_999')));
+      await tester.pumpAndSettle();
+      expect(queueEndCalled, isTrue);
+    });
+
+    test('Playlist track tile renders unrounded sharp cover (borderRadius: 0.0)', () {
+      final tile = PlaylistTrackTile(
+        song: testSong,
+        trackIndex: 1,
+        allPlaylistSongs: [testSong],
+      );
+      expect(tile.trackIndex, 1);
+    });
+
+    test('getPlaylistTitleFont defaults to Inconsolata when fontFamily is null or empty', () {
+      final defaultStyle = getPlaylistTitleFont(null);
+      expect(defaultStyle.fontFamily, contains('Inconsolata'));
+
+      final emptyStyle = getPlaylistTitleFont('');
+      expect(emptyStyle.fontFamily, contains('Inconsolata'));
+
+      final inconsolataStyle = getPlaylistTitleFont('Inconsolata');
+      expect(inconsolataStyle.fontFamily, contains('Inconsolata'));
+    });
+
+    testWidgets('PlaybackQueueSheet renders only upcoming tracks after currently playing song without BackdropFilter blur', (tester) async {
+      final songA = Song(
+        mediaStoreId: 1,
+        title: 'Song A (Past)',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 180000,
+        path: '/a.mp3',
+        dateAdded: 1,
+        dateModified: 1,
+      );
+      final songB = Song(
+        mediaStoreId: 2,
+        title: 'Song B (Now Playing)',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 200000,
+        path: '/b.mp3',
+        dateAdded: 1,
+        dateModified: 1,
+      );
+      final songC = Song(
+        mediaStoreId: 3,
+        title: 'Song C (Next 1)',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 220000,
+        path: '/c.mp3',
+        dateAdded: 1,
+        dateModified: 1,
+      );
+      final songD = Song(
+        mediaStoreId: 4,
+        title: 'Song D (Next 2)',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 240000,
+        path: '/d.mp3',
+        dateAdded: 1,
+        dateModified: 1,
+      );
+
+      final controller = PlaybackController.instance;
+      // Active is songB at index 1 in queue [songA, songB, songC, songD]
+      controller.setQueueForTesting([songA, songB, songC, songD], currentIndex: 1);
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (ctx) => ElevatedButton(
+                onPressed: () => PlaybackQueueSheet.show(ctx),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.text('Open'));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 500));
+
+      // Zero BackdropFilter blur in tree
+      expect(find.byType(BackdropFilter), findsNothing);
+
+      // Now playing shows Song B
+      expect(find.text('NOW PLAYING'), findsOneWidget);
+      expect(find.text('Song B (Now Playing)'), findsOneWidget);
+
+      // Upcoming count is 2 (Song C and Song D)
+      expect(find.text('UP NEXT • 2 TRACKS'), findsOneWidget);
+
+      // Song A (past) is not in the upcoming list
+      expect(find.text('Song A (Past)'), findsNothing);
+
+      // Song C and Song D are listed with indices 1 and 2
+      expect(find.text('Song C (Next 1)'), findsOneWidget);
+      expect(find.text('Song D (Next 2)'), findsOneWidget);
+      expect(find.text('1'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
     });
   });
 }

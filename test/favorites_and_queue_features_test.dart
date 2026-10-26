@@ -312,8 +312,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 500));
 
       expect(find.text('NOW PLAYING'), findsOneWidget);
-      expect(find.text('UP NEXT • 2 TRACKS'), findsOneWidget);
-      expect(find.text('Neon Odyssey'), findsWidgets);
+      expect(find.text('UP NEXT • 1 TRACK'), findsOneWidget);
+      expect(find.text('Neon Odyssey'), findsOneWidget);
       expect(find.text('Solar Flare'), findsOneWidget);
       expect(find.text('Clear'), findsOneWidget);
       expect(find.byType(ModalDismissIndicator), findsOneWidget);
