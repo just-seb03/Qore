@@ -16,6 +16,8 @@ import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
+import 'package:project_anima/features/search/components/cards/search_album_card.dart';
+import 'package:project_anima/features/search/components/cards/search_artist_card.dart';
 import 'package:project_anima/features/search/components/cards/search_discovery_card.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_discovery_view.dart';
@@ -454,7 +456,7 @@ void main() {
       expect(find.byKey(const ValueKey('search_discovery_view')), findsOneWidget);
       expect(find.byKey(const ValueKey('search_results_list')), findsNothing);
 
-      // Tap on search bar to focus
+      // Tap on search bar to expand
       await tester.tap(find.byType(AppSearchBar));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
@@ -462,6 +464,70 @@ void main() {
       // Should have transitioned to SearchResultsList with SearchRecentList / SearchEmptyView
       expect(find.byKey(const ValueKey('search_results_list')), findsOneWidget);
       expect(find.byKey(const ValueKey('search_discovery_view')), findsNothing);
+
+      // Verify TextField does NOT have focus automatically (no auto-opening keyboard)
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.focusNode?.hasFocus, isFalse);
+
+      // Tapping the expanded TextField explicitly requests focus (opens keyboard)
+      await tester.tap(find.byType(TextField));
+      await tester.pump();
+      expect(textField.focusNode?.hasFocus, isTrue);
+    });
+
+    testWidgets('SearchAlbumCard and SearchArtistCard render drop shadows', (tester) async {
+      const album = AlbumDiscoveryItem(
+        name: 'Shadow Album',
+        artist: 'Shadow Artist',
+        representativeSongId: 1,
+        songCount: 5,
+        totalDuration: 1000,
+      );
+      const artist = ArtistDiscoveryItem(
+        name: 'Shadow Artist',
+        songCount: 5,
+        albumCount: 1,
+        representativeSongId: 1,
+      );
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: testDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('es'),
+          home: Scaffold(
+            body: Column(
+              children: [
+                SearchAlbumCard(album: album),
+                SearchArtistCard(artist: artist),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Check album cover drop shadow
+      final albumContainer = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(SearchAlbumCard),
+          matching: find.byType(Container),
+        ).first,
+      );
+      final albumDecoration = albumContainer.decoration as BoxDecoration;
+      expect(albumDecoration.boxShadow, isNotNull);
+      expect(albumDecoration.boxShadow!.isNotEmpty, isTrue);
+
+      // Check artist avatar circular drop shadow
+      final artistContainer = tester.widget<Container>(
+        find.descendant(
+          of: find.byType(SearchArtistCard),
+          matching: find.byType(Container),
+        ).first,
+      );
+      final artistDecoration = artistContainer.decoration as BoxDecoration;
+      expect(artistDecoration.boxShadow, isNotNull);
+      expect(artistDecoration.boxShadow!.isNotEmpty, isTrue);
+      expect(artistDecoration.shape, BoxShape.circle);
     });
   });
 }

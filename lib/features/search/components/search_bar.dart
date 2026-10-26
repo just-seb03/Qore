@@ -37,6 +37,12 @@ class AppSearchBar extends StatefulWidget {
   /// Callback executed when the clear button is pressed.
   final VoidCallback? onClear;
 
+  /// Whether the search bar is currently expanded into full-width input mode.
+  final bool? isExpanded;
+
+  /// Callback executed when the collapsed `< 🔍 >` pill button is tapped to expand.
+  final VoidCallback? onExpand;
+
   /// Controls visibility of the morphing M3ELoadingIndicator.
   final bool isLoading;
 
@@ -69,15 +75,17 @@ class AppSearchBar extends StatefulWidget {
     this.controller,
     this.onChanged,
     this.onClear,
+    this.isExpanded,
+    this.onExpand,
     this.isLoading = false,
     this.hintText,
     this.focusNode,
     this.autoFocus = false,
     this.padding = const EdgeInsets.only(
       left: 16.0,
-      top: 12.0,
+      top: 8.0,
       right: 16.0,
-      bottom: 8.0,
+      bottom: 12.0,
     ),
   });
 
@@ -133,15 +141,15 @@ class _AppSearchBarState extends State<AppSearchBar>
     _effectiveFocusNode.addListener(_handleFocusOrTextChanged);
     _effectiveController.addListener(_handleFocusOrTextChanged);
 
-    final shouldBeActive =
-        _effectiveFocusNode.hasFocus || _effectiveController.text.isNotEmpty;
+    final shouldBeActive = widget.isExpanded ??
+        (_effectiveFocusNode.hasFocus || _effectiveController.text.isNotEmpty);
     _focusAnimController.value = shouldBeActive ? 1.0 : 0.0;
   }
 
   void _handleFocusOrTextChanged() {
     if (!mounted) return;
-    final shouldBeActive =
-        _effectiveFocusNode.hasFocus || _effectiveController.text.isNotEmpty;
+    final shouldBeActive = widget.isExpanded ??
+        (_effectiveFocusNode.hasFocus || _effectiveController.text.isNotEmpty);
     if (shouldBeActive) {
       if (_focusAnimController.value < 1.0 &&
           _focusAnimController.status != AnimationStatus.forward) {
@@ -158,6 +166,17 @@ class _AppSearchBarState extends State<AppSearchBar>
   @override
   void didUpdateWidget(AppSearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.isExpanded != oldWidget.isExpanded && widget.isExpanded != null) {
+      if (widget.isExpanded!) {
+        if (_focusAnimController.value < 1.0) {
+          _focusAnimController.forward();
+        }
+      } else {
+        if (_focusAnimController.value > 0.0) {
+          _focusAnimController.reverse();
+        }
+      }
+    }
     if (widget.controller != oldWidget.controller) {
       (oldWidget.controller ?? _internalController)
           ?.removeListener(_handleFocusOrTextChanged);
@@ -204,21 +223,34 @@ class _AppSearchBarState extends State<AppSearchBar>
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () {
-          if (!_effectiveFocusNode.hasFocus) {
-            _effectiveFocusNode.requestFocus();
+          final isCurrentlyExpanded = widget.isExpanded ??
+              (_focusAnimController.value > 0.5 ||
+                  _effectiveController.text.isNotEmpty);
+          if (!isCurrentlyExpanded) {
+            // Expand the bar WITHOUT requesting keyboard focus
+            if (widget.onExpand != null) {
+              widget.onExpand!();
+            } else {
+              _focusAnimController.forward();
+            }
           } else {
-            SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+            // If already expanded, tapping the bar requests focus on the text field to show keyboard
+            if (!_effectiveFocusNode.hasFocus) {
+              _effectiveFocusNode.requestFocus();
+            } else {
+              SystemChannels.textInput.invokeMethod<void>('TextInput.show');
+            }
           }
         },
         child: SizedBox(
-          height: 52.0,
+          height: 44.0,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final maxWidth = constraints.maxWidth;
-              const collapsedWidth = 76.0;
-              const barHeight = 52.0;
-              const iconSize = 22.0;
-              const chevronSize = 18.0;
+              const collapsedWidth = 104.0;
+              const barHeight = 44.0;
+              const iconSize = 26.0;
+              const chevronSize = 26.0;
 
               return AnimatedBuilder(
                 animation: Listenable.merge([
@@ -232,7 +264,7 @@ class _AppSearchBarState extends State<AppSearchBar>
                   final currentWidth =
                       lerpDouble(collapsedWidth, maxWidth, animValue)!;
                   final iconLeft =
-                      lerpDouble((collapsedWidth - iconSize) / 2, 16.0, animValue)!;
+                      lerpDouble((collapsedWidth - iconSize) / 2, 14.0, animValue)!;
                   final chevronOpacity =
                       (1.0 - animValue * 2.5).clamp(0.0, 1.0);
 
@@ -253,7 +285,7 @@ class _AppSearchBarState extends State<AppSearchBar>
                       height: barHeight,
                       decoration: BoxDecoration(
                         color: barBgColor,
-                        borderRadius: BorderRadius.circular(28.0),
+                        borderRadius: BorderRadius.circular(22.0),
                         border: Border.all(
                           color: barBorderColor,
                           width: 1.0,

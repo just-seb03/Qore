@@ -58,17 +58,34 @@ class SearchAlbumCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 130x130 Square High-Res Artwork
-              AnimaArtworkImage(
-                mediaStoreId: album.representativeSongId,
-                albumId: album.albumId,
-                albumName: album.name,
-                artistName: album.artist,
-                width: width,
-                height: width,
-                borderRadius: 0.0,
-                fallbackIcon: Icons.album_rounded,
-                isThumbnail: false,
+              // 130x130 Square High-Res Artwork with drop shadow
+              Container(
+                decoration: BoxDecoration(
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.50),
+                      blurRadius: 14.0,
+                      spreadRadius: 1.0,
+                      offset: const Offset(0, 6),
+                    ),
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      blurRadius: 4.0,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: AnimaArtworkImage(
+                  mediaStoreId: album.representativeSongId,
+                  albumId: album.albumId,
+                  albumName: album.name,
+                  artistName: album.artist,
+                  width: width,
+                  height: width,
+                  borderRadius: 0.0,
+                  fallbackIcon: Icons.album_rounded,
+                  isThumbnail: false,
+                ),
               ),
               const SizedBox(height: 8.0),
               // Album Title

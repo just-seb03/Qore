@@ -26,7 +26,7 @@ class SearchAlbumsSection extends StatelessWidget {
   /// Header title text. Defaults to localized 'ALBUMS'.
   final String? headerTitle;
 
-  /// Height of the horizontal carousel. Defaults to 188.0.
+  /// Height of the horizontal carousel. Defaults to 196.0.
   final double carouselHeight;
 
   const SearchAlbumsSection({
@@ -35,7 +35,7 @@ class SearchAlbumsSection extends StatelessWidget {
     this.onAlbumTap,
     this.showHeader = true,
     this.headerTitle,
-    this.carouselHeight = 188.0,
+    this.carouselHeight = 196.0,
   });
 
   @override
@@ -57,6 +57,7 @@ class SearchAlbumsSection extends StatelessWidget {
         SizedBox(
           height: carouselHeight,
           child: ListView.separated(
+            clipBehavior: Clip.none,
             scrollDirection: Axis.horizontal,
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
             itemCount: albums.length,

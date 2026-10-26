@@ -230,6 +230,9 @@ class _SearchScreenState extends State<SearchScreen>
     _searchController.clear();
     _searchEngine.clear();
     _searchFocusNode.unfocus();
+    setState(() {
+      _isSearching = false;
+    });
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0.0);
     }
@@ -302,9 +305,18 @@ class _SearchScreenState extends State<SearchScreen>
               AppSearchBar(
                 controller: _searchController,
                 focusNode: _searchFocusNode,
+                isExpanded: _isSearching,
+                onExpand: () {
+                  if (mounted) {
+                    setState(() {
+                      _isSearching = true;
+                    });
+                  }
+                },
                 onChanged: (text) => _searchEngine.onQueryChanged(text),
                 onClear: () => _searchEngine.clear(),
               ),
+              const SizedBox(height: 8.0),
               Expanded(
                 child: ShaderMask(
                   shaderCallback: (Rect bounds) {
