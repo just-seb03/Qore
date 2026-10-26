@@ -530,17 +530,17 @@ void main() {
       expect(find.byKey(const ValueKey('library_create_playlist_fab')), findsNothing);
 
       // Switch to Artists: FAB should NOT be present
-      await tester.tap(find.text('Artists'));
+      await tester.tap(find.byKey(const ValueKey('library_category_artists')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('library_create_playlist_fab')), findsNothing);
 
       // Switch to Playlists: FAB MUST be present above nav
-      await tester.tap(find.text('Playlists'));
+      await tester.tap(find.byKey(const ValueKey('library_category_playlists')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('library_create_playlist_fab')), findsOneWidget);
 
       // Switch back to Albums: FAB must disappear
-      await tester.tap(find.text('Albums'));
+      await tester.tap(find.byKey(const ValueKey('library_category_albums')));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('library_create_playlist_fab')), findsNothing);
     });

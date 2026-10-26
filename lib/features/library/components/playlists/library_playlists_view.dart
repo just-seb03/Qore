@@ -185,11 +185,12 @@ class LibraryPlaylistsViewState extends State<LibraryPlaylistsView> {
     return ListView.separated(
       key: const ValueKey('library_playlists_grid'),
       controller: widget.scrollController,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(
         left: 16.0,
         right: 16.0,
-        top: 14.0,
-        bottom: 96.0,
+        top: 4.0,
+        bottom: 160.0,
       ),
       separatorBuilder: (context, index) => const SizedBox(height: 14.0),
       itemCount: playlists.length,

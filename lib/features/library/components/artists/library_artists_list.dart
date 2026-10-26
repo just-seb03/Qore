@@ -155,9 +155,10 @@ class _LibraryArtistsListState extends State<LibraryArtistsList> {
 
     return ListView.builder(
       controller: widget.scrollController,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(
-        top: 8.0,
-        bottom: 96.0,
+        top: 4.0,
+        bottom: 160.0,
       ),
       itemCount: artists.length,
       itemBuilder: (context, index) {

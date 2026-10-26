@@ -165,11 +165,12 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
 
     return GridView.builder(
       controller: widget.scrollController,
+      physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.only(
         left: 16.0,
         right: 16.0,
-        top: 12.0,
-        bottom: 96.0,
+        top: 4.0,
+        bottom: 160.0,
       ),
       gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
         crossAxisCount: 2,

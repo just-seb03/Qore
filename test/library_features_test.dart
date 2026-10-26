@@ -14,6 +14,7 @@ import 'package:project_anima/features/library/components/albums/library_album_c
 import 'package:project_anima/features/library/components/albums/library_albums_grid.dart';
 import 'package:project_anima/features/library/components/artists/library_artist_tile.dart';
 import 'package:project_anima/features/library/components/artists/library_artists_list.dart';
+import 'package:project_anima/features/library/components/library_category_bar.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_placeholder.dart';
 import 'package:project_anima/features/library/controls/library_transition_controller.dart';
@@ -449,27 +450,32 @@ void main() {
       );
       await tester.pump();
 
-      // 1. By default, Albums grid is visible
+      // 1. By default, Albums grid is visible, album icon is filled
       expect(find.byType(LibraryAlbumsGrid), findsOneWidget);
       expect(find.text('Discovery'), findsOneWidget);
       expect(find.byType(LibraryArtistsList), findsNothing);
       expect(find.byType(LibraryPlaylistsPlaceholder), findsNothing);
+      expect(find.byKey(const ValueKey('albums_filled')), findsOneWidget);
+      expect(find.byKey(const ValueKey('artists_outline')), findsOneWidget);
 
       // 2. Switch to Artists
-      await tester.tap(find.text('Artists'));
+      await tester.tap(find.byKey(const ValueKey('library_category_artists')));
       await tester.pumpAndSettle();
 
       expect(find.byType(LibraryAlbumsGrid), findsNothing);
       expect(find.byType(LibraryArtistsList), findsOneWidget);
       expect(find.text('Daft Punk'), findsOneWidget);
+      expect(find.byKey(const ValueKey('artists_filled')), findsOneWidget);
+      expect(find.byKey(const ValueKey('albums_outline')), findsOneWidget);
 
       // 3. Switch to Playlists
-      await tester.tap(find.text('Playlists'));
+      await tester.tap(find.byKey(const ValueKey('library_category_playlists')));
       await tester.pumpAndSettle();
 
       expect(find.byType(LibraryArtistsList), findsNothing);
       expect(find.byType(LibraryPlaylistsPlaceholder), findsOneWidget);
       expect(find.text('NO PLAYLISTS YET'), findsOneWidget);
+      expect(find.byKey(const ValueKey('playlists_filled')), findsOneWidget);
     });
 
     testWidgets('allows swiping left and right horizontally to switch between Albums, Artists, and Playlists', (tester) async {
@@ -574,6 +580,73 @@ void main() {
       expect(controller.direction, LibraryTransitionDirection.forward);
 
       controller.dispose();
+    });
+  });
+
+  group('LibraryCategoryBar Widget Tests', () {
+    testWidgets('renders chevrons, album, enlarged artist, and playlist icons', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LibraryCategoryBar(
+              selectedFilter: LibraryFilter.albums,
+              onFilterChanged: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      // Verify chevrons exist
+      expect(find.byKey(const ValueKey('library_nav_previous')), findsOneWidget);
+      expect(find.byKey(const ValueKey('library_nav_next')), findsOneWidget);
+
+      // Verify category buttons exist
+      expect(find.byKey(const ValueKey('library_category_albums')), findsOneWidget);
+      expect(find.byKey(const ValueKey('library_category_artists')), findsOneWidget);
+      expect(find.byKey(const ValueKey('library_category_playlists')), findsOneWidget);
+
+      // Verify active album is filled and artist is outline
+      expect(find.byKey(const ValueKey('albums_filled')), findsOneWidget);
+      expect(find.byKey(const ValueKey('artists_outline')), findsOneWidget);
+      expect(find.byKey(const ValueKey('playlists_outline')), findsOneWidget);
+
+      // Verify artist icon is larger (32dp vs 26dp)
+      final artistIcon = tester.widget<Icon>(find.byKey(const ValueKey('artists_outline')));
+      final albumIcon = tester.widget<Icon>(find.byKey(const ValueKey('albums_filled')));
+      expect(artistIcon.size, 32.0);
+      expect(albumIcon.size, 26.0);
+      expect(artistIcon.size!, greaterThan(albumIcon.size!));
+    });
+
+    testWidgets('taps on chevrons and category buttons fire correct callbacks', (tester) async {
+      LibraryFilter? selected;
+      bool prevTapped = false;
+      bool nextTapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: LibraryCategoryBar(
+              selectedFilter: LibraryFilter.albums,
+              onFilterChanged: (f) => selected = f,
+              onPrevious: () => prevTapped = true,
+              onNext: () => nextTapped = true,
+            ),
+          ),
+        ),
+      );
+
+      await tester.tap(find.byKey(const ValueKey('library_nav_previous')));
+      expect(prevTapped, isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('library_nav_next')));
+      expect(nextTapped, isTrue);
+
+      await tester.tap(find.byKey(const ValueKey('library_category_artists')));
+      expect(selected, LibraryFilter.artists);
+
+      await tester.tap(find.byKey(const ValueKey('library_category_playlists')));
+      expect(selected, LibraryFilter.playlists);
     });
   });
 }

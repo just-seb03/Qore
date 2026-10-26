@@ -21,8 +21,8 @@ import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/library/components/albums/library_albums_grid.dart';
 import 'package:project_anima/features/library/components/artists/library_artists_list.dart';
+import 'package:project_anima/features/library/components/library_category_bar.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
-import 'package:project_anima/features/library/components/library_header.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_view.dart';
 import 'package:project_anima/features/library/controls/library_transition_controller.dart';
 import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
@@ -145,16 +145,19 @@ class _LibraryScreenState extends State<LibraryScreen> {
       builder: (context, _) {
         final currentFilter = _transitionController.currentFilter;
         return Scaffold(
+          extendBody: true,
           backgroundColor: AppColors.bottomNavBackground,
           body: SafeArea(
+            bottom: false,
             child: Column(
               children: [
-                const LibraryHeader(),
-                LibraryFilterPills(
+                LibraryCategoryBar(
                   selectedFilter: currentFilter,
                   onFilterChanged: (filter) {
                     _transitionController.animateTo(filter);
                   },
+                  onPrevious: () => _transitionController.animateToPrevious(),
+                  onNext: () => _transitionController.animateToNext(),
                 ),
                 Expanded(
                   child: LibraryTransitionControl(
