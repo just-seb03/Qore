@@ -18,6 +18,8 @@ import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/home/components/space_intro_overlay.dart';
 import 'package:project_anima/features/home/components/space_tiles_grid.dart';
+import 'package:project_anima/features/settings/components/settings_edge_gesture_detector.dart';
+import 'package:project_anima/features/settings/screens/settings_side_sheet.dart';
 
 /// Type alias allowing both `Space` / `SpaceScreen` and `Home` / `HomeScreen` to be used cleanly.
 typedef Space = HomeScreen;
@@ -60,20 +62,25 @@ class HomeScreen extends StatelessWidget {
           // Exclusive dynamic PS3-style ambient particles
           const AmbientParticlesCanvas(),
 
-          // Space screen with full-screen Windows Phone Metro live tiles grid
-          Scaffold(
-            extendBody: true,
-            backgroundColor: Colors.transparent,
-            body: SpaceTilesGrid(
-              initialPinnedItems: initialPinnedItems,
-              initialFavoriteSongs: initialFavoriteSongs,
+          // Space screen with full-screen Windows Phone Metro live tiles grid wrapped in gesture detector
+          SettingsEdgeGestureDetector(
+            child: Scaffold(
+              extendBody: true,
+              backgroundColor: Colors.transparent,
+              body: SpaceTilesGrid(
+                initialPinnedItems: initialPinnedItems,
+                initialFavoriteSongs: initialFavoriteSongs,
+              ),
+              bottomNavigationBar: showBottomNav
+                  ? const AppBottomNav(
+                      currentIndex: 0,
+                    )
+                  : null,
             ),
-            bottomNavigationBar: showBottomNav
-                ? const AppBottomNav(
-                    currentIndex: 0,
-                  )
-                : null,
           ),
+
+          // Lateral Settings & Info Side Sheet
+          const SettingsSideSheet(),
 
           // First-time onboarding tour for Space
           SpaceIntroOverlay(

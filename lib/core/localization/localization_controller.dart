@@ -8,6 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/localization/app_locale.dart';
 
 /// Singleton ChangeNotifier managing the active language and device language auto-detection.
@@ -55,6 +56,18 @@ class LocalizationController extends ChangeNotifier with WidgetsBindingObserver 
     if (_followSystemLocale) {
       _currentLocale = detectDeviceLocale(initialDeviceLocale);
     }
+    try {
+      AppMetadataDao.instance.getAppLanguage().then((saved) {
+        if (saved != null) {
+          final loc = AppLocale.fromLanguageCode(saved);
+          if (_currentLocale != loc) {
+            _currentLocale = loc;
+            _followSystemLocale = false;
+            notifyListeners();
+          }
+        }
+      }).catchError((_) {});
+    } catch (_) {}
     if (!_isObserverAttached) {
       try {
         WidgetsBinding.instance.addObserver(this);
@@ -78,6 +91,11 @@ class LocalizationController extends ChangeNotifier with WidgetsBindingObserver 
   /// Updates the active application locale and optionally disables system tracking.
   void setLocale(AppLocale newLocale, {bool followSystem = false}) {
     _followSystemLocale = followSystem;
+    if (!followSystem) {
+      try {
+        AppMetadataDao.instance.setAppLanguage(newLocale.languageCode);
+      } catch (_) {}
+    }
     if (_currentLocale == newLocale) return;
     _currentLocale = newLocale;
     notifyListeners();

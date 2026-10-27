@@ -18,6 +18,7 @@ import 'package:project_anima/core/localization/translations/es/navigation/es_na
 import 'package:project_anima/core/localization/translations/es/player/es_player_strings.dart';
 import 'package:project_anima/core/localization/translations/es/playlist/es_playlist_strings.dart';
 import 'package:project_anima/core/localization/translations/es/search/es_search_strings.dart';
+import 'package:project_anima/core/localization/translations/es/settings/es_settings_strings.dart';
 import 'package:project_anima/core/localization/translations/es/startup/es_startup_strings.dart';
 
 /// Spanish translation suite for Project Anima.
@@ -57,6 +58,9 @@ class EsStrings implements AppStrings {
 
   @override
   final SearchStrings search = const EsSearchStrings();
+
+  @override
+  final SettingsStrings settings = const EsSettingsStrings();
 
   @override
   final StartupStrings startup = const EsStartupStrings();

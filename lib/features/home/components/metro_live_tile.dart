@@ -45,6 +45,9 @@ class MetroLiveTile extends StatefulWidget {
   /// Long-press callback (e.g. to unpin).
   final VoidCallback? onLongPress;
 
+  /// Global pause flag for live tile 3D animations (e.g. when Settings sheet is active).
+  static final ValueNotifier<bool> isPaused = ValueNotifier<bool>(false);
+
   const MetroLiveTile({
     super.key,
     required this.front,
@@ -82,22 +85,35 @@ class _MetroLiveTileState extends State<MetroLiveTile>
       curve: Curves.easeInOutCubic,
     );
 
+    MetroLiveTile.isPaused.addListener(_onPausedChanged);
     _scheduleFlips();
+  }
+
+  void _onPausedChanged() {
+    if (MetroLiveTile.isPaused.value && mounted && !_isDisposed) {
+      if (_controller.value > 0.0) {
+        _controller.reverse();
+      }
+    }
   }
 
   void _scheduleFlips() {
     _staggerTimer = Timer(widget.initialDelay, () {
       if (!mounted || _isDisposed) return;
-      _flipTwice();
+      if (!MetroLiveTile.isPaused.value) {
+        _flipTwice();
+      }
       _periodicTimer = Timer.periodic(widget.interval, (_) {
         if (!mounted || _isDisposed) return;
-        _flipTwice();
+        if (!MetroLiveTile.isPaused.value) {
+          _flipTwice();
+        }
       });
     });
   }
 
   Future<void> _flipTwice() async {
-    if (!mounted || _isDisposed || _controller.isAnimating) return;
+    if (!mounted || _isDisposed || _controller.isAnimating || MetroLiveTile.isPaused.value) return;
     try {
       // 1. First flip: rotate from front to back
       await _controller.forward();
@@ -121,6 +137,7 @@ class _MetroLiveTileState extends State<MetroLiveTile>
   @override
   void dispose() {
     _isDisposed = true;
+    MetroLiveTile.isPaused.removeListener(_onPausedChanged);
     _staggerTimer?.cancel();
     _periodicTimer?.cancel();
     _pauseTimer?.cancel();

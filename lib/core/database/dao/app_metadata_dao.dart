@@ -17,6 +17,7 @@ class AppMetadataDao {
   static const String _kActiveThemeFamilyKey = 'active_theme_family';
   static const String _kIsDarkModeKey = 'is_dark_mode';
   static const String _kSpaceIntroSeenKey = 'space_intro_seen';
+  static const String _kAppLanguageKey = 'app_language';
   static AppMetadataDao? _instance;
 
   final AppDatabase _appDatabase;
@@ -28,6 +29,8 @@ class AppMetadataDao {
   bool? _cachedIsDarkMode;
   bool? _mockSpaceIntroSeen;
   bool? _cachedSpaceIntroSeen;
+  String? _mockLanguage;
+  String? _cachedLanguage;
 
   AppMetadataDao({
     AppDatabase? appDatabase,
@@ -309,6 +312,61 @@ class AppMetadataDao {
       );
     } catch (e) {
       debugPrint('⚠️ [AppMetadataDao] Error saving space intro status: $e');
+    }
+  }
+
+  /// Retrieves the persisted language code (e.g. 'es', 'en') if set.
+  Future<String?> getAppLanguage() async {
+    if (_mockLanguage != null) {
+      _cachedLanguage = _mockLanguage;
+      return _mockLanguage;
+    }
+
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return _cachedLanguage;
+    }
+
+    try {
+      final db = await _appDatabase.database;
+      final results = await db.query(
+        'app_metadata',
+        columns: ['value'],
+        where: 'key = ?',
+        whereArgs: [_kAppLanguageKey],
+        limit: 1,
+      );
+
+      if (results.isEmpty || results.first['value'] == null) {
+        return null;
+      }
+      final lang = results.first['value'] as String?;
+      _cachedLanguage = lang;
+      return lang;
+    } catch (e) {
+      debugPrint('⚠️ [AppMetadataDao] Error reading app language: $e');
+      return null;
+    }
+  }
+
+  /// Persists the active application language code to SQLite app_metadata.
+  Future<void> setAppLanguage(String code) async {
+    _mockLanguage = code;
+    _cachedLanguage = code;
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return;
+    }
+    try {
+      final db = await _appDatabase.database;
+      await db.insert(
+        'app_metadata',
+        {
+          'key': _kAppLanguageKey,
+          'value': code,
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('⚠️ [AppMetadataDao] Error saving app language: $e');
     }
   }
 }

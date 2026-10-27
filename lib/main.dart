@@ -103,11 +103,24 @@ Future<void> main() async {
 class AnimaApp extends StatefulWidget {
   const AnimaApp({super.key});
 
+  /// Restarts the application widget tree cleanly with all newly applied configurations.
+  static void restart(BuildContext context) {
+    context.findAncestorStateOfType<_AnimaAppState>()?.restart();
+  }
+
   @override
   State<AnimaApp> createState() => _AnimaAppState();
 }
 
 class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
+  Key _appKey = UniqueKey();
+
+  void restart() {
+    setState(() {
+      _appKey = UniqueKey();
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -141,13 +154,15 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        LocalizationController.instance,
-        ThemeController.instance,
-      ]),
-      builder: (context, _) {
-        return MaterialApp(
+    return KeyedSubtree(
+      key: _appKey,
+      child: ListenableBuilder(
+        listenable: Listenable.merge([
+          LocalizationController.instance,
+          ThemeController.instance,
+        ]),
+        builder: (context, _) {
+          return MaterialApp(
           title: 'Project Anima',
           debugShowCheckedModeBanner: false,
           theme: ThemeController.instance.currentThemeData,
@@ -167,6 +182,7 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
           home: const StartupLoadingScreen(),
         );
       },
+    ),
     );
   }
 }
