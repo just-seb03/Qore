@@ -28,4 +28,16 @@ class EnHomeStrings implements HomeStrings {
 
   @override
   String get doneButtonTooltip => 'Done';
+
+  @override
+  String get spaceIntroWelcome =>
+      'Welcome to Space, the place for your favorite content';
+
+  @override
+  String get spaceIntroFavorites =>
+      'Here, all content you have saved with a ❤️ will appear pinned';
+
+  @override
+  String get spaceIntroDirectAccess =>
+      'This way you will have direct access to the music you love the most';
 }

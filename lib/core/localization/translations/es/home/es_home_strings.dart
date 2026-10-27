@@ -28,4 +28,16 @@ class EsHomeStrings implements HomeStrings {
 
   @override
   String get artistSubtitle => 'Artista';
+
+  @override
+  String get spaceIntroWelcome =>
+      'Bienvenido a Space, el lugar para tu contenido favorito';
+
+  @override
+  String get spaceIntroFavorites =>
+      'Aquí todo el contenido que tengas guardado con un ❤️ aparecerá anclado';
+
+  @override
+  String get spaceIntroDirectAccess =>
+      'Así tendrás acceso directo a la música que más amas';
 }

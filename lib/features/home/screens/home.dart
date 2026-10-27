@@ -16,6 +16,7 @@ import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
+import 'package:project_anima/features/home/components/space_intro_overlay.dart';
 import 'package:project_anima/features/home/components/space_tiles_grid.dart';
 
 /// Type alias allowing both `Space` / `SpaceScreen` and `Home` / `HomeScreen` to be used cleanly.
@@ -37,12 +38,16 @@ class HomeScreen extends StatelessWidget {
   /// Optional pre-loaded pinned items (retained for backward compatibility/testing).
   final List<PinnedFavorite>? initialPinnedItems;
 
+  /// Optional override to enable or disable the first-time Space intro tour.
+  final bool? enableIntro;
+
   const HomeScreen({
     super.key,
     this.showBottomNav = true,
     this.initialTodaySongs,
     this.initialFavoriteSongs,
     this.initialPinnedItems,
+    this.enableIntro,
   });
 
   @override
@@ -68,6 +73,11 @@ class HomeScreen extends StatelessWidget {
                     currentIndex: 0,
                   )
                 : null,
+          ),
+
+          // First-time onboarding tour for Space
+          SpaceIntroOverlay(
+            forceShow: enableIntro,
           ),
         ],
       ),

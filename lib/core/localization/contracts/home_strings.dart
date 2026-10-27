@@ -25,4 +25,13 @@ abstract class HomeStrings {
 
   /// Tooltip for the checkmark button exiting arranging mode (e.g. 'Done').
   String get doneButtonTooltip;
+
+  /// Space intro step 1 welcome message.
+  String get spaceIntroWelcome;
+
+  /// Space intro step 2 favorites explanation.
+  String get spaceIntroFavorites;
+
+  /// Space intro step 3 direct access explanation.
+  String get spaceIntroDirectAccess;
 }

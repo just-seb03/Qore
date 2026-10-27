@@ -16,6 +16,7 @@ class AppMetadataDao {
   static const String _kOnboardingCompletedKey = 'onboarding_completed';
   static const String _kActiveThemeFamilyKey = 'active_theme_family';
   static const String _kIsDarkModeKey = 'is_dark_mode';
+  static const String _kSpaceIntroSeenKey = 'space_intro_seen';
   static AppMetadataDao? _instance;
 
   final AppDatabase _appDatabase;
@@ -25,6 +26,8 @@ class AppMetadataDao {
   String? _cachedThemeFamily;
   bool? _mockIsDarkMode;
   bool? _cachedIsDarkMode;
+  bool? _mockSpaceIntroSeen;
+  bool? _cachedSpaceIntroSeen;
 
   AppMetadataDao({
     AppDatabase? appDatabase,
@@ -56,6 +59,17 @@ class AppMetadataDao {
     _mockIsDarkMode = isDark;
     _cachedIsDarkMode = isDark;
   }
+
+  /// Sets an in-memory space intro override for testing without SQLite interaction.
+  @visibleForTesting
+  void setMockSpaceIntroSeen(bool? value) {
+    _mockSpaceIntroSeen = value;
+    _cachedSpaceIntroSeen = value;
+  }
+
+  /// Synchronous getter if space intro status has been loaded or mocked.
+  bool get hasSeenSpaceIntroSync =>
+      _mockSpaceIntroSeen ?? _cachedSpaceIntroSeen ?? false;
 
   /// Synchronous getter if status has been loaded or mocked.
   bool get isOnboardingCompletedSync =>
@@ -233,6 +247,68 @@ class AppMetadataDao {
       );
     } catch (e) {
       debugPrint('⚠️ [AppMetadataDao] Error saving is_dark_mode: $e');
+    }
+  }
+
+  /// Checks if the first-time Space onboarding tour was already seen.
+  Future<bool> hasSeenSpaceIntro() async {
+    if (_mockSpaceIntroSeen != null) {
+      _cachedSpaceIntroSeen = _mockSpaceIntroSeen;
+      return _mockSpaceIntroSeen!;
+    }
+
+    if (_cachedSpaceIntroSeen != null) {
+      return _cachedSpaceIntroSeen!;
+    }
+
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      _cachedSpaceIntroSeen = false;
+      return false;
+    }
+
+    try {
+      final db = await _appDatabase.database;
+      final results = await db.query(
+        'app_metadata',
+        columns: ['value'],
+        where: 'key = ?',
+        whereArgs: [_kSpaceIntroSeenKey],
+        limit: 1,
+      );
+
+      if (results.isEmpty || results.first['value'] == null) {
+        _cachedSpaceIntroSeen = false;
+        return false;
+      }
+      final seen = results.first['value'] == 'true';
+      _cachedSpaceIntroSeen = seen;
+      return seen;
+    } catch (e) {
+      debugPrint('⚠️ [AppMetadataDao] Error checking space intro status: $e');
+      _cachedSpaceIntroSeen = false;
+      return false;
+    }
+  }
+
+  /// Persists Space onboarding completed status to SQLite app_metadata.
+  Future<void> setSpaceIntroSeen({bool seen = true}) async {
+    _mockSpaceIntroSeen = seen;
+    _cachedSpaceIntroSeen = seen;
+    if (Platform.environment.containsKey('FLUTTER_TEST')) {
+      return;
+    }
+    try {
+      final db = await _appDatabase.database;
+      await db.insert(
+        'app_metadata',
+        {
+          'key': _kSpaceIntroSeenKey,
+          'value': seen ? 'true' : 'false',
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('⚠️ [AppMetadataDao] Error saving space intro status: $e');
     }
   }
 }

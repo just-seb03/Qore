@@ -47,6 +47,12 @@ Future<void> main() async {
   }
 
   try {
+    await AppMetadataDao.instance.hasSeenSpaceIntro();
+  } catch (e) {
+    debugPrint('AppMetadataDao space intro check warning: $e');
+  }
+
+  try {
     await ThemeController.instance.init();
   } catch (e) {
     debugPrint('ThemeController init warning: $e');
