@@ -85,19 +85,20 @@ class ArtistAssortedSongsSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 8.0),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          itemCount: songs.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 3.0),
-          itemBuilder: (context, index) {
-            final song = songs[index];
-            return ArtistCompactTrackTile(
-              song: song,
-              allArtistSongs: allArtistSongs,
-            );
-          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (int i = 0; i < songs.length; i++) ...[
+                if (i > 0) const SizedBox(height: 3.0),
+                ArtistCompactTrackTile(
+                  song: songs[i],
+                  allArtistSongs: allArtistSongs,
+                ),
+              ],
+            ],
+          ),
         ),
       ],
     );

@@ -46,19 +46,20 @@ class ArtistTopTracksSection extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 10.0),
-        ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+        Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          itemCount: topSongs.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 6.0),
-          itemBuilder: (context, index) {
-            final song = topSongs[index];
-            return ArtistTopTrackTile(
-              song: song,
-              allArtistSongs: allArtistSongs,
-            );
-          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (int i = 0; i < topSongs.length; i++) ...[
+                if (i > 0) const SizedBox(height: 6.0),
+                ArtistTopTrackTile(
+                  song: topSongs[i],
+                  allArtistSongs: allArtistSongs,
+                ),
+              ],
+            ],
+          ),
         ),
       ],
     );

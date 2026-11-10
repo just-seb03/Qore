@@ -329,6 +329,11 @@ class _LiquidFillPainter extends CustomPainter {
   final double wavePhase;
   final bool isPlaying;
 
+  static final Path _backWavePath = Path();
+  static final Path _frontWavePath = Path();
+  static final Paint _backWavePaint = Paint()..style = PaintingStyle.fill;
+  static final Paint _frontWavePaint = Paint()..style = PaintingStyle.fill;
+
   const _LiquidFillPainter({
     required this.progress,
     required this.wavePhase,
@@ -354,47 +359,43 @@ class _LiquidFillPainter extends CustomPainter {
     const double wavelength2 = 120.0;
 
     // 1. Back Wave (deeper, shifted phase, slower flow)
-    final Path backWavePath = Path();
-    backWavePath.moveTo(0, h);
-    backWavePath.lineTo(0, (baseWaterY + amp1 * math.sin(wavePhase * 0.8)).clamp(0.0, h));
+    _backWavePath.reset();
+    _backWavePath.moveTo(0, h);
+    _backWavePath.lineTo(0, (baseWaterY + amp1 * math.sin(wavePhase * 0.8)).clamp(0.0, h));
 
     for (double x = 0; x <= w; x += 3.0) {
       final double y = baseWaterY + amp1 * math.sin((x / wavelength1) * 2 * math.pi + wavePhase * 0.8);
-      backWavePath.lineTo(x, y.clamp(0.0, h));
+      _backWavePath.lineTo(x, y.clamp(0.0, h));
     }
-    backWavePath.lineTo(w, h);
-    backWavePath.close();
+    _backWavePath.lineTo(w, h);
+    _backWavePath.close();
 
-    final Paint backWavePaint = Paint()
-      ..color = AppColors.accent.withValues(alpha: 0.12)
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(backWavePath, backWavePaint);
+    _backWavePaint.color = AppColors.accent.withValues(alpha: 0.12);
+    canvas.drawPath(_backWavePath, _backWavePaint);
 
     // 2. Front Wave (crisper crest, faster flow, subtle luminous gradient)
-    final Path frontWavePath = Path();
-    frontWavePath.moveTo(0, h);
-    frontWavePath.lineTo(0, (baseWaterY + amp2 * math.sin(wavePhase + math.pi / 2)).clamp(0.0, h));
+    _frontWavePath.reset();
+    _frontWavePath.moveTo(0, h);
+    _frontWavePath.lineTo(0, (baseWaterY + amp2 * math.sin(wavePhase + math.pi / 2)).clamp(0.0, h));
 
     for (double x = 0; x <= w; x += 3.0) {
       final double y = baseWaterY + amp2 * math.sin((x / wavelength2) * 2 * math.pi + wavePhase + math.pi / 2);
-      frontWavePath.lineTo(x, y.clamp(0.0, h));
+      _frontWavePath.lineTo(x, y.clamp(0.0, h));
     }
-    frontWavePath.lineTo(w, h);
-    frontWavePath.close();
+    _frontWavePath.lineTo(w, h);
+    _frontWavePath.close();
 
     final Rect liquidRect = Rect.fromLTWH(0, math.max(0.0, baseWaterY - amp2), w, waterHeight + amp2);
-    final Paint frontWavePaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [
-          AppColors.accent.withValues(alpha: 0.28),
-          AppColors.accent.withValues(alpha: 0.10),
-        ],
-      ).createShader(liquidRect)
-      ..style = PaintingStyle.fill;
+    _frontWavePaint.shader = LinearGradient(
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+      colors: [
+        AppColors.accent.withValues(alpha: 0.28),
+        AppColors.accent.withValues(alpha: 0.10),
+      ],
+    ).createShader(liquidRect);
 
-    canvas.drawPath(frontWavePath, frontWavePaint);
+    canvas.drawPath(_frontWavePath, _frontWavePaint);
   }
 
   @override

@@ -7,6 +7,7 @@
 /// - AmbientParticlesController: Singleton state manager driving ambient particle physics.
 library;
 
+import 'dart:collection';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:project_anima/features/ambient_particles/models/ambient_particle.dart';
@@ -22,6 +23,8 @@ class AmbientParticlesController extends ChangeNotifier {
   final math.Random _random = math.Random();
 
   final List<AmbientParticle> _particles = [];
+  late final UnmodifiableListView<AmbientParticle> _particlesView =
+      UnmodifiableListView(_particles);
 
   bool _isEnabled = true;
   bool _isExpandedPlayerVisible = false;
@@ -50,8 +53,8 @@ class AmbientParticlesController extends ChangeNotifier {
   /// Monotonically increasing repaint counter for custom painter caching.
   int get repaintToken => _repaintToken;
 
-  /// Active list of simulated particles.
-  List<AmbientParticle> get particles => List.unmodifiable(_particles);
+  /// Active list of simulated particles (cached unmodifiable view).
+  List<AmbientParticle> get particles => _particlesView;
 
   /// Whether the simulation is actively advancing physics.
   bool get isSimulating => _isEnabled && !_isExpandedPlayerVisible && !_isAppPaused;

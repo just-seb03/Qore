@@ -61,12 +61,14 @@ class AppDatabase {
     return _db!;
   }
 
-  /// Enables foreign key constraints and WAL mode where supported.
+  /// Enables foreign key constraints, WAL mode, and memory-bounded PRAGMAs where supported.
   Future<void> _onConfigure(Database db) async {
     await db.execute('PRAGMA foreign_keys = ON');
     try {
       await db.execute('PRAGMA journal_mode = WAL');
       await db.execute('PRAGMA synchronous = NORMAL');
+      await db.execute('PRAGMA cache_size = -2000'); // Strict ~2MB page cache bound
+      await db.execute('PRAGMA temp_store = MEMORY');
     } catch (_) {
       // In-memory or specific platforms may ignore WAL
     }

@@ -56,19 +56,11 @@ class SearchSongsSection extends StatelessWidget {
           ),
           const SizedBox(height: 4.0),
         ],
-        ListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: EdgeInsets.zero,
-          itemCount: displaySongs.length,
-          itemBuilder: (context, index) {
-            final song = displaySongs[index];
-            return SearchSongTile(
-              song: song,
-              onTap: () => onSongTap?.call(song),
-            );
-          },
-        ),
+        for (final song in displaySongs)
+          SearchSongTile(
+            song: song,
+            onTap: () => onSongTap?.call(song),
+          ),
       ],
     );
   }

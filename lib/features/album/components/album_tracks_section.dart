@@ -62,20 +62,21 @@ class AlbumTracksSection extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 8.0),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14.0),
-            itemCount: songs.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 2.0),
-            itemBuilder: (context, index) {
-              final song = songs[index];
-              return AlbumTrackTile(
-                song: song,
-                trackIndex: index + 1,
-                allAlbumSongs: songs,
-              );
-            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int index = 0; index < songs.length; index++) ...[
+                  if (index > 0) const SizedBox(height: 2.0),
+                  AlbumTrackTile(
+                    song: songs[index],
+                    trackIndex: index + 1,
+                    allAlbumSongs: songs,
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       );
@@ -127,20 +128,21 @@ class AlbumTracksSection extends StatelessWidget {
               ],
             ),
           ),
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
+          Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14.0),
-            itemCount: songsByDisc[disc]!.length,
-            separatorBuilder: (_, _) => const SizedBox(height: 2.0),
-            itemBuilder: (context, index) {
-              final song = songsByDisc[disc]![index];
-              return AlbumTrackTile(
-                song: song,
-                trackIndex: index + 1,
-                allAlbumSongs: songs,
-              );
-            },
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int index = 0; index < songsByDisc[disc]!.length; index++) ...[
+                  if (index > 0) const SizedBox(height: 2.0),
+                  AlbumTrackTile(
+                    song: songsByDisc[disc]![index],
+                    trackIndex: index + 1,
+                    allAlbumSongs: songs,
+                  ),
+                ],
+              ],
+            ),
           ),
         ],
       ],
