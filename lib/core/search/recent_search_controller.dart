@@ -6,6 +6,7 @@
 /// - RecentSearchController: Singleton coordinator managing reactive recent searches.
 library;
 
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/dao/recent_search_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
@@ -41,8 +42,8 @@ class RecentSearchController extends ChangeNotifier {
   List<RecentSearchItem> _items = [];
   bool _isInitialized = false;
 
-  /// Current list of recent searches (up to 10 items, most recent first).
-  List<RecentSearchItem> get items => List.unmodifiable(_items);
+  /// Current list of recent searches (zero-copy unmodifiable view, up to 10 items).
+  List<RecentSearchItem> get items => UnmodifiableListView(_items);
 
   /// Whether the database has been read into memory.
   bool get isInitialized => _isInitialized;

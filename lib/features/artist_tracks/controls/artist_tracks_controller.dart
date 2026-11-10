@@ -7,6 +7,7 @@
 /// - ArtistTracksController: ChangeNotifier managing artist tracks catalog state.
 library;
 
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
@@ -40,8 +41,8 @@ class ArtistTracksController extends ChangeNotifier {
   /// Optional error message if track retrieval failed.
   String? get errorMessage => _errorMessage;
 
-  /// Complete list of tracks credited to this artist.
-  List<Song> get songs => List.unmodifiable(_songs);
+  /// Complete list of tracks credited to this artist (zero-copy unmodifiable view).
+  List<Song> get songs => UnmodifiableListView(_songs);
 
   /// Total count of songs in this tracklist.
   int get songCount => _songs.length;

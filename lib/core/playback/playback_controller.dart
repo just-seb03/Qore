@@ -8,6 +8,7 @@
 library;
 
 import 'dart:async';
+import 'dart:collection';
 import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
@@ -92,8 +93,8 @@ class PlaybackController extends ChangeNotifier {
   /// Database ID of the playlist currently playing, if any.
   int? get activePlaylistId => _activePlaylistId;
 
-  /// Current playback queue.
-  List<Song> get queue => List.unmodifiable(_queue);
+  /// Current playback queue (zero-copy unmodifiable view).
+  List<Song> get queue => UnmodifiableListView(_queue);
 
   /// Current 0-based index in the queue.
   int get currentIndex => _currentIndex;

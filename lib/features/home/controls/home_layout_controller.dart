@@ -7,6 +7,7 @@
 /// - HomeLayoutController: State controller managing item positions and drag-and-drop state.
 library;
 
+import 'dart:collection';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -34,8 +35,8 @@ class HomeLayoutController extends ChangeNotifier {
   HomeLayoutController({AppDatabase? dbProvider})
       : _db = dbProvider ?? AppDatabase.instance;
 
-  /// Ordered list of slots currently displayed on Home.
-  List<HomeSlotItem> get items => List.unmodifiable(_items);
+  /// Ordered list of slots currently displayed on Home (zero-copy unmodifiable view).
+  List<HomeSlotItem> get items => UnmodifiableListView(_items);
 
   /// Whether the user is currently in edit / rearrange mode.
   bool get isArranging => _isArranging;

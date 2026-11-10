@@ -9,6 +9,7 @@
 library;
 
 import 'dart:async';
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -49,8 +50,8 @@ class AudioPlaybackBuffer {
   /// Number of items currently buffered in the audio source.
   int get length => _source?.length ?? 0;
 
-  /// Unmodifiable view of currently buffered tracks.
-  List<Song> get bufferedSongs => List.unmodifiable(_bufferedSongs);
+  /// Unmodifiable zero-copy view of currently buffered tracks.
+  List<Song> get bufferedSongs => UnmodifiableListView(_bufferedSongs);
 
   /// Converts a [Song] domain model into an optimized [AudioSource].
   AudioSource _buildAudioSource(Song song) {

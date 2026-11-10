@@ -399,11 +399,15 @@ El paquete `material_symbols_icons` incluye fuentes muy extensas. Al compilar en
    - Eliminación de 100% de splits regex, lowercasing efímero y asignaciones de `List<String>` durante el tecleo en tiempo real.
    - Nueva consulta SQL `SongDao.getSearchDictionarySongs()` que proyecta solo las columnas de búsqueda y reproducción necesarias, sustituyendo la última llamada a `getAllSongs()` de la aplicación.
 
-6. **Parte 6 (Completado):**
+6. **Parte 6 (Completado - Commit `161e5ca`):**
    - Eliminación de GC churn por frame en la barra de progreso del reproductor `_WavyTrackPainter` (`player_progress_bar.dart`): reutilización de `_wavePath` y `Paint`s estáticos.
    - Reutilización de `_wavePath` y `Paint`s en `_StartupWavyPainter` y `_MiniWavyTrackPainter`.
    - Reutilización de `_bumpPath` y `_bumpPaint` en `_ExpressiveEdgeBumpPainter` (`settings_edge_bump.dart`).
    - Reutilización de `_starPath` y `_starPaint` en `_CelebrationStarPainter` (`startup_celebration_stars.dart`).
    - Reutilización estática de los 4 `Paint`s en `ArtistCropMaskOverlay`.
    - Downsampling 1:1 DPR con `cacheWidth` en la portada de previsualización de temas (`startup_theme_selector_view.dart`).
+
+7. **Parte 7 (Completado):**
+   - Eliminación de copias redundantes de arrays en getters mediante `UnmodifiableListView` de `dart:collection` (vistas zero-copy sin asignaciones en heap) en `AudioPlaybackBuffer.bufferedSongs`, `PlaybackController.queue`, `RecentSearchController.items`, `ArtistDiscographyController.albums`, `ArtistTracksController.songs` y `HomeLayoutController.items`.
+   - Memoización acotada (bounded cache de 1024 entradas) en `ArtistSplitter.split(...)`, eliminando la reejecución de expresiones regulares y la creación de miles de listas de artistas repetidas a través de la biblioteca de canciones.
 

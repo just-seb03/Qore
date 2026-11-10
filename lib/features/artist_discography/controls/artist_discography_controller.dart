@@ -7,6 +7,7 @@
 /// - ArtistDiscographyController: ChangeNotifier coordinator managing artist discography state.
 library;
 
+import 'dart:collection';
 import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
@@ -40,8 +41,8 @@ class ArtistDiscographyController extends ChangeNotifier {
   /// Optional error message if album retrieval failed.
   String? get errorMessage => _errorMessage;
 
-  /// List of distinct albums released by this artist.
-  List<AlbumDiscoveryItem> get albums => List.unmodifiable(_albums);
+  /// List of distinct albums released by this artist (zero-copy unmodifiable view).
+  List<AlbumDiscoveryItem> get albums => UnmodifiableListView(_albums);
 
   /// Total number of distinct albums in this discography.
   int get albumCount => _albums.length;

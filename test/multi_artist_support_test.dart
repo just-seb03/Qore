@@ -109,6 +109,26 @@ void main() {
         equals('<Desconocido>'),
       );
     });
+
+    test('memoizes split results and returns identical instance without re-parsing', () {
+      ArtistSplitter.clearCache();
+      final first = ArtistSplitter.split('Virtual Riot, Eliminate');
+      final second = ArtistSplitter.split('Virtual Riot, Eliminate');
+      expect(identical(first, second), isTrue);
+
+      // Verify unmodifiable safety
+      expect(() => first.add('Skrillex'), throwsUnsupportedError);
+    });
+
+    test('bounded cache clears when reaching max size to prevent unbounded memory growth', () {
+      ArtistSplitter.clearCache();
+      for (int i = 0; i < 1030; i++) {
+        ArtistSplitter.split('Artist_$i, Feature_$i');
+      }
+      // New entries work seamlessly and safely
+      final result = ArtistSplitter.split('New Artist, Extra');
+      expect(result, equals(['New Artist', 'Extra']));
+    });
   });
 
   group('Song Model Multi-Artist Getters Tests', () {

@@ -8,6 +8,8 @@
 /// - ArtistSplitter: Utility class containing deterministic artist splitting logic.
 library;
 
+import 'package:flutter/foundation.dart';
+
 /// High-speed, deterministic artist separation utility.
 class ArtistSplitter {
   ArtistSplitter._();
@@ -21,6 +23,15 @@ class ArtistSplitter {
   static const Set<String> _protectedArtists = {
     'ac/dc',
   };
+
+  /// Bounded cache of memoized artist split results to avoid re-running regexes
+  /// and re-allocating identical List<String> objects across thousands of song models.
+  static final Map<String, List<String>> _splitCache = {};
+  static const int _kMaxCacheSize = 1024;
+
+  /// Clears the memoized cache (primarily for tests).
+  @visibleForTesting
+  static void clearCache() => _splitCache.clear();
 
   /// Splits a raw artist string into individual, trimmed, deduplicated artist names.
   ///
@@ -40,9 +51,17 @@ class ArtistSplitter {
       return const [];
     }
 
+    final cached = _splitCache[trimmed];
+    if (cached != null) return cached;
+
     // Preserve protected artists containing slashes
     if (_protectedArtists.contains(trimmed.toLowerCase())) {
-      return [trimmed];
+      final protectedResult = List<String>.unmodifiable([trimmed]);
+      if (_splitCache.length >= _kMaxCacheSize) {
+        _splitCache.clear();
+      }
+      _splitCache[trimmed] = protectedResult;
+      return protectedResult;
     }
 
     final tokens = trimmed.split(_delimiterRegex);
@@ -65,10 +84,16 @@ class ArtistSplitter {
       }
     }
 
-    if (result.isEmpty && trimmed.isNotEmpty && trimmed != '<Desconocido>') {
-      return [trimmed];
+    final finalResult =
+        result.isEmpty && trimmed.isNotEmpty && trimmed != '<Desconocido>'
+            ? List<String>.unmodifiable([trimmed])
+            : List<String>.unmodifiable(result);
+
+    if (_splitCache.length >= _kMaxCacheSize) {
+      _splitCache.clear();
     }
-    return result;
+    _splitCache[trimmed] = finalResult;
+    return finalResult;
   }
 
   /// Extracts the primary/lead artist name from a raw artist string.
