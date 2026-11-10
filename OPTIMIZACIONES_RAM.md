@@ -394,8 +394,16 @@ El paquete `material_symbols_icons` incluye fuentes muy extensas. Al compilar en
    - Eliminación de llamada innecesaria a `getAllSongs()` en `MusicIndexer` cuando `deltaCount == 0`.
    - Eliminación de `shrinkWrap: true` restantes en Home (`HomePinnedSection`, `HomeSlotGrid`) y Playlist Edit (`availablePlaylistFonts`, `availablePlaylistEffects`).
 
-5. **Parte 5 (Completado):**
+5. **Parte 5 (Completado - Commit `68f6e75`):**
    - Pre-normalización del diccionario de búsqueda en `FuzzySearchEngine` (`_NormalizedTarget`, `_NormalizedQuery`, `_SearchSongEntry`).
    - Eliminación de 100% de splits regex, lowercasing efímero y asignaciones de `List<String>` durante el tecleo en tiempo real.
    - Nueva consulta SQL `SongDao.getSearchDictionarySongs()` que proyecta solo las columnas de búsqueda y reproducción necesarias, sustituyendo la última llamada a `getAllSongs()` de la aplicación.
+
+6. **Parte 6 (Completado):**
+   - Eliminación de GC churn por frame en la barra de progreso del reproductor `_WavyTrackPainter` (`player_progress_bar.dart`): reutilización de `_wavePath` y `Paint`s estáticos.
+   - Reutilización de `_wavePath` y `Paint`s en `_StartupWavyPainter` y `_MiniWavyTrackPainter`.
+   - Reutilización de `_bumpPath` y `_bumpPaint` en `_ExpressiveEdgeBumpPainter` (`settings_edge_bump.dart`).
+   - Reutilización de `_starPath` y `_starPaint` en `_CelebrationStarPainter` (`startup_celebration_stars.dart`).
+   - Reutilización estática de los 4 `Paint`s en `ArtistCropMaskOverlay`.
+   - Downsampling 1:1 DPR con `cacheWidth` en la portada de previsualización de temas (`startup_theme_selector_view.dart`).
 

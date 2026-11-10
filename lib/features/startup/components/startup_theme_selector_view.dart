@@ -349,6 +349,8 @@ class StartupPlayerPreview extends StatelessWidget {
             child: Image.asset(
               'lib/core/img/cover.jpg',
               fit: BoxFit.cover,
+              cacheWidth: (cardWidth * (MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5)).round().clamp(240, 600),
+              filterQuality: FilterQuality.medium,
               errorBuilder: (context, error, stackTrace) => Container(
                 color: AppColors.surfaceContainerHigh,
                 child: Center(
@@ -579,6 +581,18 @@ class _MiniWavyTrackPainter extends CustomPainter {
   static const double wavelength = 16.0;
   static const double waveAmplitude = 2.4;
 
+  static final Path _wavePath = Path();
+  static final Paint _inactivePaint = Paint()
+    ..strokeWidth = trackHeight
+    ..strokeCap = StrokeCap.round
+    ..style = PaintingStyle.stroke;
+  static final Paint _activePaint = Paint()
+    ..strokeWidth = trackHeight
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..style = PaintingStyle.stroke;
+  static final Paint _thumbPaint = Paint()..style = PaintingStyle.fill;
+
   const _MiniWavyTrackPainter({
     required this.progress,
     required this.phase,
@@ -593,30 +607,20 @@ class _MiniWavyTrackPainter extends CustomPainter {
 
     // 1. Inactive straight track
     if (thumbX < trackWidth) {
-      final inactivePaint = Paint()
-        ..color = AppColors.surfaceContainerHighest
-        ..strokeWidth = trackHeight
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
-
+      _inactivePaint.color = AppColors.surfaceContainerHighest;
       canvas.drawLine(
         Offset(thumbX, cy),
         Offset(trackWidth, cy),
-        inactivePaint,
+        _inactivePaint,
       );
     }
 
     // 2. Active sinusoidal wavy track
     if (thumbX > 0) {
-      final activePaint = Paint()
-        ..color = AppColors.accent
-        ..strokeWidth = trackHeight
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke;
+      _activePaint.color = AppColors.accent;
 
-      final Path wavePath = Path();
-      wavePath.moveTo(0, cy);
+      _wavePath.reset();
+      _wavePath.moveTo(0, cy);
 
       const double step = 1.0;
       final double activeLength = thumbX;
@@ -635,19 +639,16 @@ class _MiniWavyTrackPainter extends CustomPainter {
                 taper *
                 math.sin((x / wavelength) * 2 * math.pi - phase);
 
-        wavePath.lineTo(x, y);
+        _wavePath.lineTo(x, y);
       }
 
-      wavePath.lineTo(thumbX, cy);
-      canvas.drawPath(wavePath, activePaint);
+      _wavePath.lineTo(thumbX, cy);
+      canvas.drawPath(_wavePath, _activePaint);
     }
 
     // 3. Thumb circle
-    final thumbPaint = Paint()
-      ..color = AppColors.accent
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(Offset(thumbX, cy), thumbRadius, thumbPaint);
+    _thumbPaint.color = AppColors.accent;
+    canvas.drawCircle(Offset(thumbX, cy), thumbRadius, _thumbPaint);
   }
 
   @override

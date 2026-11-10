@@ -202,6 +202,21 @@ class _WavyTrackPainter extends CustomPainter {
   static const double wavelength = 24.0;
   static const double waveAmplitude = 3.5;
 
+  static final Path _wavePath = Path();
+  static final Paint _inactivePaint = Paint()
+    ..strokeWidth = trackHeight
+    ..strokeCap = StrokeCap.round
+    ..style = PaintingStyle.stroke;
+  static final Paint _activePaint = Paint()
+    ..strokeWidth = trackHeight
+    ..strokeCap = StrokeCap.round
+    ..strokeJoin = StrokeJoin.round
+    ..style = PaintingStyle.stroke;
+  static final Paint _thumbShadowPaint = Paint()
+    ..color = Colors.black.withValues(alpha: 0.4)
+    ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+  static final Paint _thumbPaint = Paint()..style = PaintingStyle.fill;
+
   const _WavyTrackPainter({
     required this.progress,
     required this.phase,
@@ -216,30 +231,20 @@ class _WavyTrackPainter extends CustomPainter {
 
     // 1. Inactive straight track (from thumb to end)
     if (thumbX < trackWidth) {
-      final inactivePaint = Paint()
-        ..color = AppColors.surfaceContainerHighest
-        ..strokeWidth = trackHeight
-        ..strokeCap = StrokeCap.round
-        ..style = PaintingStyle.stroke;
-
+      _inactivePaint.color = AppColors.surfaceContainerHighest;
       canvas.drawLine(
         Offset(thumbX, cy),
         Offset(trackWidth, cy),
-        inactivePaint,
+        _inactivePaint,
       );
     }
 
     // 2. Active sinusoidal wavy track (from 0 to thumb)
     if (thumbX > 0) {
-      final activePaint = Paint()
-        ..color = AppColors.accent
-        ..strokeWidth = trackHeight
-        ..strokeCap = StrokeCap.round
-        ..strokeJoin = StrokeJoin.round
-        ..style = PaintingStyle.stroke;
+      _activePaint.color = AppColors.accent;
 
-      final Path wavePath = Path();
-      wavePath.moveTo(0, cy);
+      _wavePath.reset();
+      _wavePath.moveTo(0, cy);
 
       const double step = 1.0;
       final double activeLength = thumbX;
@@ -259,27 +264,20 @@ class _WavyTrackPainter extends CustomPainter {
                 taper *
                 math.sin((x / wavelength) * 2 * math.pi - phase);
 
-        wavePath.lineTo(x, y);
+        _wavePath.lineTo(x, y);
       }
 
       // Ensure path anchors firmly at thumbX
-      wavePath.lineTo(thumbX, cy);
+      _wavePath.lineTo(thumbX, cy);
 
-      canvas.drawPath(wavePath, activePaint);
+      canvas.drawPath(_wavePath, _activePaint);
     }
 
     // 3. Circular Scrubber Thumb
-    final thumbShadowPaint = Paint()
-      ..color = Colors.black.withValues(alpha: 0.4)
-      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
+    canvas.drawCircle(Offset(thumbX, cy + 1.0), thumbRadius, _thumbShadowPaint);
 
-    canvas.drawCircle(Offset(thumbX, cy + 1.0), thumbRadius, thumbShadowPaint);
-
-    final thumbPaint = Paint()
-      ..color = AppColors.accent
-      ..style = PaintingStyle.fill;
-
-    canvas.drawCircle(Offset(thumbX, cy), thumbRadius, thumbPaint);
+    _thumbPaint.color = AppColors.accent;
+    canvas.drawCircle(Offset(thumbX, cy), thumbRadius, _thumbPaint);
   }
 
   @override

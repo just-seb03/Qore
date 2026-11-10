@@ -155,6 +155,11 @@ class _CelebrationStarPainter extends CustomPainter {
   final List<_CelebrationStar> stars;
   final double progress;
 
+  static final Path _starPath = Path();
+  static final Paint _starPaint = Paint()
+    ..style = PaintingStyle.fill
+    ..isAntiAlias = true;
+
   _CelebrationStarPainter({
     required this.stars,
     required this.progress,
@@ -201,35 +206,32 @@ class _CelebrationStarPainter extends CustomPainter {
       canvas.rotate(star.rotation * curve);
       canvas.scale(scale);
 
-      final paint = Paint()
-        ..color = star.color.withValues(alpha: opacity * star.color.a)
-        ..style = PaintingStyle.fill
-        ..isAntiAlias = true;
+      _starPaint.color = star.color.withValues(alpha: opacity * star.color.a);
 
       // Draw 4-pointed sparkle star diamond
-      final path = _createStarPath(star.size);
-      canvas.drawPath(path, paint);
+      final path = _populateStarPath(star.size);
+      canvas.drawPath(path, _starPaint);
 
       canvas.restore();
     }
   }
 
-  Path _createStarPath(double size) {
-    final path = Path();
+  static Path _populateStarPath(double size) {
+    _starPath.reset();
     final double half = size / 2;
     final double inner = size / 6;
 
-    path.moveTo(0, -half);
-    path.quadraticBezierTo(0, -inner, inner, 0);
-    path.quadraticBezierTo(inner, 0, half, 0);
-    path.quadraticBezierTo(inner, 0, 0, inner);
-    path.quadraticBezierTo(0, inner, 0, half);
-    path.quadraticBezierTo(0, inner, -inner, 0);
-    path.quadraticBezierTo(-inner, 0, -half, 0);
-    path.quadraticBezierTo(-inner, 0, 0, -inner);
-    path.quadraticBezierTo(0, -inner, 0, -half);
-    path.close();
-    return path;
+    _starPath.moveTo(0, -half);
+    _starPath.quadraticBezierTo(0, -inner, inner, 0);
+    _starPath.quadraticBezierTo(inner, 0, half, 0);
+    _starPath.quadraticBezierTo(inner, 0, 0, inner);
+    _starPath.quadraticBezierTo(0, inner, 0, half);
+    _starPath.quadraticBezierTo(0, inner, -inner, 0);
+    _starPath.quadraticBezierTo(-inner, 0, -half, 0);
+    _starPath.quadraticBezierTo(-inner, 0, 0, -inner);
+    _starPath.quadraticBezierTo(0, -inner, 0, -half);
+    _starPath.close();
+    return _starPath;
   }
 
   @override

@@ -82,6 +82,11 @@ class _ExpressiveEdgeBumpPainter extends CustomPainter {
   final double halfHeight;
   final Color accentColor;
 
+  static final Path _bumpPath = Path();
+  static final Paint _bumpPaint = Paint()
+    ..style = PaintingStyle.fill
+    ..isAntiAlias = true;
+
   _ExpressiveEdgeBumpPainter({
     required this.progress,
     required this.currentY,
@@ -94,16 +99,13 @@ class _ExpressiveEdgeBumpPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (width <= 1.0) return;
 
-    final paint = Paint()
-      ..color = accentColor
-      ..style = PaintingStyle.fill
-      ..isAntiAlias = true;
+    _bumpPaint.color = accentColor;
 
-    final path = Path();
-    path.moveTo(0, currentY - halfHeight);
+    _bumpPath.reset();
+    _bumpPath.moveTo(0, currentY - halfHeight);
 
     // Expressive cubic curve to peak
-    path.cubicTo(
+    _bumpPath.cubicTo(
       width * 0.15,
       currentY - (halfHeight * 0.65),
       width * 0.82,
@@ -113,7 +115,7 @@ class _ExpressiveEdgeBumpPainter extends CustomPainter {
     );
 
     // Expressive cubic curve from peak to bottom
-    path.cubicTo(
+    _bumpPath.cubicTo(
       width * 0.82,
       currentY + (halfHeight * 0.35),
       width * 0.15,
@@ -122,17 +124,17 @@ class _ExpressiveEdgeBumpPainter extends CustomPainter {
       currentY + halfHeight,
     );
 
-    path.close();
+    _bumpPath.close();
 
     // Subtle ambient glow
     canvas.drawShadow(
-      path,
+      _bumpPath,
       accentColor.withValues(alpha: 0.35),
       6.0,
       false,
     );
 
-    canvas.drawPath(path, paint);
+    canvas.drawPath(_bumpPath, _bumpPaint);
   }
 
   @override
