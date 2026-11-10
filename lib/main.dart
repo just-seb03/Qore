@@ -33,9 +33,10 @@ Future<void> main() async {
     DeviceOrientation.portraitDown,
   ]);
 
-  // Configure high-performance RAM ImageCache for HD album artwork (250MB buffer)
-  PaintingBinding.instance.imageCache.maximumSizeBytes = 250 * 1024 * 1024;
-  PaintingBinding.instance.imageCache.maximumSize = 600;
+  // Configure balanced, low-footprint RAM ImageCache (45MB buffer, 100 images)
+  // Prevents aggressive OS Low Memory Killer (LMK) while preserving instant 60/120 FPS scrolling
+  PaintingBinding.instance.imageCache.maximumSizeBytes = 45 * 1024 * 1024;
+  PaintingBinding.instance.imageCache.maximumSize = 100;
 
   ArtworkService.instance.initialize();
   LocalizationController.instance.init();
@@ -145,11 +146,21 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
         state == AppLifecycleState.detached) {
       PlaybackController.instance.saveCurrentSessionImmediate();
       AmbientParticlesController.instance.setAppPaused(true);
+      // Evict non-visible rasterized GPU textures from RAM when app is backgrounded
+      PaintingBinding.instance.imageCache.clearLiveImages();
     }
     if (state == AppLifecycleState.detached) {
       // User closed the application completely: stop playback and close notification
       PlaybackController.instance.stopAndClose();
     }
+  }
+
+  @override
+  void didHaveMemoryPressure() {
+    super.didHaveMemoryPressure();
+    // Proactively purge unpinned raster textures under OS memory pressure
+    PaintingBinding.instance.imageCache.clear();
+    PaintingBinding.instance.imageCache.clearLiveImages();
   }
 
   @override

@@ -91,11 +91,9 @@ class AnimaArtworkImage extends StatelessWidget {
           thumbPath ??= ArtworkService.instance.getThumbnailForAlbum(albumName!, artistName!);
         }
 
-        // Prioritize full high-resolution cover when not in thumbnail mode
-        // or whenever widget dimensions exceed compact list tiles (> 64dp).
+        // Prioritize full high-resolution cover when not in thumbnail mode.
         final bool hasFiniteWidth = width != null && width!.isFinite;
-        final bool preferCover =
-            !isThumbnail || (hasFiniteWidth ? (width! > 64.0) : true);
+        final bool preferCover = !isThumbnail;
         final String? path = preferCover
             ? (coverPath ?? thumbPath)
             : (thumbPath ?? coverPath);
@@ -106,14 +104,22 @@ class AnimaArtworkImage extends StatelessWidget {
           final int cacheSize;
           if (preferCover) {
             if (hasFiniteWidth) {
-              cacheSize = (width! * dpr).round().clamp(512, 1600);
+              if (width! <= 300.0) {
+                // Medium cards, 2-column album cards, discovery banners (140-240 dp)
+                cacheSize = (width! * dpr).round().clamp(360, 640);
+              } else {
+                // Maximized player screen or full-width hero views (360-440 dp)
+                cacheSize = (width! * dpr).round().clamp(720, 1200);
+              }
             } else {
+              // double.infinity in 2-column grids (e.g. LibraryAlbumCard)
               final screenWidth = MediaQuery.maybeSizeOf(context)?.width ?? 400.0;
-              cacheSize = (screenWidth * dpr).round().clamp(800, 1600);
+              cacheSize = (screenWidth * 0.5 * dpr).round().clamp(360, 640);
             }
           } else {
-            final double baseWidth = hasFiniteWidth ? width! : 60.0;
-            cacheSize = (baseWidth * dpr).round().clamp(160, 480);
+            // Compact track tiles, search results, mini-player (48-64 dp)
+            final double baseWidth = hasFiniteWidth ? width! : 48.0;
+            cacheSize = (baseWidth * dpr).round().clamp(120, 240);
           }
 
           final imageWidget = Image.file(
@@ -121,7 +127,7 @@ class AnimaArtworkImage extends StatelessWidget {
             width: width,
             height: height,
             fit: fit,
-            filterQuality: FilterQuality.high,
+            filterQuality: FilterQuality.medium,
             cacheWidth: cacheSize,
             cacheHeight: cacheSize,
             errorBuilder: (ctx, err, stack) => _buildFallback(context),

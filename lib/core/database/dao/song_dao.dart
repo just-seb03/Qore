@@ -69,6 +69,29 @@ class SongDao {
     return 0;
   }
 
+  /// Retrieves a deterministic, daily randomized selection of songs directly via SQL.
+  /// Eliminates the need to load the full table into memory, saving significant RAM.
+  Future<List<Song>> getRandomDailySelection({
+    required int seed,
+    int limit = 20,
+  }) async {
+    final db = await _appDatabase.database;
+    final count = await getSongCount();
+    if (count == 0) return [];
+    if (count <= limit) {
+      return getAllSongs();
+    }
+
+    // Deterministic pseudo-random sorting via SQLite arithmetic
+    final results = await db.rawQuery('''
+      SELECT * FROM songs
+      ORDER BY ((id * ? + 1013904223) & 0x7FFFFFFF)
+      LIMIT ?
+    ''', [seed, limit]);
+
+    return results.map((row) => Song.fromMap(row)).toList();
+  }
+
   /// Retrieves a single song by its MediaStore ID.
   Future<Song?> getSongByMediaStoreId(int mediaStoreId) async {
     final db = await _appDatabase.database;

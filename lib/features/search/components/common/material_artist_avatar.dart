@@ -59,10 +59,18 @@ class MaterialArtistAvatar extends StatelessWidget {
             ArtworkService.instance.getCustomArtistAvatar(artistName);
 
         if (customPath != null && File(customPath).existsSync()) {
+          final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
+          final int pixelSize = (radius * 2 * dpr).round().clamp(64, 400);
+
           return CircleAvatar(
             radius: radius,
             backgroundColor: effectiveBg,
-            backgroundImage: FileImage(File(customPath)),
+            backgroundImage: ResizeImage(
+              FileImage(File(customPath)),
+              width: pixelSize,
+              height: pixelSize,
+              policy: ResizeImagePolicy.fit,
+            ),
           );
         }
 

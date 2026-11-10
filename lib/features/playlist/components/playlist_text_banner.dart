@@ -91,7 +91,7 @@ class PlaylistTextBanner extends StatelessWidget {
           fit: StackFit.expand,
           children: [
             // 1. Cover Artwork or Stylized Fallback
-            _buildBackground(),
+            _buildBackground(context),
 
             // 2. Interactive or Static Positioned Text Overlay
             _buildTextOverlay(context),
@@ -137,14 +137,21 @@ class PlaylistTextBanner extends StatelessWidget {
     );
   }
 
-  Widget _buildBackground() {
+  Widget _buildBackground(BuildContext context) {
     if (coverPath != null && File(coverPath!).existsSync()) {
+      final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
+      final screenW = MediaQuery.maybeSizeOf(context)?.width ?? 400.0;
+      final cacheW = (screenW * dpr).round().clamp(400, 1000);
+      final cacheH = (cacheW * 0.5).round();
+
       return Image.file(
         File(coverPath!),
         fit: BoxFit.cover,
         width: double.infinity,
         height: double.infinity,
-        filterQuality: FilterQuality.high,
+        cacheWidth: cacheW,
+        cacheHeight: cacheH,
+        filterQuality: FilterQuality.medium,
       );
     }
 

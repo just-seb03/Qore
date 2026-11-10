@@ -22,21 +22,22 @@ class AudioPlaybackBuffer {
   AudioPlaybackBuffer({required AudioPlayer player}) : _player = player;
 
   /// Creates a custom-tuned AudioPlayer with ultra-low buffer start thresholds
-  /// (200ms vs default 2500ms) and lookahead forward buffers for instant playback and 0ms gapless transitions.
+  /// (150ms vs default 2500ms) and lightweight forward buffers optimized for local audio,
+  /// guaranteeing instant playback and 0ms gapless transitions with minimal native RAM.
   static AudioPlayer createOptimizedPlayer() {
     return AudioPlayer(
       audioLoadConfiguration: const AudioLoadConfiguration(
         androidLoadControl: AndroidLoadControl(
-          minBufferDuration: Duration(seconds: 20),
-          maxBufferDuration: Duration(seconds: 50),
-          bufferForPlaybackDuration: Duration(milliseconds: 200),
-          bufferForPlaybackAfterRebufferDuration: Duration(milliseconds: 500),
+          minBufferDuration: Duration(seconds: 4),
+          maxBufferDuration: Duration(seconds: 12),
+          bufferForPlaybackDuration: Duration(milliseconds: 150),
+          bufferForPlaybackAfterRebufferDuration: Duration(milliseconds: 300),
           prioritizeTimeOverSizeThresholds: true,
-          backBufferDuration: Duration(seconds: 5),
+          backBufferDuration: Duration(seconds: 3),
         ),
         darwinLoadControl: DarwinLoadControl(
           automaticallyWaitsToMinimizeStalling: false,
-          preferredForwardBufferDuration: Duration(seconds: 20),
+          preferredForwardBufferDuration: Duration(seconds: 12),
         ),
       ),
     );

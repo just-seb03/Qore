@@ -40,28 +40,11 @@ class TodaySelectionService extends ChangeNotifier {
 
     try {
       final dao = songDao ?? SongDao();
-      final allSongs = await dao.getAllSongs();
-
-      if (allSongs.isEmpty) {
-        _cachedTodaySongs = [];
-        _lastFetchDate = now;
-        return [];
-      }
-
-      if (allSongs.length <= 20) {
-        _cachedTodaySongs = List.of(allSongs);
-        _lastFetchDate = now;
-        return _cachedTodaySongs!;
-      }
-
       // Deterministic daily seed based on YYYYMMDD
       final seed = now.year * 10000 + now.month * 100 + now.day;
-      final rng = Random(seed);
+      final selectedSongs = await dao.getRandomDailySelection(seed: seed, limit: 20);
 
-      final shuffled = List<Song>.of(allSongs);
-      shuffled.shuffle(rng);
-
-      _cachedTodaySongs = shuffled.take(20).toList();
+      _cachedTodaySongs = selectedSongs;
       _lastFetchDate = now;
       notifyListeners();
       return _cachedTodaySongs!;
