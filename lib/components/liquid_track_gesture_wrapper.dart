@@ -35,18 +35,17 @@ class LiquidTrackGestureWrapper extends StatefulWidget {
 
 class _LiquidTrackGestureWrapperState extends State<LiquidTrackGestureWrapper>
     with TickerProviderStateMixin {
-  late final AnimationController _fillController;
-  late final AnimationController _waveController;
-  late final AnimationController _flashController;
+  AnimationController? _fillController;
+  AnimationController? _waveController;
+  AnimationController? _flashController;
 
   bool _isHolding = false;
   bool _completed = false;
   bool _wasFavorited = false;
   DateTime? _pointerDownTime;
 
-  @override
-  void initState() {
-    super.initState();
+  void _ensureControllers() {
+    if (_fillController != null) return;
 
     _waveController = AnimationController(
       vsync: this,
@@ -56,33 +55,35 @@ class _LiquidTrackGestureWrapperState extends State<LiquidTrackGestureWrapper>
     _fillController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1000),
-    );
+    )..addListener(_handleFillTick);
 
     _flashController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 400),
     );
 
-    _fillController.addListener(_handleFillTick);
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   void _handleFillTick() {
-    if (!_isHolding || _completed) return;
+    if (!_isHolding || _completed || _fillController == null) return;
 
     final targetReached = _wasFavorited
-        ? _fillController.value <= 0.001
-        : _fillController.value >= 0.999;
+        ? _fillController!.value <= 0.001
+        : _fillController!.value >= 0.999;
 
     if (targetReached) {
       _completed = true;
       _isHolding = false;
-      _waveController.stop();
+      _waveController?.stop();
 
       HapticFeedback.mediumImpact();
-      _flashController.forward(from: 0.0).then((_) {
+      _flashController?.forward(from: 0.0).then((_) {
         if (mounted) {
-          _flashController.reset();
-          _fillController.value = 0.0;
+          _flashController?.reset();
+          _fillController?.value = 0.0;
         }
       });
 
@@ -91,26 +92,27 @@ class _LiquidTrackGestureWrapperState extends State<LiquidTrackGestureWrapper>
   }
 
   void _onPointerDown(PointerDownEvent event) {
+    _ensureControllers();
     _pointerDownTime = DateTime.now();
     _completed = false;
     _isHolding = true;
 
     _wasFavorited = FavoriteSongsDao.instance.isFavorite(widget.song.mediaStoreId);
 
-    _waveController.repeat();
+    _waveController?.repeat();
 
     if (_wasFavorited) {
       // Draining animation from 1.0 to 0.0
-      _fillController.value = 1.0;
-      _fillController.animateTo(
+      _fillController?.value = 1.0;
+      _fillController?.animateTo(
         0.0,
         duration: const Duration(milliseconds: 1000),
         curve: Curves.easeInOutCubic,
       );
     } else {
       // Filling animation from 0.0 to 1.0
-      _fillController.value = 0.0;
-      _fillController.animateTo(
+      _fillController?.value = 0.0;
+      _fillController?.animateTo(
         1.0,
         duration: const Duration(milliseconds: 1000),
         curve: Curves.easeInOutCubic,
@@ -121,7 +123,7 @@ class _LiquidTrackGestureWrapperState extends State<LiquidTrackGestureWrapper>
   void _onPointerUp(PointerUpEvent event) {
     if (_completed) return;
     _isHolding = false;
-    _waveController.stop();
+    _waveController?.stop();
 
     final downTime = _pointerDownTime;
     final elapsedMs = downTime != null
@@ -130,18 +132,18 @@ class _LiquidTrackGestureWrapperState extends State<LiquidTrackGestureWrapper>
 
     if (elapsedMs < 240) {
       // Quick tap -> Regular play trigger
-      _fillController.value = 0.0;
+      _fillController?.value = 0.0;
       widget.onTap?.call();
     } else {
       // Smoothly drain/restore to resting state
       final restTarget = _wasFavorited ? 1.0 : 0.0;
-      _fillController.animateTo(
+      _fillController?.animateTo(
         restTarget,
         duration: const Duration(milliseconds: 250),
         curve: Curves.easeOutCubic,
       ).then((_) {
         if (mounted && _wasFavorited) {
-          _fillController.value = 0.0;
+          _fillController?.value = 0.0;
         }
       });
     }
@@ -150,59 +152,66 @@ class _LiquidTrackGestureWrapperState extends State<LiquidTrackGestureWrapper>
   void _onPointerCancel(PointerCancelEvent event) {
     if (_completed) return;
     _isHolding = false;
-    _waveController.stop();
+    _waveController?.stop();
 
     final restTarget = _wasFavorited ? 1.0 : 0.0;
-    _fillController.animateTo(
+    _fillController?.animateTo(
       restTarget,
       duration: const Duration(milliseconds: 250),
       curve: Curves.easeOutCubic,
     ).then((_) {
       if (mounted && _wasFavorited) {
-        _fillController.value = 0.0;
+        _fillController?.value = 0.0;
       }
     });
   }
 
   @override
   void dispose() {
-    _fillController.removeListener(_handleFillTick);
-    _fillController.dispose();
-    _waveController.dispose();
-    _flashController.dispose();
+    _fillController?.removeListener(_handleFillTick);
+    _fillController?.dispose();
+    _waveController?.dispose();
+    _flashController?.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final Widget childContent;
+    if (_fillController != null && _waveController != null && _flashController != null) {
+      childContent = Stack(
+        children: [
+          // Liquid Horizontal Waves Layer
+          Positioned.fill(
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_fillController!, _waveController!, _flashController!]),
+              builder: (context, _) {
+                return CustomPaint(
+                  painter: _HorizontalLiquidFillPainter(
+                    progress: _fillController!.value,
+                    wavePhase: _waveController!.value * 2 * math.pi,
+                    flashOpacity: (1.0 - _flashController!.value) * _flashController!.value * 4.0,
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Content widget
+          widget.child,
+        ],
+      );
+    } else {
+      childContent = widget.child;
+    }
+
     return Listener(
       onPointerDown: _onPointerDown,
       onPointerUp: _onPointerUp,
       onPointerCancel: _onPointerCancel,
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10.0),
-        child: Stack(
-          children: [
-            // Liquid Horizontal Waves Layer
-            Positioned.fill(
-              child: AnimatedBuilder(
-                animation: Listenable.merge([_fillController, _waveController, _flashController]),
-                builder: (context, _) {
-                  return CustomPaint(
-                    painter: _HorizontalLiquidFillPainter(
-                      progress: _fillController.value,
-                      wavePhase: _waveController.value * 2 * math.pi,
-                      flashOpacity: (1.0 - _flashController.value) * _flashController.value * 4.0,
-                    ),
-                  );
-                },
-              ),
-            ),
-
-            // Content widget
-            widget.child,
-          ],
-        ),
+        child: childContent,
       ),
     );
   }
@@ -213,6 +222,12 @@ class _HorizontalLiquidFillPainter extends CustomPainter {
   final double progress;
   final double wavePhase;
   final double flashOpacity;
+
+  static final Path _backWave = Path();
+  static final Path _frontWave = Path();
+  static final Paint _backPaint = Paint()..style = PaintingStyle.fill;
+  static final Paint _frontPaint = Paint()..style = PaintingStyle.fill;
+  static final Paint _flashPaint = Paint()..style = PaintingStyle.fill;
 
   const _HorizontalLiquidFillPainter({
     required this.progress,
@@ -227,10 +242,8 @@ class _HorizontalLiquidFillPainter extends CustomPainter {
 
     // 1. Subtle flash pulse when completed
     if (flashOpacity > 0.01) {
-      final Paint flashPaint = Paint()
-        ..color = const Color(0xFFE50914).withValues(alpha: (0.28 * flashOpacity).clamp(0.0, 0.40))
-        ..style = PaintingStyle.fill;
-      canvas.drawRect(Rect.fromLTWH(0, 0, w, h), flashPaint);
+      _flashPaint.color = const Color(0xFFE50914).withValues(alpha: (0.28 * flashOpacity).clamp(0.0, 0.40));
+      canvas.drawRect(Rect.fromLTWH(0, 0, w, h), _flashPaint);
     }
 
     if (w <= 0 || h <= 0 || progress <= 0.001) return;
@@ -245,47 +258,43 @@ class _HorizontalLiquidFillPainter extends CustomPainter {
     const double wavelength2 = 50.0;
 
     // 2. Back Wave Layer (softer alpha, shifted phase)
-    final Path backWave = Path();
-    backWave.moveTo(0, 0);
-    backWave.lineTo((baseX + amp1 * math.sin(wavePhase * 0.8)).clamp(0.0, w), 0);
+    _backWave.reset();
+    _backWave.moveTo(0, 0);
+    _backWave.lineTo((baseX + amp1 * math.sin(wavePhase * 0.8)).clamp(0.0, w), 0);
 
     for (double y = 0; y <= h; y += 3.0) {
       final double x = baseX + amp1 * math.sin((y / wavelength1) * 2 * math.pi + wavePhase * 0.8);
-      backWave.lineTo(x.clamp(0.0, w), y);
+      _backWave.lineTo(x.clamp(0.0, w), y);
     }
-    backWave.lineTo(0, h);
-    backWave.close();
+    _backWave.lineTo(0, h);
+    _backWave.close();
 
-    final Paint backPaint = Paint()
-      ..color = const Color(0xFFE50914).withValues(alpha: 0.12)
-      ..style = PaintingStyle.fill;
-    canvas.drawPath(backWave, backPaint);
+    _backPaint.color = const Color(0xFFE50914).withValues(alpha: 0.12);
+    canvas.drawPath(_backWave, _backPaint);
 
     // 3. Front Wave Layer (crisper crest, soft reddish luminous gradient)
-    final Path frontWave = Path();
-    frontWave.moveTo(0, 0);
-    frontWave.lineTo((baseX + amp2 * math.sin(wavePhase + math.pi / 2)).clamp(0.0, w), 0);
+    _frontWave.reset();
+    _frontWave.moveTo(0, 0);
+    _frontWave.lineTo((baseX + amp2 * math.sin(wavePhase + math.pi / 2)).clamp(0.0, w), 0);
 
     for (double y = 0; y <= h; y += 3.0) {
       final double x = baseX + amp2 * math.sin((y / wavelength2) * 2 * math.pi + wavePhase + math.pi / 2);
-      frontWave.lineTo(x.clamp(0.0, w), y);
+      _frontWave.lineTo(x.clamp(0.0, w), y);
     }
-    frontWave.lineTo(0, h);
-    frontWave.close();
+    _frontWave.lineTo(0, h);
+    _frontWave.close();
 
     final Rect liquidRect = Rect.fromLTWH(0, 0, math.min(w, baseX + amp2), h);
-    final Paint frontPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [
-          const Color(0xFFE50914).withValues(alpha: 0.28),
-          const Color(0xFFE50914).withValues(alpha: 0.18),
-        ],
-      ).createShader(liquidRect)
-      ..style = PaintingStyle.fill;
+    _frontPaint.shader = LinearGradient(
+      begin: Alignment.centerLeft,
+      end: Alignment.centerRight,
+      colors: [
+        const Color(0xFFE50914).withValues(alpha: 0.28),
+        const Color(0xFFE50914).withValues(alpha: 0.18),
+      ],
+    ).createShader(liquidRect);
 
-    canvas.drawPath(frontWave, frontPaint);
+    canvas.drawPath(_frontWave, _frontPaint);
   }
 
   @override

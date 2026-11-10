@@ -546,23 +546,24 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
           )
         else
           // Ordered Tracklist
-          ListView.separated(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          padding: const EdgeInsets.symmetric(horizontal: 14.0),
-          itemCount: _songs.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 2.0),
-          itemBuilder: (context, index) {
-            final song = _songs[index];
-            return PlaylistTrackTile(
-              key: ValueKey('playlist_track_tile_${song.mediaStoreId}_$index'),
-              song: song,
-              trackIndex: index + 1,
-              allPlaylistSongs: _songs,
-              playlistId: _playlist.id,
-            );
-          },
-        ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 14.0),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (int index = 0; index < _songs.length; index++) ...[
+                  if (index > 0) const SizedBox(height: 2.0),
+                  PlaylistTrackTile(
+                    key: ValueKey('playlist_track_tile_${_songs[index].mediaStoreId}_$index'),
+                    song: _songs[index],
+                    trackIndex: index + 1,
+                    allPlaylistSongs: _songs,
+                    playlistId: _playlist.id,
+                  ),
+                ],
+              ],
+            ),
+          ),
       ],
     );
   }

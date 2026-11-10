@@ -65,59 +65,64 @@ class PlaylistSongSearchResults extends StatelessWidget {
           width: 0.8,
         ),
       ),
-      child: ListView.separated(
-        shrinkWrap: true,
-        physics: const NeverScrollableScrollPhysics(),
-        itemCount: results.length,
-        separatorBuilder: (context, index) => Divider(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
-          height: 1.0,
-          indent: 64.0,
-        ),
-        itemBuilder: (context, index) {
-          final song = results[index];
-          final bool isAlreadyAdded = addedSongIds.contains(song.mediaStoreId);
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int index = 0; index < results.length; index++) ...[
+            if (index > 0)
+              Divider(
+                color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                height: 1.0,
+                indent: 64.0,
+              ),
+            Builder(
+              builder: (context) {
+                final song = results[index];
+                final bool isAlreadyAdded = addedSongIds.contains(song.mediaStoreId);
 
-          return Material(
-            color: Colors.transparent,
-            child: ListTile(
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
-              leading: AnimaArtworkImage(
-                mediaStoreId: song.mediaStoreId,
-                albumId: song.albumId,
-                width: 44.0,
-                height: 44.0,
-                borderRadius: 0.0,
-                fallbackIcon: Icons.music_note_rounded,
-                isThumbnail: true,
-              ),
-              title: Text(
-                song.title,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: _titleStyle,
-              ),
-              subtitle: Text(
-                song.artist ?? context.l10n.common.unknownArtist,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: _artistStyle,
-              ),
-              trailing: IconButton(
-                icon: Icon(
-                  isAlreadyAdded ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
-                  color: isAlreadyAdded ? AppColors.accent : AppColors.onSurfaceVariant,
-                  size: 24.0,
-                ),
-                onPressed: () => onSongAdd(song),
-                tooltip: isAlreadyAdded
-                    ? context.l10n.playlist.alreadyAddedTooltip
-                    : context.l10n.playlist.addToPlaylistTooltip,
-              ),
-              onTap: () => onSongAdd(song),
+                return Material(
+                  color: Colors.transparent,
+                  child: ListTile(
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
+                    leading: AnimaArtworkImage(
+                      mediaStoreId: song.mediaStoreId,
+                      albumId: song.albumId,
+                      width: 44.0,
+                      height: 44.0,
+                      borderRadius: 0.0,
+                      fallbackIcon: Icons.music_note_rounded,
+                      isThumbnail: true,
+                    ),
+                    title: Text(
+                      song.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _titleStyle,
+                    ),
+                    subtitle: Text(
+                      song.artist ?? context.l10n.common.unknownArtist,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: _artistStyle,
+                    ),
+                    trailing: IconButton(
+                      icon: Icon(
+                        isAlreadyAdded ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
+                        color: isAlreadyAdded ? AppColors.accent : AppColors.onSurfaceVariant,
+                        size: 24.0,
+                      ),
+                      onPressed: () => onSongAdd(song),
+                      tooltip: isAlreadyAdded
+                          ? context.l10n.playlist.alreadyAddedTooltip
+                          : context.l10n.playlist.addToPlaylistTooltip,
+                    ),
+                    onTap: () => onSongAdd(song),
+                  ),
+                );
+              },
             ),
-          );
-        },
+          ],
+        ],
       ),
     );
   }
