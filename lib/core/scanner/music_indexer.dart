@@ -346,11 +346,6 @@ class MusicIndexer {
           '🎵 [MusicIndexer] Sincronización completada: $totalSongs canciones en ${stopwatch.elapsedMilliseconds} ms. (Sin cambios / 0 deltas)',
         );
 
-        // Ensure missing artworks are enqueued for background processing
-        _songDao.getAllSongs().then((songs) {
-          ArtworkService.instance.enqueueSongs(songs);
-        });
-
         return IndexingResult(
           totalSongs: totalSongs,
           addedCount: 0,

@@ -577,62 +577,77 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
             style: _sectionHeaderStyle,
           ),
           const SizedBox(height: 10.0),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: availablePlaylistFonts.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10.0,
-              mainAxisSpacing: 10.0,
-              childAspectRatio: 3.2,
-            ),
-            itemBuilder: (context, index) {
-              final font = availablePlaylistFonts[index];
-              final isSelected = (_selectedFontFamily ?? '').toLowerCase() == font.id.toLowerCase();
-              return Material(
-                color: isSelected
-                    ? AppColors.accent
-                    : AppColors.surfaceContainerHigh.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(12.0),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12.0),
-                  onTap: () {
-                    setState(() {
-                      _selectedFontFamily = font.id;
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12.0),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.onAccent
-                            : AppColors.outline.withValues(alpha: 0.35),
-                        width: isSelected ? 1.5 : 1.0,
+          Column(
+            children: [
+              for (int i = 0; i < availablePlaylistFonts.length; i += 2) ...[
+                if (i > 0) const SizedBox(height: 10.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AspectRatio(
+                        aspectRatio: 3.2,
+                        child: _buildFontTile(availablePlaylistFonts[i]),
                       ),
                     ),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      font.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: getPlaylistTitleFont(
-                        font.id,
-                        baseStyle: TextStyle(
-                          fontSize: 13.5,
-                          fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                          color: isSelected ? AppColors.onAccent : AppColors.onSurface,
-                        ),
-                      ),
+                    const SizedBox(width: 10.0),
+                    Expanded(
+                      child: i + 1 < availablePlaylistFonts.length
+                          ? AspectRatio(
+                              aspectRatio: 3.2,
+                              child: _buildFontTile(availablePlaylistFonts[i + 1]),
+                            )
+                          : const SizedBox.shrink(),
                     ),
-                  ),
+                  ],
                 ),
-              );
-            },
+              ],
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildFontTile(PlaylistFontOption font) {
+    final isSelected = (_selectedFontFamily ?? '').toLowerCase() == font.id.toLowerCase();
+    return Material(
+      color: isSelected
+          ? AppColors.accent
+          : AppColors.surfaceContainerHigh.withValues(alpha: 0.65),
+      borderRadius: BorderRadius.circular(12.0),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.0),
+        onTap: () {
+          setState(() {
+            _selectedFontFamily = font.id;
+          });
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.0),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.onAccent
+                  : AppColors.outline.withValues(alpha: 0.35),
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text(
+            font.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: getPlaylistTitleFont(
+              font.id,
+              baseStyle: TextStyle(
+                fontSize: 13.5,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                color: isSelected ? AppColors.onAccent : AppColors.onSurface,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -977,62 +992,77 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
             style: _sectionHeaderStyle,
           ),
           const SizedBox(height: 10.0),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            itemCount: availablePlaylistEffects.length,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 10.0,
-              mainAxisSpacing: 10.0,
-              childAspectRatio: 3.2,
-            ),
-            itemBuilder: (context, index) {
-              final effect = availablePlaylistEffects[index];
-              final isSelected = _textEffect.toLowerCase() == effect.id.toLowerCase();
-              final effectShadows = getPlaylistTextEffectShadows(effect.id, textColor: _textColor);
-
-              return Material(
-                color: isSelected
-                    ? AppColors.accent
-                    : AppColors.surfaceContainerHigh.withValues(alpha: 0.65),
-                borderRadius: BorderRadius.circular(12.0),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(12.0),
-                  onTap: () {
-                    setState(() {
-                      _textEffect = effect.id;
-                    });
-                  },
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12.0),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.onAccent
-                            : AppColors.outline.withValues(alpha: 0.35),
-                        width: isSelected ? 1.5 : 1.0,
+          Column(
+            children: [
+              for (int i = 0; i < availablePlaylistEffects.length; i += 2) ...[
+                if (i > 0) const SizedBox(height: 10.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AspectRatio(
+                        aspectRatio: 3.2,
+                        child: _buildEffectTile(availablePlaylistEffects[i]),
                       ),
                     ),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                    child: Text(
-                      effect.displayName,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inconsolata(
-                        fontSize: 14.0,
-                        fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-                        color: isSelected ? AppColors.onAccent : AppColors.onSurface,
-                        shadows: isSelected ? null : effectShadows,
-                      ),
+                    const SizedBox(width: 10.0),
+                    Expanded(
+                      child: i + 1 < availablePlaylistEffects.length
+                          ? AspectRatio(
+                              aspectRatio: 3.2,
+                              child: _buildEffectTile(availablePlaylistEffects[i + 1]),
+                            )
+                          : const SizedBox.shrink(),
                     ),
-                  ),
+                  ],
                 ),
-              );
-            },
+              ],
+            ],
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEffectTile(PlaylistEffectOption effect) {
+    final isSelected = _textEffect.toLowerCase() == effect.id.toLowerCase();
+    final effectShadows = getPlaylistTextEffectShadows(effect.id, textColor: _textColor);
+
+    return Material(
+      color: isSelected
+          ? AppColors.accent
+          : AppColors.surfaceContainerHigh.withValues(alpha: 0.65),
+      borderRadius: BorderRadius.circular(12.0),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12.0),
+        onTap: () {
+          setState(() {
+            _textEffect = effect.id;
+          });
+        },
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12.0),
+            border: Border.all(
+              color: isSelected
+                  ? AppColors.onAccent
+                  : AppColors.outline.withValues(alpha: 0.35),
+              width: isSelected ? 1.5 : 1.0,
+            ),
+          ),
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 8.0),
+          child: Text(
+            effect.displayName,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inconsolata(
+              fontSize: 14.0,
+              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+              color: isSelected ? AppColors.onAccent : AppColors.onSurface,
+              shadows: isSelected ? null : effectShadows,
+            ),
+          ),
+        ),
       ),
     );
   }

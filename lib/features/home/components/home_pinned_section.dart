@@ -126,22 +126,20 @@ class HomePinnedSection extends StatelessWidget {
   Widget _buildRows(BuildContext context) {
     final rows = buildGaplessRows(items);
 
-    return ListView.separated(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      itemCount: rows.length,
-      separatorBuilder: (ctx, _) => const SizedBox(height: 18.0),
-      itemBuilder: (context, index) {
-        final row = rows[index];
-        switch (row) {
-          case FullRowItem(:final playlist):
-            return _buildFullPlaylistCard(context, playlist);
-
-          case PairRowItem(:final first, :final second):
-            return _buildPairRow(context, first, second);
-        }
-      },
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          for (int i = 0; i < rows.length; i++) ...[
+            if (i > 0) const SizedBox(height: 18.0),
+            switch (rows[i]) {
+              FullRowItem(:final playlist) => _buildFullPlaylistCard(context, playlist),
+              PairRowItem(:final first, :final second) => _buildPairRow(context, first, second),
+            },
+          ],
+        ],
+      ),
     );
   }
 

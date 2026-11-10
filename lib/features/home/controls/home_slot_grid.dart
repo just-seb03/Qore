@@ -101,21 +101,15 @@ class HomeSlotGrid extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: rows.length,
-              separatorBuilder: (ctx, idx) => const SizedBox(height: 18.0),
-              itemBuilder: (context, index) {
-                final row = rows[index];
-                return switch (row) {
-                  _FullRow(:final item, :final itemIndex) =>
-                    _buildFullRow(context, item, itemIndex, isArranging),
-                  _PairRow(:final first, :final firstIndex, :final second, :final secondIndex) =>
-                    _buildPairRow(context, first, firstIndex, second, secondIndex, isArranging),
-                };
+            for (int i = 0; i < rows.length; i++) ...[
+              if (i > 0) const SizedBox(height: 18.0),
+              switch (rows[i]) {
+                _FullRow(:final item, :final itemIndex) =>
+                  _buildFullRow(context, item, itemIndex, isArranging),
+                _PairRow(:final first, :final firstIndex, :final second, :final secondIndex) =>
+                  _buildPairRow(context, first, firstIndex, second, secondIndex, isArranging),
               },
-            ),
+            ],
           ],
         );
       },

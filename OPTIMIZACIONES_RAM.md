@@ -368,19 +368,29 @@ El paquete `material_symbols_icons` incluye fuentes muy extensas. Al compilar en
 
 ---
 
-## 🚀 Plan de Implementación Recomendado (Por Prioridad)
+## 🚀 Plan de Implementación y Estado de Ejecución
 
-1. **Prioridad 1 (Inmediato - 70% del ahorro de RAM):**
-   - Ajustar `PaintingBinding.instance.imageCache` en `main.dart` a 45 MB / 100 ítems.
-   - Corregir el cálculo de `cacheWidth`/`cacheHeight` en `AnimaArtworkImage` y envolver `MaterialArtistAvatar` con `ResizeImage`.
-   - Ajustar los búferes de `AndroidLoadControl` en `AudioPlaybackBuffer`.
+1. **Parte 1 (Completado - Commit `c119dab`):**
+   - Ajuste de `PaintingBinding.instance.imageCache` a 45 MB / 100 ítems y purga automática de texturas en background.
+   - Downsampling 1:1 DPR en `AnimaArtworkImage` y `MaterialArtistAvatar` envuelto en `ResizeImage`.
+   - Búfer de audio nativo ExoPlayer optimizado de 50s a 12s en `AudioPlaybackBuffer`.
+   - Consulta SQL pseudoaleatoria `getRandomDailySelection()` en `SongDao` y `TodaySelectionService`.
 
-2. **Prioridad 2 (Fluidez y CPU - 20% del ahorro):**
-   - Reemplazar `dao.getAllSongs()` en `TodaySelectionService` por consulta SQL aleatoria.
-   - Reemplazar `List.unmodifiable` en `AmbientParticlesController` por una vista estática.
-   - Reutilizar `Path` en `_LiquidFillPainter`.
+2. **Parte 2 (Completado - Commit `1689f4b`):**
+   - Eliminación de GC churn por frame en `AmbientParticlesController` (`UnmodifiableListView`) y `_LiquidFillPainter` (reutilización de `Path`).
+   - PRAGMAs de SQLite en `AppDatabase` (`cache_size = -2000`, `temp_store = MEMORY`).
+   - Búfer flat preasignado de 16 KB en `FuzzySearchEngine` (`damerauLevenshteinDistance`).
+   - Eliminación de `shrinkWrap: true` en secciones de búsqueda, artista y álbum.
 
-3. **Prioridad 3 (Arquitectura y Escalabilidad - 10% del ahorro):**
-   - Eliminar `shrinkWrap: true` en las secciones de búsqueda y listas secundarias.
-   - Implementar inicialización *Lazy* en `LiquidTrackGestureWrapper`.
+3. **Parte 3 (Completado - Commit `f042149`):**
+   - Inicialización *Lazy* de `AnimationController`s en `LiquidTrackGestureWrapper` (0 controladores en reposo vs 300).
+   - Reemplazo de `ListView(shrinkWrap: true)` en detalle de playlist y resultados de búsqueda.
+   - Activación de R8 code shrinking y resource shrinking en `build.gradle.kts` con reglas ProGuard completas.
+
+4. **Parte 4 (Completado):**
+   - Desduplicación en memoria de mapas de carátulas en `ArtworkService`: consulta liviana `getSongArtworkMetadata()` con 6 columnas en lugar de 27 de `getAllSongs()`.
+   - String interning de `albumKey` para compartir referencias en heap de Dart.
+   - Resolución $O(1)$ por representativo sin duplicar rutas de strings por cada canción del álbum.
+   - Eliminación de llamada innecesaria a `getAllSongs()` en `MusicIndexer` cuando `deltaCount == 0`.
+   - Eliminación de `shrinkWrap: true` restantes en Home (`HomePinnedSection`, `HomeSlotGrid`) y Playlist Edit (`availablePlaylistFonts`, `availablePlaylistEffects`).
 

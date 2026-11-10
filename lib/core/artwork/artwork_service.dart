@@ -148,55 +148,49 @@ class ArtworkService extends ChangeNotifier {
   Future<void> preloadAlbumMappings({SongDao? songDao}) async {
     try {
       final dao = songDao ?? SongDao();
-      final songs = await dao.getAllSongs();
-      if (songs.isEmpty) return;
+      final metadataList = await dao.getSongArtworkMetadata();
+      if (metadataList.isEmpty) return;
+
+      // In-memory string interning table: avoids allocating thousands of duplicate albumKey strings
+      final Map<String, String> internedKeys = {};
 
       // 1. Populate song -> albumKey index
-      for (final song in songs) {
-        final key = _albumKey(song);
-        _songAlbumKeyCache[song.mediaStoreId] = key;
+      for (final meta in metadataList) {
+        final rawKey = _albumKeyFromMeta(meta.album, meta.artist, meta.albumArtist);
+        final key = internedKeys.putIfAbsent(rawKey, () => rawKey);
+        _songAlbumKeyCache[meta.mediaStoreId] = key;
       }
 
       // 2. Discover representative song for each album that has cached artwork
-      for (final song in songs) {
-        final key = _albumKey(song);
-        if (_thumbnailCache.containsKey(song.mediaStoreId) ||
-            _coverCache.containsKey(song.mediaStoreId)) {
-          _albumRepresentativeCache[key] ??= song.mediaStoreId;
+      for (final meta in metadataList) {
+        final key = _songAlbumKeyCache[meta.mediaStoreId]!;
+        if (_thumbnailCache.containsKey(meta.mediaStoreId) ||
+            _coverCache.containsKey(meta.mediaStoreId)) {
+          _albumRepresentativeCache[key] ??= meta.mediaStoreId;
         }
       }
 
-      // 3. Immediately propagate cached artwork in-memory to ALL songs in each album
-      bool hasChanges = false;
-      for (final song in songs) {
-        final key = _albumKey(song);
+      // 3. NOTICE: We NO LONGER duplicate _thumbnailCache and _coverCache for every song.
+      // In-memory lookups (getThumbnailPath, getCoverPath) resolve in O(1) via
+      // _songAlbumKeyCache[mediaStoreId] -> _albumRepresentativeCache[key] -> _thumbnailCache[repId].
+      // This saves tens of thousands of duplicate string and map entries in RAM.
+
+      // 4. Automatically enqueue any songs or albums that do not have cached artworks yet.
+      // Deduplicate at the album level: enqueue only ONE representative song per missing album.
+      final List<Song> missingArtworkSongs = [];
+      final Set<String> enqueuedAlbumKeys = {};
+
+      for (final meta in metadataList) {
+        final key = _songAlbumKeyCache[meta.mediaStoreId]!;
         final repId = _albumRepresentativeCache[key];
-        if (repId != null) {
-          final thumb = _thumbnailCache[repId];
-          final cover = _coverCache[repId];
-          if (thumb != null && !_thumbnailCache.containsKey(song.mediaStoreId)) {
-            _thumbnailCache[song.mediaStoreId] = thumb;
-            hasChanges = true;
-          }
-          if (cover != null && !_coverCache.containsKey(song.mediaStoreId)) {
-            _coverCache[song.mediaStoreId] = cover;
-            hasChanges = true;
-          }
+        final hasArtwork = repId != null &&
+            _coverCache.containsKey(repId) &&
+            _thumbnailCache.containsKey(repId);
+
+        if (!hasArtwork && enqueuedAlbumKeys.add(key)) {
+          missingArtworkSongs.add(meta.toSong());
         }
       }
-
-      if (hasChanges) {
-        notifyListeners();
-      }
-
-      // 4. Automatically enqueue any songs or albums that do not have cached artworks yet
-      final missingArtworkSongs = songs.where((s) {
-        final key = _songAlbumKeyCache[s.mediaStoreId] ?? _albumKey(s);
-        final repId = _albumRepresentativeCache[key];
-        return repId == null ||
-            !_coverCache.containsKey(repId) ||
-            !_thumbnailCache.containsKey(repId);
-      }).toList();
 
       if (missingArtworkSongs.isNotEmpty) {
         enqueueSongs(missingArtworkSongs);
@@ -460,15 +454,20 @@ class ArtworkService extends ChangeNotifier {
         .trim();
   }
 
+  /// Generates a normalized album key combining album title and album artist from metadata strings.
+  String _albumKeyFromMeta(String? album, String? artist, String? albumArtist) {
+    final alb = (album ?? '<Desconocido>').trim().toLowerCase();
+    final rawArtist = (albumArtist != null &&
+            albumArtist.trim().isNotEmpty &&
+            albumArtist != '<Desconocido>')
+        ? albumArtist
+        : _cleanArtistBase(artist);
+    return '$alb::${rawArtist.trim().toLowerCase()}';
+  }
+
   /// Generates a normalized album key combining album title and album artist.
   String _albumKey(Song song) {
-    final album = (song.album ?? '<Desconocido>').trim().toLowerCase();
-    final rawArtist = (song.albumArtist != null &&
-            song.albumArtist!.trim().isNotEmpty &&
-            song.albumArtist != '<Desconocido>')
-        ? song.albumArtist!
-        : _cleanArtistBase(song.artist);
-    return '$album::${rawArtist.trim().toLowerCase()}';
+    return _albumKeyFromMeta(song.album, song.artist, song.albumArtist);
   }
 
   /// Prioritizes songs in the queue (e.g. visible album covers) to be extracted first.
@@ -496,7 +495,15 @@ class ArtworkService extends ChangeNotifier {
 
   /// Checks whether an artwork exists for this song.
   bool hasArtwork(int mediaStoreId, {int? albumId}) {
-    return _thumbnailCache.containsKey(mediaStoreId);
+    if (_thumbnailCache.containsKey(mediaStoreId)) return true;
+    final key = _songAlbumKeyCache[mediaStoreId];
+    if (key != null) {
+      final repId = _albumRepresentativeCache[key];
+      if (repId != null && _thumbnailCache.containsKey(repId)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   /// Evicts specific song thumbnails and covers from in-memory cache and on-disk files.
@@ -506,6 +513,10 @@ class ArtworkService extends ChangeNotifier {
       _thumbnailCache.remove(id);
       _coverCache.remove(id);
       _noArtworkCache.remove(id);
+      final key = _songAlbumKeyCache.remove(id);
+      if (key != null && _albumRepresentativeCache[key] == id) {
+        _albumRepresentativeCache.remove(key);
+      }
       final thumbFile = File(p.join(_thumbnailsDir, '$id.png'));
       final coverFile = File(p.join(_coversDir, '$id.jpg'));
       try {
@@ -545,12 +556,6 @@ class ArtworkService extends ChangeNotifier {
 
       if (cachedRepId != null) {
         _albumRepresentativeCache[key] = cachedRepId;
-        final thumb = _thumbnailCache[cachedRepId]!;
-        final cover = _coverCache[cachedRepId];
-        for (final song in albumSongs) {
-          _thumbnailCache[song.mediaStoreId] = thumb;
-          if (cover != null) _coverCache[song.mediaStoreId] = cover;
-        }
         continue;
       }
 
@@ -558,12 +563,6 @@ class ArtworkService extends ChangeNotifier {
       if (_albumRepresentativeCache.containsKey(key)) {
         final repId = _albumRepresentativeCache[key]!;
         if (_thumbnailCache.containsKey(repId)) {
-          final thumb = _thumbnailCache[repId]!;
-          final cover = _coverCache[repId];
-          for (final song in albumSongs) {
-            _thumbnailCache[song.mediaStoreId] = thumb;
-            if (cover != null) _coverCache[song.mediaStoreId] = cover;
-          }
           continue;
         }
       }
@@ -643,14 +642,10 @@ class ArtworkService extends ChangeNotifier {
             if (_thumbnailCache.containsKey(song.mediaStoreId)) {
               final key = _albumKey(song);
               _albumRepresentativeCache[key] = song.mediaStoreId;
-              final thumb = _thumbnailCache[song.mediaStoreId]!;
-              final cover = _coverCache[song.mediaStoreId]!;
 
               final pending = _albumPendingSongs.remove(key);
               if (pending != null) {
                 for (final p in pending) {
-                  _thumbnailCache[p.mediaStoreId] = thumb;
-                  _coverCache[p.mediaStoreId] = cover;
                   _pendingQueueSet.remove(p.mediaStoreId);
                 }
               }
@@ -663,10 +658,6 @@ class ArtworkService extends ChangeNotifier {
             if (_albumRepresentativeCache.containsKey(key)) {
               final repId = _albumRepresentativeCache[key]!;
               if (_thumbnailCache.containsKey(repId)) {
-                _thumbnailCache[song.mediaStoreId] = _thumbnailCache[repId]!;
-                if (_coverCache.containsKey(repId)) {
-                  _coverCache[song.mediaStoreId] = _coverCache[repId]!;
-                }
                 _pendingQueueSet.remove(song.mediaStoreId);
                 continue;
               }

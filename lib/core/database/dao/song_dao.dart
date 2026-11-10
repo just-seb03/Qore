@@ -11,8 +11,11 @@ import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/database/models/song_artwork_meta.dart';
 import 'package:project_anima/core/utils/artist_splitter.dart';
 import 'package:sqflite/sqflite.dart';
+
+export 'package:project_anima/core/database/models/song_artwork_meta.dart';
 
 /// Data Access Object for managing track persistence and querying in SQLite.
 class SongDao {
@@ -47,6 +50,23 @@ class SongDao {
       }
     }
     return map;
+  }
+
+  /// Retrieves lightweight metadata needed for artwork caching and indexing.
+  /// Skips loading heavy fields (lyrics, titles, dates, audio specs) to minimize Dart heap allocations.
+  Future<List<SongArtworkMeta>> getSongArtworkMetadata() async {
+    final db = await _appDatabase.database;
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      'SELECT media_store_id, album_id, album, artist, album_artist, path FROM songs WHERE media_store_id IS NOT NULL',
+    );
+    return results.map((row) => SongArtworkMeta(
+      mediaStoreId: row['media_store_id'] as int,
+      albumId: row['album_id'] as int?,
+      album: row['album'] as String?,
+      artist: row['artist'] as String?,
+      albumArtist: row['album_artist'] as String?,
+      path: (row['path'] as String?) ?? '',
+    )).toList();
   }
 
   /// Retrieves all songs sorted alphabetically by title.
