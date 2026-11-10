@@ -387,10 +387,15 @@ El paquete `material_symbols_icons` incluye fuentes muy extensas. Al compilar en
    - Reemplazo de `ListView(shrinkWrap: true)` en detalle de playlist y resultados de búsqueda.
    - Activación de R8 code shrinking y resource shrinking en `build.gradle.kts` con reglas ProGuard completas.
 
-4. **Parte 4 (Completado):**
+4. **Parte 4 (Completado - Commit `bfc49cb`):**
    - Desduplicación en memoria de mapas de carátulas en `ArtworkService`: consulta liviana `getSongArtworkMetadata()` con 6 columnas en lugar de 27 de `getAllSongs()`.
    - String interning de `albumKey` para compartir referencias en heap de Dart.
    - Resolución $O(1)$ por representativo sin duplicar rutas de strings por cada canción del álbum.
    - Eliminación de llamada innecesaria a `getAllSongs()` en `MusicIndexer` cuando `deltaCount == 0`.
    - Eliminación de `shrinkWrap: true` restantes en Home (`HomePinnedSection`, `HomeSlotGrid`) y Playlist Edit (`availablePlaylistFonts`, `availablePlaylistEffects`).
+
+5. **Parte 5 (Completado):**
+   - Pre-normalización del diccionario de búsqueda en `FuzzySearchEngine` (`_NormalizedTarget`, `_NormalizedQuery`, `_SearchSongEntry`).
+   - Eliminación de 100% de splits regex, lowercasing efímero y asignaciones de `List<String>` durante el tecleo en tiempo real.
+   - Nueva consulta SQL `SongDao.getSearchDictionarySongs()` que proyecta solo las columnas de búsqueda y reproducción necesarias, sustituyendo la última llamada a `getAllSongs()` de la aplicación.
 

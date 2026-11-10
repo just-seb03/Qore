@@ -69,6 +69,16 @@ class SongDao {
     )).toList();
   }
 
+  /// Retrieves lightweight song entities for the in-memory fuzzy search dictionary.
+  /// Queries only search-relevant metadata and playback identifiers, skipping heavy date/file columns.
+  Future<List<Song>> getSearchDictionarySongs() async {
+    final db = await _appDatabase.database;
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      'SELECT id, media_store_id, title, artist, album, album_artist, album_id, duration, path FROM songs ORDER BY title COLLATE NOCASE ASC',
+    );
+    return results.map((row) => Song.fromMap(row)).toList();
+  }
+
   /// Retrieves all songs sorted alphabetically by title.
   Future<List<Song>> getAllSongs() async {
     final db = await _appDatabase.database;

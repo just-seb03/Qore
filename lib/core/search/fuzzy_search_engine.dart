@@ -26,6 +26,9 @@ class FuzzySearchEngine {
   List<ArtistDiscoveryItem> _cachedArtists = [];
   List<AlbumDiscoveryItem> _cachedAlbums = [];
   List<Song> _cachedSongs = [];
+  List<_SearchArtistEntry> _artistEntries = [];
+  List<_SearchAlbumEntry> _albumEntries = [];
+  List<_SearchSongEntry> _songEntries = [];
   bool _isDictionaryLoaded = false;
 
   /// Whether the in-memory entity dictionary has been populated from SQLite.
@@ -36,11 +39,40 @@ class FuzzySearchEngine {
     try {
       final artists = await _songDao.getAllUniqueArtists(limit: 1000);
       final albums = await _songDao.getAllUniqueAlbums(limit: 1000);
-      final songs = await _songDao.getAllSongs();
+      final songs = await _songDao.getSearchDictionarySongs();
 
       _cachedArtists = artists;
       _cachedAlbums = albums;
       _cachedSongs = songs;
+
+      _artistEntries = artists
+          .map((a) => _SearchArtistEntry(a, _NormalizedTarget.from(a.name)))
+          .toList();
+
+      _albumEntries = albums
+          .map((a) => _SearchAlbumEntry(
+                a,
+                _NormalizedTarget.from(a.name),
+                _NormalizedTarget.from(a.artist),
+              ))
+          .toList();
+
+      _songEntries = songs.map((s) {
+        final split = s.artists;
+        final effectiveArtist = (s.albumArtist != null && s.albumArtist!.trim().isNotEmpty)
+            ? s.albumArtist!.trim()
+            : (s.artist ?? '');
+
+        return _SearchSongEntry(
+          song: s,
+          titleTarget: _NormalizedTarget.from(s.title),
+          singleArtistTarget: s.artist != null ? _NormalizedTarget.from(s.artist!) : null,
+          splitArtistTargets: split.map((a) => _NormalizedTarget.from(a)).toList(),
+          albumTarget: s.album != null ? _NormalizedTarget.from(s.album!) : null,
+          effectiveAlbumArtistLower: effectiveArtist.toLowerCase(),
+        );
+      }).toList();
+
       _isDictionaryLoaded = true;
     } catch (_) {
       // Gracefully ignore error and allow query-level fallback
@@ -114,8 +146,17 @@ class FuzzySearchEngine {
   /// - Compact Damerau-Levenshtein (handles space/punctuation typos, e.g. "ridoi jead" -> "radiohead")
   /// - Multi-token word-by-word fuzzy alignment
   static double computeFuzzyScore(String query, String target) {
-    final q = query.trim().toLowerCase();
-    final t = target.trim().toLowerCase();
+    return _computeFuzzyScoreFast(
+      _NormalizedQuery.from(query),
+      _NormalizedTarget.from(target),
+    );
+  }
+
+  /// High-speed evaluation using pre-normalized query and pre-normalized target.
+  /// Guarantees zero regex splits, zero lowercasing allocations, and zero GC churn during live typing.
+  static double _computeFuzzyScoreFast(_NormalizedQuery query, _NormalizedTarget target) {
+    final q = query.normalized;
+    final t = target.normalized;
 
     if (q.isEmpty || t.isEmpty) return 0.0;
     if (q == t) return 1.0;
@@ -131,8 +172,8 @@ class FuzzySearchEngine {
     }
 
     // 3. Compact comparison (ignoring whitespace and special delimiters)
-    final cleanQ = q.replaceAll(RegExp(r'[\s\-_.,/&]+'), '');
-    final cleanT = t.replaceAll(RegExp(r'[\s\-_.,/&]+'), '');
+    final cleanQ = query.clean;
+    final cleanT = target.clean;
 
     if (cleanQ.isEmpty || cleanT.isEmpty) return 0.0;
     if (cleanQ == cleanT) return 0.98;
@@ -144,8 +185,8 @@ class FuzzySearchEngine {
     final compactScore = 1.0 - (compactDistance / maxLen);
 
     // 4. Token-level matching for multi-word queries
-    final qTokens = q.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
-    final tTokens = t.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+    final qTokens = query.tokens;
+    final tTokens = target.tokens;
 
     double tokenTotalScore = 0.0;
     for (final qTok in qTokens) {
@@ -178,9 +219,9 @@ class FuzzySearchEngine {
   /// Executes advanced fuzzy search across cached dictionary items and returns
   /// categorized results with Spotify-style dynamic hierarchy.
   Future<SearchResultsGroup> search(String rawQuery, {int songLimit = 5}) async {
-    final query = rawQuery.trim();
-    if (query.isEmpty) {
-      return SearchResultsGroup.empty(query);
+    final nQuery = _NormalizedQuery.from(rawQuery);
+    if (nQuery.normalized.isEmpty) {
+      return SearchResultsGroup.empty(rawQuery.trim());
     }
 
     // Lazy load dictionary if not preloaded
@@ -196,13 +237,13 @@ class FuzzySearchEngine {
     double bestArtistScore = 0.0;
     final List<_ScoredItem<ArtistDiscoveryItem>> scoredArtists = [];
 
-    for (final artist in _cachedArtists) {
-      final score = computeFuzzyScore(query, artist.name);
+    for (final entry in _artistEntries) {
+      final score = _computeFuzzyScoreFast(nQuery, entry.target);
       if (score >= minRelevanceThreshold) {
-        scoredArtists.add(_ScoredItem(artist, score));
+        scoredArtists.add(_ScoredItem(entry.artist, score));
         if (score > bestArtistScore) {
           bestArtistScore = score;
-          bestArtist = artist;
+          bestArtist = entry.artist;
         }
       }
     }
@@ -213,16 +254,16 @@ class FuzzySearchEngine {
     double bestAlbumScore = 0.0;
     final List<_ScoredItem<AlbumDiscoveryItem>> scoredAlbums = [];
 
-    for (final album in _cachedAlbums) {
-      final titleScore = computeFuzzyScore(query, album.name);
-      final artistScore = computeFuzzyScore(query, album.artist);
+    for (final entry in _albumEntries) {
+      final titleScore = _computeFuzzyScoreFast(nQuery, entry.nameTarget);
+      final artistScore = _computeFuzzyScoreFast(nQuery, entry.artistTarget);
       final score = math.max(titleScore, artistScore * 0.9);
 
       if (score >= minRelevanceThreshold) {
-        scoredAlbums.add(_ScoredItem(album, score));
+        scoredAlbums.add(_ScoredItem(entry.album, score));
         if (score > bestAlbumScore) {
           bestAlbumScore = score;
-          bestAlbum = album;
+          bestAlbum = entry.album;
         }
       }
     }
@@ -233,27 +274,29 @@ class FuzzySearchEngine {
     double bestSongScore = 0.0;
     final List<_ScoredItem<Song>> scoredSongs = [];
 
-    for (final song in _cachedSongs) {
-      final titleScore = computeFuzzyScore(query, song.title);
+    for (final entry in _songEntries) {
+      final titleScore = _computeFuzzyScoreFast(nQuery, entry.titleTarget);
       double artistScore = 0.0;
-      if (song.artists.isNotEmpty) {
-        for (final a in song.artists) {
-          final s = computeFuzzyScore(query, a);
+      if (entry.splitArtistTargets.isNotEmpty) {
+        for (final a in entry.splitArtistTargets) {
+          final s = _computeFuzzyScoreFast(nQuery, a);
           if (s > artistScore) artistScore = s;
         }
-      } else if (song.artist != null) {
-        artistScore = computeFuzzyScore(query, song.artist!);
+      } else if (entry.singleArtistTarget != null) {
+        artistScore = _computeFuzzyScoreFast(nQuery, entry.singleArtistTarget!);
       }
-      final albumScore = song.album != null ? computeFuzzyScore(query, song.album!) : 0.0;
+      final albumScore = entry.albumTarget != null
+          ? _computeFuzzyScoreFast(nQuery, entry.albumTarget!)
+          : 0.0;
 
       // Title match takes precedence, but artist/album matches also contribute
       final score = math.max(titleScore, math.max(artistScore * 0.85, albumScore * 0.75));
 
       if (score >= minRelevanceThreshold) {
-        scoredSongs.add(_ScoredItem(song, score));
+        scoredSongs.add(_ScoredItem(entry.song, score));
         if (score > bestSongScore) {
           bestSongScore = score;
-          bestSong = song;
+          bestSong = entry.song;
         }
       }
     }
@@ -261,7 +304,7 @@ class FuzzySearchEngine {
 
     // If completely no fuzzy match found in dictionary, return empty
     if (scoredArtists.isEmpty && scoredAlbums.isEmpty && scoredSongs.isEmpty) {
-      return SearchResultsGroup.empty(query);
+      return SearchResultsGroup.empty(rawQuery.trim());
     }
 
     // 4. Determine Top Result & Primary Category
@@ -293,11 +336,12 @@ class FuzzySearchEngine {
     if (primaryType == SearchEntityType.artist && bestArtist != null) {
       // Songs by this artist first (matching single or collaborative artists)
       final targetArtistLower = bestArtist.name.toLowerCase();
-      final artistSongs = _cachedSongs
-          .where((s) =>
-              s.artists.any((a) => a.toLowerCase() == targetArtistLower) ||
-              (s.artist != null && s.artist!.toLowerCase() == targetArtistLower))
+      final artistSongs = _songEntries
+          .where((e) =>
+              e.splitArtistTargets.any((a) => a.normalized == targetArtistLower) ||
+              (e.singleArtistTarget != null && e.singleArtistTarget!.normalized == targetArtistLower))
           .take(songLimit)
+          .map((e) => e.song)
           .toList();
       secondarySongs.addAll(artistSongs);
 
@@ -314,16 +358,14 @@ class FuzzySearchEngine {
       // Songs from this album first, matching by album name and effective album artist
       final albumNameLower = bestAlbum.name.toLowerCase();
       final albumArtistLower = bestAlbum.artist.toLowerCase();
-      final albumSongs = _cachedSongs
-          .where((s) {
-            if (s.album == null || s.album!.toLowerCase() != albumNameLower) return false;
+      final albumSongs = _songEntries
+          .where((e) {
+            if (e.albumTarget == null || e.albumTarget!.normalized != albumNameLower) return false;
             if (albumArtistLower == '<desconocido>') return true;
-            final effectiveSongArtist = (s.albumArtist != null && s.albumArtist!.trim().isNotEmpty)
-                ? s.albumArtist!.trim()
-                : (s.artist ?? '');
-            return effectiveSongArtist.toLowerCase() == albumArtistLower;
+            return e.effectiveAlbumArtistLower == albumArtistLower;
           })
           .take(songLimit)
+          .map((e) => e.song)
           .toList();
       secondarySongs.addAll(albumSongs);
 
@@ -408,7 +450,7 @@ class FuzzySearchEngine {
     }
 
     return SearchResultsGroup(
-      query: query,
+      query: rawQuery.trim(),
       topResult: topResult,
       primaryType: primaryType,
       matchedSongs: secondarySongs.take(songLimit).toList(),
@@ -427,18 +469,23 @@ class FuzzySearchEngine {
       await reloadDictionary();
     }
 
+    final nQuery = _NormalizedQuery.from(query);
     const double minRelevanceThreshold = 0.38;
     final List<_ScoredItem<Song>> scoredSongs = [];
 
-    for (final song in _cachedSongs) {
-      final titleScore = computeFuzzyScore(query, song.title);
-      final artistScore = song.artist != null ? computeFuzzyScore(query, song.artist!) : 0.0;
-      final albumScore = song.album != null ? computeFuzzyScore(query, song.album!) : 0.0;
+    for (final entry in _songEntries) {
+      final titleScore = _computeFuzzyScoreFast(nQuery, entry.titleTarget);
+      final artistScore = entry.singleArtistTarget != null
+          ? _computeFuzzyScoreFast(nQuery, entry.singleArtistTarget!)
+          : 0.0;
+      final albumScore = entry.albumTarget != null
+          ? _computeFuzzyScoreFast(nQuery, entry.albumTarget!)
+          : 0.0;
 
       final score = math.max(titleScore, math.max(artistScore * 0.85, albumScore * 0.75));
 
       if (score >= minRelevanceThreshold) {
-        scoredSongs.add(_ScoredItem(song, score));
+        scoredSongs.add(_ScoredItem(entry.song, score));
       }
     }
 
@@ -453,4 +500,69 @@ class _ScoredItem<T> {
   final double score;
 
   const _ScoredItem(this.item, this.score);
+}
+
+/// Immutable pre-normalized target string for zero-allocation comparisons during search.
+class _NormalizedTarget {
+  final String normalized;
+  final String clean;
+  final List<String> tokens;
+
+  _NormalizedTarget._(this.normalized, this.clean, this.tokens);
+
+  factory _NormalizedTarget.from(String raw) {
+    final norm = raw.trim().toLowerCase();
+    final clean = norm.replaceAll(RegExp(r'[\s\-_.,/&]+'), '');
+    final tokens = norm.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+    return _NormalizedTarget._(norm, clean, tokens);
+  }
+}
+
+/// Immutable normalized search query prepared once per search invocation.
+class _NormalizedQuery {
+  final String normalized;
+  final String clean;
+  final List<String> tokens;
+
+  _NormalizedQuery._(this.normalized, this.clean, this.tokens);
+
+  factory _NormalizedQuery.from(String raw) {
+    final norm = raw.trim().toLowerCase();
+    final clean = norm.replaceAll(RegExp(r'[\s\-_.,/&]+'), '');
+    final tokens = norm.split(RegExp(r'\s+')).where((s) => s.isNotEmpty).toList();
+    return _NormalizedQuery._(norm, clean, tokens);
+  }
+}
+
+class _SearchArtistEntry {
+  final ArtistDiscoveryItem artist;
+  final _NormalizedTarget target;
+
+  _SearchArtistEntry(this.artist, this.target);
+}
+
+class _SearchAlbumEntry {
+  final AlbumDiscoveryItem album;
+  final _NormalizedTarget nameTarget;
+  final _NormalizedTarget artistTarget;
+
+  _SearchAlbumEntry(this.album, this.nameTarget, this.artistTarget);
+}
+
+class _SearchSongEntry {
+  final Song song;
+  final _NormalizedTarget titleTarget;
+  final _NormalizedTarget? singleArtistTarget;
+  final List<_NormalizedTarget> splitArtistTargets;
+  final _NormalizedTarget? albumTarget;
+  final String effectiveAlbumArtistLower;
+
+  _SearchSongEntry({
+    required this.song,
+    required this.titleTarget,
+    this.singleArtistTarget,
+    required this.splitArtistTargets,
+    this.albumTarget,
+    required this.effectiveAlbumArtistLower,
+  });
 }

@@ -61,6 +61,9 @@ class FakeSongDao extends Fake implements SongDao {
       .toList();
 
   @override
+  Future<List<Song>> getSearchDictionarySongs() async => songs;
+
+  @override
   Future<List<ArtistDiscoveryItem>> getAllUniqueArtists({int limit = 1000}) async => [];
 
   @override
