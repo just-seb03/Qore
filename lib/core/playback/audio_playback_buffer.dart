@@ -8,6 +8,8 @@
 /// - AudioPlaybackBuffer: Dedicated buffer and playlist engine for zero-latency audio playback.
 library;
 
+// ignore_for_file: deprecated_member_use
+
 import 'dart:async';
 import 'dart:collection';
 import 'package:flutter/foundation.dart';
@@ -16,11 +18,11 @@ import 'package:project_anima/core/database/models/song.dart';
 
 /// Coordinator for zero-latency audio buffering and ConcatenatingAudioSource lifecycle.
 class AudioPlaybackBuffer {
-  final AudioPlayer _player;
+  final AudioPlayer player;
   ConcatenatingAudioSource? _source;
   List<Song> _bufferedSongs = [];
 
-  AudioPlaybackBuffer({required AudioPlayer player}) : _player = player;
+  AudioPlaybackBuffer({required this.player});
 
   /// Creates a custom-tuned AudioPlayer with ultra-low buffer start thresholds
   /// (150ms vs default 2500ms) and lightweight forward buffers optimized for local audio,
@@ -84,7 +86,7 @@ class AudioPlaybackBuffer {
     );
 
     try {
-      await _player.setAudioSource(
+      await player.setAudioSource(
         _source!,
         initialIndex: safeIndex,
         initialPosition: initialPosition,
@@ -100,7 +102,7 @@ class AudioPlaybackBuffer {
   Future<void> seekToIndex(int index, {Duration position = Duration.zero}) async {
     if (_source == null || index < 0 || index >= _source!.length) return;
     try {
-      await _player.seek(position, index: index);
+      await player.seek(position, index: index);
     } catch (e) {
       debugPrint('AudioPlaybackBuffer Error seeking to index $index: $e');
     }
@@ -108,8 +110,8 @@ class AudioPlaybackBuffer {
 
   /// Advances to next pre-buffered track.
   Future<void> seekToNext() async {
-    if (_player.hasNext) {
-      await _player.seekToNext();
+    if (player.hasNext) {
+      await player.seekToNext();
     } else if (_source != null && _source!.length > 0) {
       await seekToIndex(0);
     }
@@ -117,8 +119,8 @@ class AudioPlaybackBuffer {
 
   /// Rewinds to previous track.
   Future<void> seekToPrevious() async {
-    if (_player.hasPrevious) {
-      await _player.seekToPrevious();
+    if (player.hasPrevious) {
+      await player.seekToPrevious();
     } else if (_source != null && _source!.length > 0) {
       await seekToIndex(_source!.length - 1);
     }

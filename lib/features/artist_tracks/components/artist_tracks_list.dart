@@ -71,7 +71,6 @@ class ArtistTracksList extends StatelessWidget {
       physics: const BouncingScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(4.0, 4.0, 4.0, 24.0),
       itemExtent: ArtistTrackTile.tileHeight,
-      cacheExtent: 320.0,
       itemCount: songs.length,
       itemBuilder: (context, index) {
         final song = songs[index];

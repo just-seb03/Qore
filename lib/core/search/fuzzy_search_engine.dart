@@ -25,7 +25,6 @@ class FuzzySearchEngine {
 
   List<ArtistDiscoveryItem> _cachedArtists = [];
   List<AlbumDiscoveryItem> _cachedAlbums = [];
-  List<Song> _cachedSongs = [];
   List<_SearchArtistEntry> _artistEntries = [];
   List<_SearchAlbumEntry> _albumEntries = [];
   List<_SearchSongEntry> _songEntries = [];
@@ -43,7 +42,6 @@ class FuzzySearchEngine {
 
       _cachedArtists = artists;
       _cachedAlbums = albums;
-      _cachedSongs = songs;
 
       _artistEntries = artists
           .map((a) => _SearchArtistEntry(a, _NormalizedTarget.from(a.name)))

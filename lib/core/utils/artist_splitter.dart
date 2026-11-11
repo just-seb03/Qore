@@ -25,7 +25,7 @@ class ArtistSplitter {
   };
 
   /// Bounded cache of memoized artist split results to avoid re-running regexes
-  /// and re-allocating identical List<String> objects across thousands of song models.
+  /// and re-allocating identical `List<String>` objects across thousands of song models.
   static final Map<String, List<String>> _splitCache = {};
   static const int _kMaxCacheSize = 1024;
 
