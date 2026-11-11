@@ -73,34 +73,13 @@ class EnStartupStrings implements StartupStrings {
   String get grantPermissionsButton => 'GRANT PERMISSIONS';
 
   @override
-  String get themeSelectorTitle => 'SELECT THEME';
-
-  @override
-  String get themePromptTitle => "What's your style?";
-
-  @override
   String get themeNameMonochrome => 'Monochrome';
-
-  @override
-  String get themeNameSolar => 'Solar';
-
-  @override
-  String get themeNameThatPad => 'That Pad';
-
-  @override
-  String get themeNameCorporate => 'Corporate';
-
-  @override
-  String get themeNameNeoTokyo => 'Neo-Tokyo';
 
   @override
   String get darkModeLabel => 'Dark';
 
   @override
   String get lightModeLabel => 'Light';
-
-  @override
-  String get acceptThemeAction => 'ACCEPT';
 
   @override
   String get scanningLibrary => 'Scanning library...';

@@ -62,35 +62,14 @@ abstract class StartupStrings {
   /// Action button on permission card (e.g. 'GRANT PERMISSIONS').
   String get grantPermissionsButton;
 
-  /// Header title for the theme selector screen (e.g. 'SELECT THEME').
-  String get themeSelectorTitle;
-
-  /// Prompt question at the top of theme selector (e.g. '¿Cuál es tu estilo?' / "What's your style?").
-  String get themePromptTitle;
-
-  /// Name of the initial monochrome dark theme ('Monochrome').
+  /// Name of the monochrome theme ('Monochrome').
   String get themeNameMonochrome;
-
-  /// Name of the Solar theme ('Solar').
-  String get themeNameSolar;
-
-  /// Name of the That Pad theme ('That Pad').
-  String get themeNameThatPad;
-
-  /// Name of the Corporate theme ('Corporate').
-  String get themeNameCorporate;
-
-  /// Name of the Neo-Tokyo theme ('Neo-Tokyo').
-  String get themeNameNeoTokyo;
 
   /// Label for dark mode ('Dark').
   String get darkModeLabel;
 
   /// Label for light mode ('Light').
   String get lightModeLabel;
-
-  /// Action button on theme selector (e.g. 'ACCEPT').
-  String get acceptThemeAction;
 
   /// Stage progress label during initial filesystem discovery (e.g. 'Scanning library...').
   String get scanningLibrary;

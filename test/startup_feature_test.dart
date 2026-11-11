@@ -29,7 +29,6 @@ import 'package:project_anima/features/startup/components/startup_status_view.da
 import 'package:project_anima/features/startup/controls/startup_controller.dart';
 import 'package:project_anima/features/startup/models/startup_stage.dart';
 import 'package:project_anima/features/startup/models/startup_step.dart';
-import 'package:project_anima/features/startup/models/startup_theme_option.dart';
 import 'package:project_anima/features/startup/screens/startup_loading_screen.dart';
 
 class _FakePermissionService implements AudioPermissionService {
@@ -107,102 +106,22 @@ void main() {
       ]);
     });
 
-    test('StartupThemeOption provides all 5 themes with matching dark and light constituent palettes', () {
-      expect(StartupThemeOption.all.length, 5);
-
-      // 1. Solar
-      const solar = StartupThemeOption.solar;
-      expect(solar.darkColors, const [
-        Color(0xFF002B36),
-        Color(0xFF073642),
-        Color(0xFF839496),
-        Color(0xFF93A1A1),
-        Color(0xFF586E75),
-      ]);
-      expect(solar.lightColors, const [
-        Color(0xFFFDF6E3),
-        Color(0xFFEEE8D5),
-        Color(0xFF657B83),
-        Color(0xFF586E75),
-        Color(0xFF93A1A1),
-      ]);
-
-      // 2. That Pad
-      const thatPad = StartupThemeOption.thatPad;
-      expect(thatPad.darkColors, const [
-        Color(0xFF121212),
-        Color(0xFF1E1E1E),
-        Color(0xFFE6E6E6),
-        Color(0xFFE11422),
-        Color(0xFF8A8A8A),
-      ]);
-      expect(thatPad.lightColors, const [
-        Color(0xFFF3F4F6),
-        Color(0xFFFFFFFF),
-        Color(0xFF1A1D20),
-        Color(0xFFD31220),
-        Color(0xFF5F6368),
-      ]);
-
-      // 3. Corporate
-      const corporate = StartupThemeOption.corporate;
-      expect(corporate.darkColors, const [
-        Color(0xFF1E1F20),
-        Color(0xFF282A2C),
-        Color(0xFFE3E3E3),
-        Color(0xFF8AB4F8),
-        Color(0xFF8E918F),
-      ]);
-      expect(corporate.lightColors, const [
-        Color(0xFFF8F9FA),
-        Color(0xFFFFFFFF),
-        Color(0xFF1F1F1F),
-        Color(0xFF1A73E8),
-        Color(0xFF5F6368),
-      ]);
-
-      // 4. Neo-Tokyo
-      const neoTokyo = StartupThemeOption.neoTokyo;
-      expect(neoTokyo.darkColors, const [
-        Color(0xFF120E1C),
-        Color(0xFF1F1A2F),
-        Color(0xFFECE8F6),
-        Color(0xFFFF2A85),
-        Color(0xFF7D7595),
-      ]);
-      expect(neoTokyo.lightColors, const [
-        Color(0xFFFAF7FC),
-        Color(0xFFFFFFFF),
-        Color(0xFF261C33),
-        Color(0xFF8353E2),
-        Color(0xFF756C84),
-      ]);
-
-      // 5. Monochrome
-      const monochrome = StartupThemeOption.monochrome;
-      expect(monochrome.darkColors[0], const Color(0xFF0E0E10));
-      expect(monochrome.lightColors[0], const Color(0xFFF5F5F7));
-    });
-
-    test('ThemeController coordinates theme families and brightness switching', () {
+    test('ThemeController coordinates Monochrome dark and light brightness switching', () {
       final controller = ThemeController.instance;
-      expect(controller.availableFamilies, containsAll(['solar', 'that_pad', 'corporate', 'neo_tokyo', 'monochrome']));
+      expect(controller.availableFamilies, ['monochrome']);
+      expect(controller.activeFamily, 'monochrome');
 
-      controller.setTheme('solar', isDark: true);
-      expect(controller.activeFamily, 'solar');
+      controller.setTheme('monochrome', isDark: true);
       expect(controller.isDarkMode, isTrue);
-      expect(controller.currentPalette.background, const Color(0xFF002B36));
+      expect(controller.currentPalette.background, const Color(0xFF0E0E10));
 
       controller.setDarkMode(false);
       expect(controller.isDarkMode, isFalse);
-      expect(controller.currentPalette.background, const Color(0xFFFDF6E3));
+      expect(controller.currentPalette.background, const Color(0xFFF5F5F7));
 
-      controller.setTheme('neo_tokyo', isDark: true);
-      expect(controller.activeFamily, 'neo_tokyo');
-      expect(controller.currentPalette.background, const Color(0xFF120E1C));
-
-      // Reset to monochrome dark default
-      controller.setTheme('monochrome', isDark: true);
+      controller.toggleBrightness();
+      expect(controller.isDarkMode, isTrue);
+      expect(controller.currentPalette.background, const Color(0xFF0E0E10));
     });
 
     test('StartupStage returns accurate localized English labels', () {
@@ -234,7 +153,6 @@ void main() {
       expect(strings.notificationAccessTitle, 'Acceso a notificaciones');
       expect(strings.grantPermissionsButton, 'PERMITIR ACCESOS');
       expect(strings.themeNameMonochrome, 'Monochrome');
-      expect(strings.acceptThemeAction, 'ACEPTAR');
     });
   });
 
@@ -659,22 +577,19 @@ void main() {
       final dao = AppMetadataDao.instance;
       dao.setMockTheme(family: null, isDark: null);
 
-      // 1. Change theme via controller
-      ThemeController.instance.setTheme('solar', isDark: false);
-      expect(ThemeController.instance.activeFamily, 'solar');
+      // 1. Change mode via controller
+      ThemeController.instance.setTheme('monochrome', isDark: false);
+      expect(ThemeController.instance.activeFamily, 'monochrome');
       expect(ThemeController.instance.isDarkMode, isFalse);
-      expect(dao.cachedThemeFamily, 'solar');
+      expect(dao.cachedThemeFamily, 'monochrome');
       expect(dao.cachedIsDarkMode, isFalse);
 
       // 2. Re-initialize controller from persisted DAO
-      dao.setMockTheme(family: 'that_pad', isDark: true);
+      dao.setMockTheme(family: 'monochrome', isDark: true);
       await ThemeController.instance.init(appMetadataDao: dao);
 
-      expect(ThemeController.instance.activeFamily, 'that_pad');
+      expect(ThemeController.instance.activeFamily, 'monochrome');
       expect(ThemeController.instance.isDarkMode, isTrue);
-
-      // Cleanup
-      ThemeController.instance.setTheme('monochrome', isDark: true);
     });
   });
 }
