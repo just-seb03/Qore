@@ -437,6 +437,13 @@ class ArtworkService extends ChangeNotifier {
       final picture = recorder.endRecording();
       final circularImage = await picture.toImage(size, size);
       final byteData = await circularImage.toByteData(format: ui.ImageByteFormat.png);
+
+      // Explicitly dispose native Skia/GPU handles immediately to prevent memory leaks
+      image.dispose();
+      picture.dispose();
+      circularImage.dispose();
+      codec.dispose();
+
       return byteData?.buffer.asUint8List() ?? squareBytes;
     } catch (e) {
       debugPrint('⚠️ [ArtworkService] Fallback to square bytes for circular avatar: $e');

@@ -411,8 +411,12 @@ El paquete `material_symbols_icons` incluye fuentes muy extensas. Al compilar en
    - Eliminación de copias redundantes de arrays en getters mediante `UnmodifiableListView` de `dart:collection` (vistas zero-copy sin asignaciones en heap) en `AudioPlaybackBuffer.bufferedSongs`, `PlaybackController.queue`, `RecentSearchController.items`, `ArtistDiscographyController.albums`, `ArtistTracksController.songs` y `HomeLayoutController.items`.
    - Memoización acotada (bounded cache de 1024 entradas) en `ArtistSplitter.split(...)`, eliminando la reejecución de expresiones regulares y la creación de miles de listas de artistas repetidas a través de la biblioteca de canciones.
 
-8. **Parte 8 (Completado - Commit `eeed7ce`):**
+8. **Parte 8 (Completado - Commit `ba0a0b1`):**
    - Eliminación del último `shrinkWrap: true` y `SingleChildScrollView` en `PlaylistReorderableSongList` y `PlaylistTracksEditScreen`, convirtiéndola en una lista virtualizada directa mediante `ReorderableListView.builder` con soporte para listas extensas sin saturar la memoria.
    - Virtualización con altura estricta fija (`itemExtent: 68.0`) y `cacheExtent: 400.0` en `LibraryArtistsList` (`LibraryArtistTile`), permitiendo cálculo $O(1)$ de posiciones de desplazamiento a 120 FPS sin medir widgets en tiempo de ejecución.
    - Downsampling 1:1 dinámico acotado en `ArtistAvatarCropView` sustituyendo el valor fijo de 1600x1600 px por `(viewportSize * dpr).clamp(600, 1080)`, reduciendo más del 50% de la huella de memoria durante el recorte interactivo.
+
+9. **Parte 9 (Completado - Commit `6f44572`):**
+   - Inicialización *Lazy* de controladores de animación y eliminación de tickers perpetuos en `SpaceIntroOverlay`: no se instancian ni ejecutan animaciones (`_bounceController.repeat(reverse: true)`) cuando el usuario ya ha visto el tour de bienvenida, liberando CPU, GPU y 3 `AnimationController`s en la pantalla principal.
+   - Liberación explícita de texturas nativas y Skia buffers (`.dispose()` en `ui.Image`, `ui.Picture` y `ui.Codec`) en `ArtworkService._createCircularImage` y `ArtistAvatarCropScreen._handleConfirmCrop`, evitando fugas de memoria nativa C++ en operaciones de recorte y generación de avatares circulares.
 

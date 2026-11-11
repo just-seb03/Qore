@@ -40,23 +40,47 @@ class SpaceIntroOverlay extends StatefulWidget {
 
 class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
     with TickerProviderStateMixin {
-  late final AnimationController _fadeController;
-  late final AnimationController _bounceController;
-  late final AnimationController _exitController;
+  AnimationController? _fadeController;
+  AnimationController? _bounceController;
+  AnimationController? _exitController;
 
-  late final Animation<double> _dimAnimation;
-  late final Animation<double> _bounceAnimation;
-  late final Animation<double> _exitScaleAnimation;
-  late final Animation<double> _exitOpacityAnimation;
+  Animation<double>? _dimAnimation;
+  Animation<double>? _bounceAnimation;
+  Animation<double>? _exitScaleAnimation;
+  Animation<double>? _exitOpacityAnimation;
 
   int _step = 0;
   bool _isActive = false;
   bool _isExiting = false;
   bool _isDismissed = false;
+  bool _controllersInitialized = false;
 
   @override
   void initState() {
     super.initState();
+    _checkInitialState();
+  }
+
+  void _checkInitialState() {
+    final shouldShow = widget.forceShow ?? !AppMetadataDao.instance.hasSeenSpaceIntroSync;
+    if (!shouldShow) {
+      _isDismissed = true;
+      return;
+    }
+
+    _initControllers();
+
+    // Check if Space is already active
+    if (NavigationController.instance.currentIndex == 0) {
+      _startIntro();
+    } else {
+      NavigationController.instance.addListener(_onNavigationChanged);
+    }
+  }
+
+  void _initControllers() {
+    if (_controllersInitialized) return;
+    _controllersInitialized = true;
 
     final isTest = Platform.environment.containsKey('FLUTTER_TEST') ||
         WidgetsBinding.instance.runtimeType.toString().contains('Test');
@@ -77,36 +101,36 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
     );
 
     _dimAnimation = CurvedAnimation(
-      parent: _fadeController,
+      parent: _fadeController!,
       curve: Curves.easeOutCubic,
     );
 
     _bounceAnimation = Tween<double>(begin: 0.0, end: 6.0).animate(
       CurvedAnimation(
-        parent: _bounceController,
+        parent: _bounceController!,
         curve: Curves.easeInOutSine,
       ),
     );
 
     _exitScaleAnimation = Tween<double>(begin: 1.0, end: 0.88).animate(
       CurvedAnimation(
-        parent: _exitController,
+        parent: _exitController!,
         curve: Curves.easeInOutCubic,
       ),
     );
 
     _exitOpacityAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(
-        parent: _exitController,
+        parent: _exitController!,
         curve: Curves.easeInCubic,
       ),
     );
 
     if (!isTest) {
-      _bounceController.repeat(reverse: true);
+      _bounceController!.repeat(reverse: true);
     }
 
-    _exitController.addStatusListener((status) {
+    _exitController!.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         AppMetadataDao.instance.setSpaceIntroSeen(seen: true);
         if (mounted) {
@@ -117,23 +141,6 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
         widget.onDismissed?.call();
       }
     });
-
-    _checkInitialState();
-  }
-
-  void _checkInitialState() {
-    final shouldShow = widget.forceShow ?? !AppMetadataDao.instance.hasSeenSpaceIntroSync;
-    if (!shouldShow) {
-      _isDismissed = true;
-      return;
-    }
-
-    // Check if Space is already active
-    if (NavigationController.instance.currentIndex == 0) {
-      _startIntro();
-    } else {
-      NavigationController.instance.addListener(_onNavigationChanged);
-    }
   }
 
   void _onNavigationChanged() {
@@ -145,23 +152,28 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
 
   void _startIntro() {
     if (_isActive || _isDismissed) return;
+    if (!_controllersInitialized) {
+      _initControllers();
+    }
     setState(() {
       _isActive = true;
     });
-    _fadeController.forward();
+    _fadeController?.forward();
   }
 
   @override
   void dispose() {
     NavigationController.instance.removeListener(_onNavigationChanged);
-    _fadeController.dispose();
-    _bounceController.dispose();
-    _exitController.dispose();
+    if (_controllersInitialized) {
+      _fadeController?.dispose();
+      _bounceController?.dispose();
+      _exitController?.dispose();
+    }
     super.dispose();
   }
 
   void _onTapNext() {
-    if (!_isActive || _isExiting || _isDismissed) return;
+    if (!_isActive || _isExiting || _isDismissed || !_controllersInitialized) return;
 
     HapticFeedback.lightImpact();
 
@@ -174,8 +186,8 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
       setState(() {
         _isExiting = true;
       });
-      _exitController.forward();
-      _fadeController.reverse();
+      _exitController?.forward();
+      _fadeController?.reverse();
     }
   }
 
@@ -239,14 +251,14 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
 
   @override
   Widget build(BuildContext context) {
-    if (_isDismissed) {
+    if (_isDismissed || !_isActive || !_controllersInitialized) {
       return const SizedBox.shrink();
     }
 
     return AnimatedBuilder(
-      animation: Listenable.merge([_dimAnimation, _exitOpacityAnimation]),
+      animation: Listenable.merge([_dimAnimation!, _exitOpacityAnimation!]),
       builder: (context, _) {
-        final dimOpacity = (_dimAnimation.value * _exitOpacityAnimation.value)
+        final dimOpacity = (_dimAnimation!.value * _exitOpacityAnimation!.value)
             .clamp(0.0, 1.0);
 
         if (!_isActive || dimOpacity <= 0.0) {
@@ -268,9 +280,9 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
                   child: ScaleTransition(
-                    scale: _exitScaleAnimation,
+                    scale: _exitScaleAnimation!,
                     child: FadeTransition(
-                      opacity: _exitOpacityAnimation,
+                      opacity: _exitOpacityAnimation!,
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -337,10 +349,10 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
                           Center(
                             child: RepaintBoundary(
                               child: AnimatedBuilder(
-                                animation: _bounceAnimation,
+                                animation: _bounceAnimation!,
                                 builder: (context, child) {
                                   return Transform.translate(
-                                    offset: Offset(0.0, _bounceAnimation.value),
+                                    offset: Offset(0.0, _bounceAnimation!.value),
                                     child: child,
                                   );
                                 },

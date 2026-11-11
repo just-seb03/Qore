@@ -78,6 +78,7 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
       final ui.Image image = await boundary.toImage(pixelRatio: pixelRatio);
       final ByteData? byteData =
           await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
 
       if (byteData != null && mounted) {
         final Uint8List pngBytes = byteData.buffer.asUint8List();
