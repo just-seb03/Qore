@@ -191,7 +191,7 @@ class StartupController extends ChangeNotifier {
     _emit(_state.copyWith(step: StartupStep.permissions));
   }
 
-  /// Requests runtime permissions (audio access & notification) and proceeds to the theme selector step if granted.
+  /// Requests runtime permissions (audio access & notification) and initiates scanning if granted.
   /// Returns `true` if all required permissions are granted, or `false` if denied.
   Future<bool> requestPermissionsAndProceed() async {
     bool audioGranted = false;
@@ -219,24 +219,16 @@ class StartupController extends ChangeNotifier {
     final bool allGranted = audioGranted && notificationGranted;
     if (allGranted) {
       _emit(_state.copyWith(
-        step: StartupStep.themeSelector,
-        stage: StartupStage.checkingPermission,
+        step: StartupStep.loading,
+        stage: StartupStage.scanning,
+        progress: 0.12,
+        statusText: StartupStage.scanning.label,
       ));
+      await _runScanningAndIndexingSequence();
       return true;
     } else {
       return false;
     }
-  }
-
-  /// Accepts the chosen theme (or default) and initiates the background scanning and indexing sequence.
-  Future<void> acceptThemeAndStartScanning({String? themeId}) async {
-    _emit(_state.copyWith(
-      step: StartupStep.loading,
-      stage: StartupStage.scanning,
-      progress: 0.12,
-      statusText: StartupStage.scanning.label,
-    ));
-    await _runScanningAndIndexingSequence();
   }
 
   /// Explicitly navigates to a target startup step (useful for tests and programmatic flow).

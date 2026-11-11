@@ -26,7 +26,6 @@ import 'package:project_anima/features/startup/components/startup_permission_vie
 import 'package:project_anima/features/startup/components/startup_progress_bar.dart';
 import 'package:project_anima/features/startup/components/startup_splash_view.dart';
 import 'package:project_anima/features/startup/components/startup_status_view.dart';
-import 'package:project_anima/features/startup/components/startup_theme_selector_view.dart';
 import 'package:project_anima/features/startup/controls/startup_controller.dart';
 import 'package:project_anima/features/startup/models/startup_stage.dart';
 import 'package:project_anima/features/startup/models/startup_step.dart';
@@ -100,11 +99,10 @@ void main() {
   });
 
   group('Startup Models Tests', () {
-    test('StartupStep defines the four onboarding sequential phases', () {
+    test('StartupStep defines the three onboarding sequential phases', () {
       expect(StartupStep.values, [
         StartupStep.splash,
         StartupStep.permissions,
-        StartupStep.themeSelector,
         StartupStep.loading,
       ]);
     });
@@ -241,7 +239,7 @@ void main() {
   });
 
   group('StartupController Step Transitions', () {
-    test('StartupController transitions through splash -> permissions -> theme -> loading -> ready', () async {
+    test('StartupController transitions through splash -> permissions -> loading -> ready', () async {
       final fakePerm = _FakePermissionService();
       final fakeIndexer = _FakeMusicIndexer();
 
@@ -257,12 +255,8 @@ void main() {
       controller.proceedFromSplash();
       expect(controller.currentStep, StartupStep.permissions);
 
-      // 2. Grant permissions
+      // 2. Grant permissions directly initiates scanning & loading
       await controller.requestPermissionsAndProceed();
-      expect(controller.currentStep, StartupStep.themeSelector);
-
-      // 3. Accept theme and start scanning
-      await controller.acceptThemeAndStartScanning();
       expect(controller.currentStep, StartupStep.loading);
       expect(controller.isReady, isTrue);
       expect(controller.state.stage, StartupStage.ready);
@@ -427,54 +421,6 @@ void main() {
       expect(find.text('NEXT'), findsOneWidget);
     });
 
-    testWidgets('StartupThemeSelectorView renders player preview, < Theme > and < Mode > selectors, and allows selection', (tester) async {
-      bool accepted = false;
-
-      await tester.pumpWidget(
-        _wrapWithLocalization(
-          child: StartupThemeSelectorView(
-            onAccept: () => accepted = true,
-          ),
-        ),
-      );
-
-      // 0. Top Prompt Title
-      expect(find.text("What's your style?"), findsOneWidget);
-
-      // 1. Scaled down player preview imitation
-      expect(find.text('Dewdrop Digital'), findsOneWidget);
-      expect(find.text('Iglooghost'), findsOneWidget);
-      expect(find.text('Tidal Memory Exo'), findsOneWidget);
-      expect(find.text('1:38'), findsOneWidget);
-      expect(find.text('4:05'), findsOneWidget);
-
-      // 2. Theme selector inside < >
-      expect(find.text('< Monochrome >'), findsOneWidget);
-
-      // 3. Brightness mode selector inside < >
-      expect(find.text('< Dark >'), findsOneWidget);
-      expect(find.text('NEXT'), findsOneWidget);
-
-      // Cycle to next theme using chevron button
-      await tester.tap(find.byKey(const ValueKey('startup_theme_next_button')));
-      await tester.pumpAndSettle();
-      expect(find.text('< That Pad >'), findsOneWidget);
-
-      // Toggle to Light mode
-      await tester.tap(find.byKey(const ValueKey('startup_mode_toggle_next')));
-      await tester.pumpAndSettle();
-      expect(find.text('< Light >'), findsOneWidget);
-
-      // Tap NEXT to accept
-      await tester.tap(find.byKey(const ValueKey('startup_theme_accept_button')));
-      expect(accepted, isTrue);
-      expect(ThemeController.instance.activeFamily, 'that_pad');
-      expect(ThemeController.instance.isDarkMode, isFalse);
-
-      // Reset to monochrome dark
-      ThemeController.instance.setTheme('monochrome', isDark: true);
-    });
-
     testWidgets('StartupStatusView renders stage text and percentage', (tester) async {
       await tester.pumpWidget(
         _wrapWithLocalization(
@@ -538,7 +484,7 @@ void main() {
   });
 
   group('StartupLoadingScreen Orchestration Tests', () {
-    testWidgets('StartupLoadingScreen guides through full 4-step sequence into destination screen', (tester) async {
+    testWidgets('StartupLoadingScreen guides through full 3-step sequence into destination screen', (tester) async {
       final fakePerm = _FakePermissionService();
       final fakeIndexer = _FakeMusicIndexer();
 
@@ -593,23 +539,13 @@ void main() {
 
       expect(find.text('2'), findsOneWidget);
 
-      // Tap NEXT to request permissions and advance
+      // Tap NEXT to request permissions and advance directly to library loading
       await tester.tap(find.text('NEXT'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600)); // Darkening and grant
-      await tester.pump(const Duration(milliseconds: 600)); // Transformation transition to ThemeSelector
+      await tester.pump(const Duration(milliseconds: 600)); // AnimatedSwitcher transition to Loading
 
-      // 3. Step 3: Theme Selector View
-      expect(find.byType(StartupThemeSelectorView), findsOneWidget);
-      expect(find.text('Dewdrop Digital'), findsOneWidget);
-      expect(find.text('NEXT'), findsOneWidget);
-
-      // Tap NEXT to accept theme and advance to library loading
-      await tester.tap(find.byKey(const ValueKey('startup_theme_accept_button')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500)); // AnimatedSwitcher transition
-
-      // 4. Step 4: Loading View
+      // 3. Step 3: Loading View
       expect(find.byType(StartupLoadingView), findsOneWidget);
 
       // Settle scanning sequence through ready state
@@ -661,10 +597,9 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      // Skips splash, permissions, and theme selector!
+      // Skips splash and permissions!
       expect(find.byType(StartupSplashView), findsNothing);
       expect(find.byType(StartupPermissionCardView), findsNothing);
-      expect(find.byType(StartupThemeSelectorView), findsNothing);
 
       // Mounts loading view directly
       expect(find.byType(StartupLoadingView), findsOneWidget);
@@ -718,31 +653,6 @@ void main() {
 
       expect(find.byType(StartupPermissionView), findsOneWidget);
       expect(find.text('AUDIO ACCESS REQUIRED'), findsOneWidget);
-    });
-
-    testWidgets('StartupPlayerPreview renders without borders, borderRadius, or shadows (flat background integration)', (tester) async {
-      await tester.pumpWidget(
-        _wrapWithLocalization(
-          child: const StartupPlayerPreview(
-            isDark: true,
-            themeOption: StartupThemeOption.monochrome,
-          ),
-        ),
-      );
-
-      final previewFinder = find.byType(StartupPlayerPreview);
-      expect(previewFinder, findsOneWidget);
-
-      // Verify root container is a SizedBox, not a decorated card container with borders or shadows
-      final rootSizedBoxFinder = find.descendant(of: previewFinder, matching: find.byType(SizedBox)).first;
-      final rootSizedBox = tester.widget<SizedBox>(rootSizedBoxFinder);
-      expect(rootSizedBox.width, 196.0);
-
-      // Verify no outer card Container exists with bounding box decoration / border / shadow / radius
-      final outerCardContainers = tester.widgetList<Container>(
-        find.descendant(of: previewFinder, matching: find.byType(Container)),
-      ).where((c) => c.constraints?.maxWidth == 196.0 || c.child is Column);
-      expect(outerCardContainers.isEmpty, isTrue, reason: 'Root player preview must be flat and integrated into background with no card container');
     });
 
     test('ThemeController persists active family and isDark to AppMetadataDao and restores on init', () async {

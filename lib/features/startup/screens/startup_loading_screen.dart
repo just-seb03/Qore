@@ -1,9 +1,8 @@
 /// File: startup_loading_screen.dart
-/// Description: Initial launch screen coordinating the modern 4-step startup onboarding experience:
+/// Description: Initial launch screen coordinating the modern 3-step startup onboarding experience:
 /// 1. Animated brand splash ("PROJECT ANIMA" with graceful exit)
 /// 2. Permissions request card (Audio files & notification access with action trigger)
-/// 3. Theme selector preview (Centered slightly above Y-axis, "Monochrome" title, 5 constituent color circles, accept button)
-/// 4. Dynamic library loading sequence (Wavy progress bar & status labels)
+/// 3. Dynamic library loading sequence (Wavy progress bar & status labels)
 /// followed by seamless transition into the primary application interface.
 ///
 /// Components / Classes / Functions:
@@ -18,13 +17,12 @@ import 'package:project_anima/features/startup/components/startup_loading_view.d
 import 'package:project_anima/features/startup/components/startup_permission_card_view.dart';
 import 'package:project_anima/features/startup/components/startup_permission_view.dart';
 import 'package:project_anima/features/startup/components/startup_splash_view.dart';
-import 'package:project_anima/features/startup/components/startup_theme_selector_view.dart';
 import 'package:project_anima/features/startup/controls/startup_controller.dart';
 import 'package:project_anima/features/startup/models/startup_stage.dart';
 import 'package:project_anima/features/startup/models/startup_step.dart';
 
 /// The entry screen mounted on app initialization to guide the user through
-/// branding, permission grant, theme confirmation, and audio library indexing.
+/// branding, permission grant, and audio library indexing.
 class StartupLoadingScreen extends StatefulWidget {
   /// Optional injected controller for testing or custom orchestration.
   final StartupController? controller;
@@ -143,8 +141,6 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
         return const ValueKey('startup_splash_view');
       case StartupStep.permissions:
         return const ValueKey('startup_permission_card_view');
-      case StartupStep.themeSelector:
-        return const ValueKey('startup_theme_selector_view');
       case StartupStep.loading:
         return const ValueKey('startup_loading_view');
     }
@@ -171,12 +167,6 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
           key: const ValueKey('startup_permission_card_view'),
           isDenied: state.stage == StartupStage.permissionDenied,
           onRequestPermissions: _controller.requestPermissionsAndProceed,
-        );
-
-      case StartupStep.themeSelector:
-        return StartupThemeSelectorView(
-          key: const ValueKey('startup_theme_selector_view'),
-          onAccept: _controller.acceptThemeAndStartScanning,
         );
 
       case StartupStep.loading:
