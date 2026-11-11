@@ -15,6 +15,7 @@ import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/features/explore/screens/explore.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 import 'package:project_anima/features/search/components/cards/search_album_card.dart';
 import 'package:project_anima/features/search/components/cards/search_artist_card.dart';
@@ -442,7 +443,21 @@ void main() {
   });
 
   group('SearchScreen Discovery and Focus Animation Tests', () {
-    testWidgets('SearchScreen starts in Discovery Mode and transitions to Search Mode on focus', (tester) async {
+    testWidgets('ExploreScreen renders Discovery View and SearchScreen renders SearchResultsList', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: testDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('en'),
+          home: ExploreScreen(),
+        ),
+      );
+
+      // ExploreScreen mounts SearchDiscoveryView
+      expect(find.byKey(const ValueKey('explore_discovery_view')), findsOneWidget);
+      expect(find.byKey(const ValueKey('search_results_list')), findsNothing);
+
+      // Pump SearchScreen
       await tester.pumpWidget(
         const MaterialApp(
           localizationsDelegates: testDelegates,
@@ -452,18 +467,14 @@ void main() {
         ),
       );
 
-      // Initially SearchDiscoveryView is in the tree
-      expect(find.byKey(const ValueKey('search_discovery_view')), findsOneWidget);
-      expect(find.byKey(const ValueKey('search_results_list')), findsNothing);
+      // SearchScreen directly mounts SearchResultsList with AppSearchBar
+      expect(find.byKey(const ValueKey('search_results_list')), findsOneWidget);
+      expect(find.byKey(const ValueKey('explore_discovery_view')), findsNothing);
 
       // Tap on search bar to expand
       await tester.tap(find.byType(AppSearchBar));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
-
-      // Should have transitioned to SearchResultsList with SearchRecentList / SearchEmptyView
-      expect(find.byKey(const ValueKey('search_results_list')), findsOneWidget);
-      expect(find.byKey(const ValueKey('search_discovery_view')), findsNothing);
 
       // Verify TextField does NOT have focus automatically (no auto-opening keyboard)
       final textField = tester.widget<TextField>(find.byType(TextField));

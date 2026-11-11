@@ -27,7 +27,6 @@ import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/player/screens/player_screen.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
-import 'package:project_anima/features/search/components/search_discovery_view.dart';
 import 'package:project_anima/features/search/components/search_results_list.dart';
 
 /// Type alias allowing both `Search` and `SearchScreen` across the codebase.
@@ -268,9 +267,7 @@ class _SearchScreenState extends State<SearchScreen>
     super.build(context);
 
     return PopScope(
-      canPop: !_searchFocusNode.hasFocus &&
-          !_isSearching &&
-          _searchController.text.isEmpty,
+      canPop: !_searchFocusNode.hasFocus && _searchController.text.isEmpty,
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 
@@ -280,8 +277,8 @@ class _SearchScreenState extends State<SearchScreen>
           return;
         }
 
-        // 2. If keyboard is already closed and in search results / query mode, return to explore discovery
-        if (_isSearching || _searchController.text.isNotEmpty) {
+        // 2. If keyboard is already closed and in query mode, clear query
+        if (_searchController.text.isNotEmpty) {
           _searchController.clear();
           _searchEngine.clear();
           _searchFocusNode.unfocus();
@@ -338,36 +335,18 @@ class _SearchScreenState extends State<SearchScreen>
                     ).createShader(bounds);
                   },
                   blendMode: BlendMode.dstIn,
-                  child: AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    switchInCurve: Curves.easeOutCubic,
-                    switchOutCurve: Curves.easeInCubic,
-                    transitionBuilder: (child, animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: child,
-                      );
-                    },
-                    child: _isSearching
-                        ? SearchResultsList(
-                            key: const ValueKey('search_results_list'),
-                            controller: _searchEngine,
-                            scrollController: _scrollController,
-                            onSongTap: _handleSongTap,
-                            onSongPlayTap: _handleSongTap,
-                            onTopSongCardTap: _handleTopSongCardTap,
-                            onAlbumTap: _handleAlbumTap,
-                            onAlbumPlayTap: _handleAlbumPlayTap,
-                            onArtistTap: _handleArtistTap,
-                            onArtistPlayTap: _handleArtistPlayTap,
-                            onRecentItemTap: _handleRecentItemTap,
-                          )
-                        : SearchDiscoveryView(
-                            key: const ValueKey('search_discovery_view'),
-                            scrollController: _scrollController,
-                            onAlbumTap: _handleAlbumTap,
-                            onArtistTap: _handleArtistTap,
-                          ),
+                  child: SearchResultsList(
+                    key: const ValueKey('search_results_list'),
+                    controller: _searchEngine,
+                    scrollController: _scrollController,
+                    onSongTap: _handleSongTap,
+                    onSongPlayTap: _handleSongTap,
+                    onTopSongCardTap: _handleTopSongCardTap,
+                    onAlbumTap: _handleAlbumTap,
+                    onAlbumPlayTap: _handleAlbumPlayTap,
+                    onArtistTap: _handleArtistTap,
+                    onArtistPlayTap: _handleArtistPlayTap,
+                    onRecentItemTap: _handleRecentItemTap,
                   ),
                 ),
               ),
