@@ -20,31 +20,41 @@ import 'package:project_anima/features/player/components/mini_player.dart';
 
 /// Navigation destinations supported by [AppBottomNav].
 enum BottomNavTab {
-  home,
+  explore,
   search,
-  library;
+  home,
+  library,
+  profile;
 
   /// Retrieves localized destination label.
   String localizedLabel(BuildContext context) {
     switch (this) {
-      case BottomNavTab.home:
-        return context.l10n.navigation.homeTab;
+      case BottomNavTab.explore:
+        return context.l10n.navigation.exploreTab;
       case BottomNavTab.search:
         return context.l10n.navigation.searchTab;
+      case BottomNavTab.home:
+        return context.l10n.navigation.homeTab;
       case BottomNavTab.library:
         return context.l10n.navigation.libraryTab;
+      case BottomNavTab.profile:
+        return context.l10n.navigation.profileTab;
     }
   }
 
   /// Retrieves localized destination tooltip.
   String localizedTooltip(BuildContext context) {
     switch (this) {
-      case BottomNavTab.home:
-        return context.l10n.navigation.homeTabTooltip;
+      case BottomNavTab.explore:
+        return context.l10n.navigation.exploreTabTooltip;
       case BottomNavTab.search:
         return context.l10n.navigation.searchTabTooltip;
+      case BottomNavTab.home:
+        return context.l10n.navigation.homeTabTooltip;
       case BottomNavTab.library:
         return context.l10n.navigation.libraryTabTooltip;
+      case BottomNavTab.profile:
+        return context.l10n.navigation.profileTabTooltip;
     }
   }
 }
@@ -113,10 +123,10 @@ class AppBottomNav extends StatelessWidget {
                 elevation: 0,
                 destinations: [
                   NavigationDestination(
-                    icon: const Icon(Icons.favorite_border_rounded),
-                    selectedIcon: const Icon(Icons.favorite_rounded),
-                    label: context.l10n.navigation.homeTab,
-                    tooltip: context.l10n.navigation.homeTabTooltip,
+                    icon: const Icon(Icons.explore_outlined),
+                    selectedIcon: const Icon(Icons.explore_rounded),
+                    label: context.l10n.navigation.exploreTab,
+                    tooltip: context.l10n.navigation.exploreTabTooltip,
                   ),
                   NavigationDestination(
                     icon: const Icon(Icons.search_rounded),
@@ -125,10 +135,22 @@ class AppBottomNav extends StatelessWidget {
                     tooltip: context.l10n.navigation.searchTabTooltip,
                   ),
                   NavigationDestination(
+                    icon: const Icon(Icons.favorite_border_rounded),
+                    selectedIcon: const Icon(Icons.favorite_rounded),
+                    label: context.l10n.navigation.homeTab,
+                    tooltip: context.l10n.navigation.homeTabTooltip,
+                  ),
+                  NavigationDestination(
                     icon: const Icon(Icons.video_library_outlined),
                     selectedIcon: const Icon(Icons.video_library_rounded),
                     label: context.l10n.navigation.libraryTab,
                     tooltip: context.l10n.navigation.libraryTabTooltip,
+                  ),
+                  NavigationDestination(
+                    icon: const Icon(Icons.person_outline_rounded),
+                    selectedIcon: const Icon(Icons.person_rounded),
+                    label: context.l10n.navigation.profileTab,
+                    tooltip: context.l10n.navigation.profileTabTooltip,
                   ),
                 ],
               ),

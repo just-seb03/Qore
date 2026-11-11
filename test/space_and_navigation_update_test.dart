@@ -12,11 +12,13 @@ import 'package:project_anima/controls/menu_transition_controller.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
+import 'package:project_anima/features/explore/screens/explore.dart';
 import 'package:project_anima/features/home/components/space_header.dart';
 import 'package:project_anima/features/home/components/space_tiles_grid.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
 import 'package:project_anima/features/library/screens/library.dart';
+import 'package:project_anima/features/profile/screens/profile.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_header.dart';
 import 'package:project_anima/features/search/screens/search.dart';
@@ -182,7 +184,7 @@ void main() {
           ],
           home: Scaffold(
             bottomNavigationBar: AppBottomNav(
-              currentIndex: 0,
+              currentIndex: 2,
               showMiniPlayer: false,
             ),
           ),
@@ -219,10 +221,118 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // MenuTransitionControl should show SearchScreen with AppSearchBar and Explore bottom nav tab
+      // MenuTransitionControl should show SearchScreen with AppSearchBar and Search bottom nav tab
       expect(find.byType(SearchScreen), findsOneWidget);
       expect(find.byType(AppSearchBar), findsOneWidget); // Search bar at top
-      expect(find.text('Explore'), findsOneWidget); // Bottom nav tab
+      expect(find.text('Search'), findsOneWidget); // Bottom nav tab
+    });
+  });
+
+  group('Five-Tab Bottom Navigation Tests', () {
+    testWidgets('AppBottomNav renders 5 tabs in exact order with Spanish localization',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          locale: Locale('es'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            bottomNavigationBar: AppBottomNav(
+              currentIndex: 0,
+              showMiniPlayer: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // All 5 tabs present
+      expect(find.text('Explorar'), findsOneWidget);
+      expect(find.text('Buscar'), findsOneWidget);
+      expect(find.text('Space'), findsOneWidget);
+      expect(find.text('Biblioteca'), findsOneWidget);
+      expect(find.text('Perfil'), findsOneWidget);
+
+      // Verify exploration and profile icons
+      expect(find.byIcon(Icons.explore_rounded), findsOneWidget); // Active explore
+      expect(find.byIcon(Icons.person_outline_rounded), findsOneWidget); // Inactive profile
+      expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget); // Inactive space
+    });
+
+    testWidgets('AppBottomNav renders active profile icon when index is 4',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          locale: Locale('es'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            bottomNavigationBar: AppBottomNav(
+              currentIndex: 4,
+              showMiniPlayer: false,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byIcon(Icons.person_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.explore_outlined), findsOneWidget);
+    });
+
+    testWidgets('MenuTransitionControl transitions between all 5 screens',
+        (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: MenuTransitionControl(),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // Defaults to SearchScreen (index 1)
+      expect(find.byType(SearchScreen), findsOneWidget);
+
+      // Navigate to Explore (index 0)
+      MenuTransitionController.instance.animateTo(0);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.byType(ExploreScreen), findsOneWidget);
+
+      // Navigate to Space (index 2)
+      MenuTransitionController.instance.animateTo(2);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.byType(HomeScreen), findsOneWidget);
+
+      // Navigate to Library (index 3)
+      MenuTransitionController.instance.animateTo(3);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.byType(LibraryScreen), findsOneWidget);
+
+      // Navigate to Profile (index 4)
+      MenuTransitionController.instance.animateTo(4);
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 350));
+      expect(find.byType(ProfileScreen), findsOneWidget);
     });
   });
 }

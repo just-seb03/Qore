@@ -12,20 +12,32 @@ class EnNavigationStrings implements NavigationStrings {
   const EnNavigationStrings();
 
   @override
+  String get exploreTab => 'Explore';
+
+  @override
+  String get exploreTabTooltip => 'Explore';
+
+  @override
+  String get searchTab => 'Search';
+
+  @override
+  String get searchTabTooltip => 'Search';
+
+  @override
   String get homeTab => 'Space';
 
   @override
   String get homeTabTooltip => 'Space';
 
   @override
-  String get searchTab => 'Explore';
-
-  @override
-  String get searchTabTooltip => 'Explore';
-
-  @override
   String get libraryTab => 'Library';
 
   @override
   String get libraryTabTooltip => 'Library';
+
+  @override
+  String get profileTab => 'Profile';
+
+  @override
+  String get profileTabTooltip => 'Profile';
 }

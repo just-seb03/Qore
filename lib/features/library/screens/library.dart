@@ -275,7 +275,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
           floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
           bottomNavigationBar: widget.showBottomNav
               ? const AppBottomNav(
-                  currentIndex: 2,
+                  currentIndex: 3,
                 )
               : null,
         );

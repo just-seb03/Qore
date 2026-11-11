@@ -8,11 +8,11 @@ library;
 
 /// Contract defining localized strings for application navigation components.
 abstract class NavigationStrings {
-  /// Label for the Home bottom navigation tab (e.g. 'Home').
-  String get homeTab;
+  /// Label for the Explore bottom navigation tab (e.g. 'Explore').
+  String get exploreTab;
 
-  /// Tooltip for the Home bottom navigation tab (e.g. 'Home').
-  String get homeTabTooltip;
+  /// Tooltip for the Explore bottom navigation tab (e.g. 'Explore').
+  String get exploreTabTooltip;
 
   /// Label for the Search bottom navigation tab (e.g. 'Search').
   String get searchTab;
@@ -20,9 +20,21 @@ abstract class NavigationStrings {
   /// Tooltip for the Search bottom navigation tab (e.g. 'Search').
   String get searchTabTooltip;
 
+  /// Label for the Home / Space bottom navigation tab (e.g. 'Space').
+  String get homeTab;
+
+  /// Tooltip for the Home / Space bottom navigation tab (e.g. 'Space').
+  String get homeTabTooltip;
+
   /// Label for the Library bottom navigation tab (e.g. 'Library').
   String get libraryTab;
 
   /// Tooltip for the Library bottom navigation tab (e.g. 'Library').
   String get libraryTabTooltip;
+
+  /// Label for the Profile bottom navigation tab (e.g. 'Profile').
+  String get profileTab;
+
+  /// Tooltip for the Profile bottom navigation tab (e.g. 'Profile').
+  String get profileTabTooltip;
 }

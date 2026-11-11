@@ -16,8 +16,10 @@ library;
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
+import 'package:project_anima/features/explore/screens/explore.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/screens/library.dart';
+import 'package:project_anima/features/profile/screens/profile.dart';
 import 'package:project_anima/features/search/screens/search.dart';
 
 /// Horizontal direction for the menu transition animation.
@@ -82,7 +84,7 @@ class MenuTransitionController extends ChangeNotifier {
   /// Default transition animation curve with hard brake and resistance overshoot.
   Curve curve = const OvershootResistanceCurve(1.25);
 
-  /// Currently active menu index (0: Home, 1: Search, 2: Library).
+  /// Currently active menu index (0: Explore, 1: Search, 2: Space, 3: Library, 4: Profile).
   int get currentIndex => _currentIndex;
 
   /// Previously active menu index before transition.
@@ -103,7 +105,7 @@ class MenuTransitionController extends ChangeNotifier {
   /// - If target > current: slides forward (leftward exit, rightward entrance).
   /// - If target < current: slides backward (rightward exit, leftward entrance).
   void animateTo(int targetIndex) {
-    if (targetIndex < 0 || targetIndex > 2) return;
+    if (targetIndex < 0 || targetIndex > 4) return;
     if (_currentIndex == targetIndex) return;
 
     _previousIndex = _currentIndex;
@@ -145,8 +147,8 @@ class MenuTransitionControl extends StatefulWidget {
   /// Custom controller instance. Defaults to [MenuTransitionController.instance].
   final MenuTransitionController? controller;
 
-  /// Explicit list of children widgets to animate between (ordered: 0: Home, 1: Search, 2: Library).
-  /// If null, default instances of [HomeScreen], [SearchScreen], and [LibraryScreen] are used.
+  /// Explicit list of children widgets to animate between (ordered: 0: Explore, 1: Search, 2: Space, 3: Library, 4: Profile).
+  /// If null, default instances of [ExploreScreen], [SearchScreen], [HomeScreen], [LibraryScreen], and [ProfileScreen] are used.
   final List<Widget>? children;
 
   /// Whether to host the global [AppBottomNav] inside this control's Scaffold.
@@ -225,9 +227,11 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
 
     final screens = widget.children ??
         const [
-          HomeScreen(showBottomNav: false),
+          ExploreScreen(showBottomNav: false),
           SearchScreen(showBottomNav: false),
+          HomeScreen(showBottomNav: false),
           LibraryScreen(showBottomNav: false),
+          ProfileScreen(showBottomNav: false),
         ];
 
     _menuScreens = List<Widget>.generate(

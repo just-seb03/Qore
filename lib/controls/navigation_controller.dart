@@ -12,9 +12,11 @@ import 'package:project_anima/controls/menu_transition_controller.dart';
 
 /// Enumeration of root application navigation tabs.
 enum NavigationTab {
-  home,
+  explore,
   search,
-  library;
+  home,
+  library,
+  profile;
 
   /// Retrieves the corresponding enum value from an integer index.
   static NavigationTab fromIndex(int index) {

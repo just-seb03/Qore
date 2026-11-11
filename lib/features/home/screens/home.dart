@@ -70,7 +70,7 @@ class HomeScreen extends StatelessWidget {
             ),
             bottomNavigationBar: showBottomNav
                 ? const AppBottomNav(
-                    currentIndex: 0,
+                    currentIndex: 2,
                   )
                 : null,
           ),

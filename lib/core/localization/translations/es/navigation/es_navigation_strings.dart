@@ -12,20 +12,32 @@ class EsNavigationStrings implements NavigationStrings {
   const EsNavigationStrings();
 
   @override
+  String get exploreTab => 'Explorar';
+
+  @override
+  String get exploreTabTooltip => 'Explorar';
+
+  @override
+  String get searchTab => 'Buscar';
+
+  @override
+  String get searchTabTooltip => 'Buscar';
+
+  @override
   String get homeTab => 'Space';
 
   @override
   String get homeTabTooltip => 'Space';
 
   @override
-  String get searchTab => 'Explorar';
-
-  @override
-  String get searchTabTooltip => 'Explorar';
-
-  @override
   String get libraryTab => 'Biblioteca';
 
   @override
   String get libraryTabTooltip => 'Biblioteca';
+
+  @override
+  String get profileTab => 'Perfil';
+
+  @override
+  String get profileTabTooltip => 'Perfil';
 }
