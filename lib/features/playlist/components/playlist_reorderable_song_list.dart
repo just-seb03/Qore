@@ -76,36 +76,33 @@ class PlaylistReorderableSongList extends StatelessWidget {
       );
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                context.l10n.playlist.tracksHeaderWithCount(songs.length),
-                style: _headerStyle,
+    return ReorderableListView.builder(
+      header: Padding(
+        key: const ValueKey('playlist_reorderable_header'),
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 8.0),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              context.l10n.playlist.tracksHeaderWithCount(songs.length),
+              style: _headerStyle,
+            ),
+            Text(
+              context.l10n.playlist.dragToReorder,
+              style: GoogleFonts.inconsolata(
+                fontSize: 11.5,
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
               ),
-              Text(
-                context.l10n.playlist.dragToReorder,
-                style: GoogleFonts.inconsolata(
-                  fontSize: 11.5,
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
-        ReorderableListView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: songs.length,
-          buildDefaultDragHandles: false,
-          onReorderItem: onReorder,
-          itemBuilder: (context, index) {
+      ),
+      padding: const EdgeInsets.only(bottom: 60.0),
+      physics: const BouncingScrollPhysics(),
+      itemCount: songs.length,
+      buildDefaultDragHandles: false,
+      onReorderItem: onReorder,
+      itemBuilder: (context, index) {
             final song = songs[index];
             final itemKey = ValueKey('${song.mediaStoreId}_$index');
 
@@ -180,8 +177,6 @@ class PlaylistReorderableSongList extends StatelessWidget {
               ),
             );
           },
-        ),
-      ],
     );
   }
 }

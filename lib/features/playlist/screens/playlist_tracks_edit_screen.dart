@@ -457,14 +457,10 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                                     ),
                                   ],
                                 )
-                          : SingleChildScrollView(
-                              physics: const BouncingScrollPhysics(),
-                              padding: const EdgeInsets.only(bottom: 60.0),
-                              child: PlaylistReorderableSongList(
-                                songs: _songs,
-                                onRemove: _removeSong,
-                                onReorder: _reorderSongs,
-                              ),
+                          : PlaylistReorderableSongList(
+                              songs: _songs,
+                              onRemove: _removeSong,
+                              onReorder: _reorderSongs,
                             ),
                 ),
               ],

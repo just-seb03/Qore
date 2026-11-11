@@ -15,6 +15,9 @@ import 'package:project_anima/features/search/components/common/material_artist_
 
 /// Row tile presenting an artist in the Library artists list.
 class LibraryArtistTile extends StatelessWidget {
+  /// Strict fixed tile height matching virtualized ListView itemExtent.
+  static const double tileHeight = 68.0;
+
   /// Aggregated artist data.
   final ArtistDiscoveryItem artist;
 
@@ -43,46 +46,49 @@ class LibraryArtistTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
-        highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-          child: Row(
-            children: [
-              // 1. Circular Avatar (Photo or Material silhouette)
-              MaterialArtistAvatar(
-                radius: 26.0,
-                artistName: artist.name,
-              ),
-              const SizedBox(width: 16.0),
-
-              // 2. Artist Name and Label
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      artist.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _nameStyle,
-                    ),
-                    const SizedBox(height: 2.0),
-                    Text(
-                      context.l10n.library.artistSubtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _subtitleStyle,
-                    ),
-                  ],
+    return SizedBox(
+      height: tileHeight,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+          highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            child: Row(
+              children: [
+                // 1. Circular Avatar (Photo or Material silhouette)
+                MaterialArtistAvatar(
+                  radius: 26.0,
+                  artistName: artist.name,
                 ),
-              ),
-            ],
+                const SizedBox(width: 16.0),
+
+                // 2. Artist Name and Label
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        artist.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _nameStyle,
+                      ),
+                      const SizedBox(height: 2.0),
+                      Text(
+                        context.l10n.library.artistSubtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: _subtitleStyle,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),

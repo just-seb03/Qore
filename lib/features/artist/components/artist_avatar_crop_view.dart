@@ -56,12 +56,18 @@ class ArtistAvatarCropView extends StatelessWidget {
                     panEnabled: true,
                     scaleEnabled: true,
                     boundaryMargin: const EdgeInsets.all(double.infinity),
-                    child: Image.file(
-                      imageFile,
-                      fit: BoxFit.cover,
-                      cacheWidth: 1600,
-                      cacheHeight: 1600,
-                      filterQuality: FilterQuality.medium,
+                    child: Builder(
+                      builder: (context) {
+                        final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
+                        final targetCache = (viewportSize * dpr).round().clamp(600, 1080);
+                        return Image.file(
+                          imageFile,
+                          fit: BoxFit.cover,
+                          cacheWidth: targetCache,
+                          cacheHeight: targetCache,
+                          filterQuality: FilterQuality.medium,
+                        );
+                      },
                     ),
                   ),
                 ),
