@@ -17,7 +17,6 @@ import 'package:project_anima/core/localization/contracts/navigation_strings.dar
 import 'package:project_anima/core/localization/contracts/player_strings.dart';
 import 'package:project_anima/core/localization/contracts/playlist_strings.dart';
 import 'package:project_anima/core/localization/contracts/search_strings.dart';
-import 'package:project_anima/core/localization/contracts/settings_strings.dart';
 import 'package:project_anima/core/localization/contracts/startup_strings.dart';
 
 export 'package:project_anima/core/localization/contracts/album_strings.dart';
@@ -31,7 +30,6 @@ export 'package:project_anima/core/localization/contracts/navigation_strings.dar
 export 'package:project_anima/core/localization/contracts/player_strings.dart';
 export 'package:project_anima/core/localization/contracts/playlist_strings.dart';
 export 'package:project_anima/core/localization/contracts/search_strings.dart';
-export 'package:project_anima/core/localization/contracts/settings_strings.dart';
 export 'package:project_anima/core/localization/contracts/startup_strings.dart';
 
 /// Aggregator contract providing structured, domain-isolated localized strings.
@@ -68,9 +66,6 @@ abstract class AppStrings {
 
   /// Strings belonging to the Search feature.
   SearchStrings get search;
-
-  /// Strings belonging to the Settings & Info feature.
-  SettingsStrings get settings;
 
   /// Strings belonging to the Startup initialization feature.
   StartupStrings get startup;

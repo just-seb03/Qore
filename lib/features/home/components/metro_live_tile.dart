@@ -45,7 +45,7 @@ class MetroLiveTile extends StatefulWidget {
   /// Long-press callback (e.g. to unpin).
   final VoidCallback? onLongPress;
 
-  /// Global pause flag for live tile 3D animations (e.g. when Settings sheet is active).
+  /// Global pause flag for live tile 3D animations.
   static final ValueNotifier<bool> isPaused = ValueNotifier<bool>(false);
 
   const MetroLiveTile({

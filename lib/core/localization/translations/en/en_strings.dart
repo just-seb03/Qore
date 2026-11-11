@@ -18,7 +18,6 @@ import 'package:project_anima/core/localization/translations/en/navigation/en_na
 import 'package:project_anima/core/localization/translations/en/player/en_player_strings.dart';
 import 'package:project_anima/core/localization/translations/en/playlist/en_playlist_strings.dart';
 import 'package:project_anima/core/localization/translations/en/search/en_search_strings.dart';
-import 'package:project_anima/core/localization/translations/en/settings/en_settings_strings.dart';
 import 'package:project_anima/core/localization/translations/en/startup/en_startup_strings.dart';
 
 /// English translation suite for Project Anima.
@@ -58,9 +57,6 @@ class EnStrings implements AppStrings {
 
   @override
   final SearchStrings search = const EnSearchStrings();
-
-  @override
-  final SettingsStrings settings = const EnSettingsStrings();
 
   @override
   final StartupStrings startup = const EnStartupStrings();
