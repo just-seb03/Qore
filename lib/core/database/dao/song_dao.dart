@@ -1413,6 +1413,15 @@ class SongDao {
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
+  /// Retrieves lightweight id and path mappings for songs that lack an album_artist value
+  /// without instantiating Song domain models.
+  Future<List<Map<String, dynamic>>> getSongPathsWithoutAlbumArtist() async {
+    final db = await _appDatabase.database;
+    return await db.rawQuery(
+      'SELECT media_store_id AS id, path FROM songs WHERE album_artist IS NULL OR TRIM(album_artist) = "" OR album_artist = "<Desconocido>"',
+    );
+  }
+
   /// Checks whether the one-time track_number backfill has been executed.
   Future<bool> isTrackNumberBackfilled() async {
     final db = await _appDatabase.database;

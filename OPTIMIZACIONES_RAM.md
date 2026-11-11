@@ -416,7 +416,12 @@ El paquete `material_symbols_icons` incluye fuentes muy extensas. Al compilar en
    - Virtualización con altura estricta fija (`itemExtent: 68.0`) y `cacheExtent: 400.0` en `LibraryArtistsList` (`LibraryArtistTile`), permitiendo cálculo $O(1)$ de posiciones de desplazamiento a 120 FPS sin medir widgets en tiempo de ejecución.
    - Downsampling 1:1 dinámico acotado en `ArtistAvatarCropView` sustituyendo el valor fijo de 1600x1600 px por `(viewportSize * dpr).clamp(600, 1080)`, reduciendo más del 50% de la huella de memoria durante el recorte interactivo.
 
-9. **Parte 9 (Completado - Commit `6f44572`):**
+9. **Parte 9 (Completado - Commit `8e93443`):**
    - Inicialización *Lazy* de controladores de animación y eliminación de tickers perpetuos en `SpaceIntroOverlay`: no se instancian ni ejecutan animaciones (`_bounceController.repeat(reverse: true)`) cuando el usuario ya ha visto el tour de bienvenida, liberando CPU, GPU y 3 `AnimationController`s en la pantalla principal.
    - Liberación explícita de texturas nativas y Skia buffers (`.dispose()` en `ui.Image`, `ui.Picture` y `ui.Codec`) en `ArtworkService._createCircularImage` y `ArtistAvatarCropScreen._handleConfirmCrop`, evitando fugas de memoria nativa C++ en operaciones de recorte y generación de avatares circulares.
+
+10. **Parte 10 (Completado):**
+    - Desacoplamiento de modelos pesados en la cola de carátulas (`_ArtworkQueueItem` en `ArtworkService`): se reemplazó la retención de miles de entidades `Song` completas en `_queue` y `_albumPendingSongs` por una estructura mínima de 4 campos requeridos por los isolates, eliminando también el recálculo redundante de `_albumKey` durante el procesamiento por lotes.
+    - Soporte integral de metadatos livianos `enqueueSongArtworkMeta(List<SongArtworkMeta>)` en `ArtworkService.preloadAlbumMappings`, evitando deserializaciones innecesarias de canciones durante el arranque.
+    - Proyección directa `getSongPathsWithoutAlbumArtist()` en `SongDao` y `MusicIndexer`, eliminando la creación de objetos `Song` intermedios durante el escaneo y backfill de artistas físicos.
 

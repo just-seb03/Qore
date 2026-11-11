@@ -325,11 +325,8 @@ class MusicIndexer {
       // Check if one-time physical album_artist tag backfill is needed for cached songs
       final bool needsPhysicalBackfill = !await _songDao.isPhysicalAlbumArtistBackfilled();
       if (needsPhysicalBackfill) {
-        final songsWithout = await _songDao.getSongsWithoutAlbumArtist();
-        if (songsWithout.isNotEmpty) {
-          final items = songsWithout
-              .map((s) => {'id': s.mediaStoreId, 'path': s.path})
-              .toList();
+        final items = await _songDao.getSongPathsWithoutAlbumArtist();
+        if (items.isNotEmpty) {
           final resolved = await compute(extractPhysicalAlbumArtistsInIsolate, items);
           if (resolved.isNotEmpty) {
             await _songDao.backfillAlbumArtists(resolved);

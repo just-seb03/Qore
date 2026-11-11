@@ -19,6 +19,21 @@ import 'package:project_anima/core/artwork/models/artwork_batch_item.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 
+/// Lightweight queue item holding only the minimal fields needed for isolate extraction.
+class _ArtworkQueueItem {
+  final int mediaStoreId;
+  final int? albumId;
+  final String path;
+  final String albumKey;
+
+  const _ArtworkQueueItem({
+    required this.mediaStoreId,
+    this.albumId,
+    required this.path,
+    required this.albumKey,
+  });
+}
+
 /// Singleton service implementing the Dual-Tier Artwork Pipeline (Module 6).
 class ArtworkService extends ChangeNotifier {
   ArtworkService._();
@@ -40,14 +55,14 @@ class ArtworkService extends ChangeNotifier {
   final Map<String, String> _customArtistRoundCache = {};
   final Map<String, String> _customArtistSquareCache = {};
   final Map<String, int> _albumRepresentativeCache = {};
-  final Map<String, List<Song>> _albumPendingSongs = {};
+  final Map<String, List<_ArtworkQueueItem>> _albumPendingSongs = {};
   final Map<int, String> _songAlbumKeyCache = {};
 
   // Tracks IDs known to have no artwork to prevent redundant re-queuing
   final Set<int> _noArtworkCache = {};
 
   // Queuing structures
-  final List<Song> _queue = [];
+  final List<_ArtworkQueueItem> _queue = [];
   final Set<int> _pendingQueueSet = {};
   bool _isProcessingQueue = false;
   int _totalQueueItemsToProcess = 0;
@@ -177,7 +192,7 @@ class ArtworkService extends ChangeNotifier {
 
       // 4. Automatically enqueue any songs or albums that do not have cached artworks yet.
       // Deduplicate at the album level: enqueue only ONE representative song per missing album.
-      final List<Song> missingArtworkSongs = [];
+      final List<SongArtworkMeta> missingArtworkMeta = [];
       final Set<String> enqueuedAlbumKeys = {};
 
       for (final meta in metadataList) {
@@ -188,12 +203,12 @@ class ArtworkService extends ChangeNotifier {
             _thumbnailCache.containsKey(repId);
 
         if (!hasArtwork && enqueuedAlbumKeys.add(key)) {
-          missingArtworkSongs.add(meta.toSong());
+          missingArtworkMeta.add(meta);
         }
       }
 
-      if (missingArtworkSongs.isNotEmpty) {
-        enqueueSongs(missingArtworkSongs);
+      if (missingArtworkMeta.isNotEmpty) {
+        enqueueSongArtworkMeta(missingArtworkMeta);
       }
     } catch (e) {
       debugPrint('⚠️ [ArtworkService] preloadAlbumMappings error: $e');
@@ -481,13 +496,13 @@ class ArtworkService extends ChangeNotifier {
   void prioritizeSongIds(List<int> ids) {
     if (_queue.isEmpty || ids.isEmpty) return;
     final Set<int> targetIds = ids.toSet();
-    final List<Song> priority = [];
-    final List<Song> rest = [];
-    for (final song in _queue) {
-      if (targetIds.contains(song.mediaStoreId)) {
-        priority.add(song);
+    final List<_ArtworkQueueItem> priority = [];
+    final List<_ArtworkQueueItem> rest = [];
+    for (final item in _queue) {
+      if (targetIds.contains(item.mediaStoreId)) {
+        priority.add(item);
       } else {
-        rest.add(song);
+        rest.add(item);
       }
     }
     if (priority.isNotEmpty) {
@@ -585,12 +600,84 @@ class ArtworkService extends ChangeNotifier {
       final pendingList = _albumPendingSongs[key] ??= [];
       for (final c in candidates) {
         if (!pendingList.any((s) => s.mediaStoreId == c.mediaStoreId)) {
-          pendingList.add(c);
+          pendingList.add(_ArtworkQueueItem(
+            mediaStoreId: c.mediaStoreId,
+            albumId: c.albumId,
+            path: c.path,
+            albumKey: key,
+          ));
         }
       }
 
       // Enqueue ONLY the first candidate for this album
-      final candidateToQueue = candidates.first;
+      final candidateToQueue = pendingList.first;
+      _albumRepresentativeCache[key] = candidateToQueue.mediaStoreId;
+      _queue.add(candidateToQueue);
+      _pendingQueueSet.add(candidateToQueue.mediaStoreId);
+      _totalQueueItemsToProcess++;
+    }
+
+    if (!_isProcessingQueue && _queue.isNotEmpty) {
+      _processQueue();
+    }
+  }
+
+  /// Enqueues lightweight artwork metadata for background extraction without instantiating Song domain models.
+  void enqueueSongArtworkMeta(List<SongArtworkMeta> metadataList) {
+    if (!_initialized || metadataList.isEmpty) return;
+
+    final Map<String, List<SongArtworkMeta>> byAlbum = {};
+    for (final meta in metadataList) {
+      final key = _songAlbumKeyCache[meta.mediaStoreId] ??
+          _albumKeyFromMeta(meta.album, meta.artist, meta.albumArtist);
+      _songAlbumKeyCache[meta.mediaStoreId] = key;
+      (byAlbum[key] ??= []).add(meta);
+    }
+
+    for (final entry in byAlbum.entries) {
+      final key = entry.key;
+      final albumSongs = entry.value;
+
+      int? cachedRepId;
+      for (final meta in albumSongs) {
+        if (_thumbnailCache.containsKey(meta.mediaStoreId)) {
+          cachedRepId = meta.mediaStoreId;
+          break;
+        }
+      }
+
+      if (cachedRepId != null) {
+        _albumRepresentativeCache[key] = cachedRepId;
+        continue;
+      }
+
+      if (_albumRepresentativeCache.containsKey(key)) {
+        final repId = _albumRepresentativeCache[key]!;
+        if (_thumbnailCache.containsKey(repId)) {
+          continue;
+        }
+      }
+
+      final candidates = albumSongs
+          .where((s) =>
+              !_noArtworkCache.contains(s.mediaStoreId) &&
+              !_pendingQueueSet.contains(s.mediaStoreId))
+          .toList();
+      if (candidates.isEmpty) continue;
+
+      final pendingList = _albumPendingSongs[key] ??= [];
+      for (final c in candidates) {
+        if (!pendingList.any((s) => s.mediaStoreId == c.mediaStoreId)) {
+          pendingList.add(_ArtworkQueueItem(
+            mediaStoreId: c.mediaStoreId,
+            albumId: c.albumId,
+            path: c.path,
+            albumKey: key,
+          ));
+        }
+      }
+
+      final candidateToQueue = pendingList.first;
       _albumRepresentativeCache[key] = candidateToQueue.mediaStoreId;
       _queue.add(candidateToQueue);
       _pendingQueueSet.add(candidateToQueue.mediaStoreId);
@@ -610,14 +697,14 @@ class ArtworkService extends ChangeNotifier {
     try {
       while (_queue.isNotEmpty) {
         final count = _queue.length < _batchSize ? _queue.length : _batchSize;
-        final List<Song> batch = _queue.sublist(0, count);
+        final List<_ArtworkQueueItem> batch = _queue.sublist(0, count);
         _queue.removeRange(0, count);
 
-        final List<ArtworkBatchItem> batchItems = batch.map((song) {
+        final List<ArtworkBatchItem> batchItems = batch.map((item) {
           return ArtworkBatchItem(
-            mediaStoreId: song.mediaStoreId,
-            albumId: song.albumId,
-            filePath: song.path,
+            mediaStoreId: item.mediaStoreId,
+            albumId: item.albumId,
+            filePath: item.path,
             thumbnailTargetDirectory: _thumbnailsDir,
             coverTargetDirectory: _coversDir,
           );
@@ -645,10 +732,10 @@ class ArtworkService extends ChangeNotifier {
 
         // Propagate newly resolved artworks to all pending songs of the same album
         if (hasNewArtworks) {
-          for (final song in batch) {
-            if (_thumbnailCache.containsKey(song.mediaStoreId)) {
-              final key = _albumKey(song);
-              _albumRepresentativeCache[key] = song.mediaStoreId;
+          for (final item in batch) {
+            if (_thumbnailCache.containsKey(item.mediaStoreId)) {
+              final key = item.albumKey;
+              _albumRepresentativeCache[key] = item.mediaStoreId;
 
               final pending = _albumPendingSongs.remove(key);
               if (pending != null) {
@@ -659,17 +746,17 @@ class ArtworkService extends ChangeNotifier {
             }
           }
 
-          final List<Song> remaining = [];
-          for (final song in _queue) {
-            final key = _albumKey(song);
+          final List<_ArtworkQueueItem> remaining = [];
+          for (final item in _queue) {
+            final key = item.albumKey;
             if (_albumRepresentativeCache.containsKey(key)) {
               final repId = _albumRepresentativeCache[key]!;
               if (_thumbnailCache.containsKey(repId)) {
-                _pendingQueueSet.remove(song.mediaStoreId);
+                _pendingQueueSet.remove(item.mediaStoreId);
                 continue;
               }
             }
-            remaining.add(song);
+            remaining.add(item);
           }
           _queue.clear();
           _queue.addAll(remaining);
@@ -677,12 +764,12 @@ class ArtworkService extends ChangeNotifier {
         }
 
         // Handle candidates that had no artwork: try next candidate from album if any
-        for (final song in batch) {
-          if (!_thumbnailCache.containsKey(song.mediaStoreId)) {
-            final key = _albumKey(song);
+        for (final item in batch) {
+          if (!_thumbnailCache.containsKey(item.mediaStoreId)) {
+            final key = item.albumKey;
             final pending = _albumPendingSongs[key];
             if (pending != null && pending.isNotEmpty) {
-              pending.removeWhere((s) => s.mediaStoreId == song.mediaStoreId);
+              pending.removeWhere((s) => s.mediaStoreId == item.mediaStoreId);
               if (pending.isNotEmpty) {
                 final nextCandidate = pending.first;
                 if (!_noArtworkCache.contains(nextCandidate.mediaStoreId) &&
