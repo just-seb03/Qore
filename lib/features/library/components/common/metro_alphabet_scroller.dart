@@ -1,8 +1,8 @@
 /// File: metro_alphabet_scroller.dart
 /// Description: Windows Phone Metro style alphabet jump-list scroller.
 /// Features a vertical alphabet rail (#, A-Z) along the right margin with dynamic
-/// kinetic leftward projection for the active letter, and subtle rightward
-/// kinetic offset for the corresponding active items in the list.
+/// fluid kinetic leftward projection for the active letter, seamless letter jumping,
+/// and consistent left margin alignment for list items.
 ///
 /// Components / Classes / Functions:
 /// - MetroAlphabetScroller: Generic StatefulWidget coordinating alphabet indexing and kinetic scrolling.
@@ -179,7 +179,7 @@ class _MetroAlphabetScrollerState<T> extends State<MetroAlphabetScroller<T>> {
     );
     _scrollController.animateTo(
       targetOffset,
-      duration: const Duration(milliseconds: 260),
+      duration: const Duration(milliseconds: 320),
       curve: Curves.easeOutCubic,
     );
   }
@@ -192,7 +192,7 @@ class _MetroAlphabetScrollerState<T> extends State<MetroAlphabetScroller<T>> {
 
     return Stack(
       children: [
-        // 1. Virtualized list view with kinetic item offset
+        // 1. Virtualized list view with stable layout alignment
         ListView.builder(
           controller: _scrollController,
           physics: const BouncingScrollPhysics(),
@@ -214,7 +214,7 @@ class _MetroAlphabetScrollerState<T> extends State<MetroAlphabetScroller<T>> {
           top: 6.0,
           right: 2.0,
           bottom: 90.0,
-          width: 32.0,
+          width: 34.0,
           child: LayoutBuilder(
             builder: (context, constraints) {
               final totalHeight = constraints.maxHeight;
@@ -251,41 +251,34 @@ class _MetroAlphabetScrollerState<T> extends State<MetroAlphabetScroller<T>> {
   }
 
   Widget _buildAlphabetTile(String letter, bool hasItems, bool isActive) {
-    if (isActive) {
-      return Transform.translate(
-        offset: const Offset(-10.0, 0.0),
-        child: Container(
-          width: 20.0,
-          height: 18.0,
-          alignment: Alignment.center,
-          decoration: BoxDecoration(
-            color: AppColors.accent,
-            borderRadius: BorderRadius.zero,
-          ),
-          child: Text(
-            letter,
-            style: AppFonts.segoe(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w700,
-              color: AppColors.onAccent,
-              height: 1.0,
-            ),
-          ),
+    return AnimatedSlide(
+      duration: const Duration(milliseconds: 240),
+      curve: Curves.easeOutCubic,
+      offset: isActive ? const Offset(-0.45, 0.0) : Offset.zero,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOutCubic,
+        width: isActive ? 22.0 : 16.0,
+        height: isActive ? 18.0 : 14.0,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: isActive ? AppColors.accent : Colors.transparent,
+          borderRadius: BorderRadius.zero,
         ),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 0.5),
-      child: Text(
-        letter,
-        style: AppFonts.segoe(
-          fontSize: hasItems ? 10.0 : 8.5,
-          fontWeight: hasItems ? FontWeight.w400 : FontWeight.w200,
-          color: hasItems
-              ? AppColors.onSurfaceVariant.withValues(alpha: 0.75)
-              : AppColors.onSurfaceVariant.withValues(alpha: 0.18),
-          height: 1.0,
+        child: Text(
+          letter,
+          style: AppFonts.segoe(
+            fontSize: isActive ? 11.5 : (hasItems ? 9.5 : 8.5),
+            fontWeight: isActive
+                ? FontWeight.w700
+                : (hasItems ? FontWeight.w400 : FontWeight.w200),
+            color: isActive
+                ? AppColors.onAccent
+                : (hasItems
+                    ? AppColors.onSurfaceVariant.withValues(alpha: 0.75)
+                    : AppColors.onSurfaceVariant.withValues(alpha: 0.18)),
+            height: 1.0,
+          ),
         ),
       ),
     );

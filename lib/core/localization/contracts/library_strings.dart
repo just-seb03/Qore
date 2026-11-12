@@ -17,8 +17,17 @@ abstract class LibraryStrings {
   /// Filter pill label for Artists view (e.g. 'Artists').
   String get filterArtists;
 
+  /// Filter pill label for Songs view (e.g. 'Songs').
+  String get filterSongs;
+
   /// Filter pill label for Playlists view (e.g. 'Playlists').
   String get filterPlaylists;
+
+  /// Empty state title when no songs are indexed.
+  String get emptySongsTitle;
+
+  /// Empty state subtitle when no songs are indexed.
+  String get emptySongsSubtitle;
 
   /// Empty state title when no albums are indexed.
   String get emptyAlbumsTitle;

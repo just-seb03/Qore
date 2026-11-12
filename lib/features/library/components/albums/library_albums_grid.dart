@@ -169,13 +169,10 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
       titleSelector: (album) => album.name,
       itemExtent: LibraryAlbumCard.tileHeight,
       itemBuilder: (context, index, album, isCurrentSection) {
-        return Transform.translate(
-          offset: Offset(isCurrentSection ? 8.0 : 0.0, 0.0),
-          child: LibraryAlbumCard(
-            album: album,
-            isListTile: true,
-            onTap: () => _handleTap(album),
-          ),
+        return LibraryAlbumCard(
+          album: album,
+          isListTile: true,
+          onTap: () => _handleTap(album),
         );
       },
     );

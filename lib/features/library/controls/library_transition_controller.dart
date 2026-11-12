@@ -177,7 +177,7 @@ class LibraryTransitionControl extends StatefulWidget {
     this.duration,
     this.curve,
     this.enableSwipeGesture = true,
-  }) : assert(children.length == 3, 'LibraryTransitionControl requires exactly 3 children (Albums, Artists, Playlists).');
+  }) : assert(children.length == LibraryFilter.values.length, 'LibraryTransitionControl requires children matching LibraryFilter.values.length.');
 
   @override
   State<LibraryTransitionControl> createState() => _LibraryTransitionControlState();

@@ -159,12 +159,9 @@ class _LibraryArtistsListState extends State<LibraryArtistsList> {
       titleSelector: (artist) => artist.name,
       itemExtent: LibraryArtistTile.tileHeight,
       itemBuilder: (context, index, artist, isCurrentSection) {
-        return Transform.translate(
-          offset: Offset(isCurrentSection ? 8.0 : 0.0, 0.0),
-          child: LibraryArtistTile(
-            artist: artist,
-            onTap: () => _handleTap(artist),
-          ),
+        return LibraryArtistTile(
+          artist: artist,
+          onTap: () => _handleTap(artist),
         );
       },
     );

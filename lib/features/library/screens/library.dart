@@ -19,6 +19,7 @@ import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
+import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/library/components/albums/library_albums_grid.dart';
@@ -27,6 +28,7 @@ import 'package:project_anima/features/library/components/library_category_bar.d
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_view.dart';
+import 'package:project_anima/features/library/components/songs/library_songs_list.dart';
 import 'package:project_anima/features/library/controls/library_transition_controller.dart';
 import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
 
@@ -76,6 +78,9 @@ class LibraryScreen extends StatefulWidget {
   /// Optional pre-loaded artists for dependency injection.
   final List<ArtistDiscoveryItem>? initialArtists;
 
+  /// Optional pre-loaded songs for dependency injection.
+  final List<Song>? initialSongs;
+
   /// Optional pre-loaded playlists for dependency injection.
   final List<Playlist>? initialPlaylists;
 
@@ -94,6 +99,7 @@ class LibraryScreen extends StatefulWidget {
     this.initialFilter = LibraryFilter.albums,
     this.initialAlbums,
     this.initialArtists,
+    this.initialSongs,
     this.initialPlaylists,
     this.playlistDao,
     this.songDao,
@@ -256,11 +262,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   ClipRect(
                     child: AnimatedAlign(
                       alignment: Alignment.topCenter,
-                      duration: const Duration(milliseconds: 220),
-                      curve: Curves.fastOutSlowIn,
+                      duration: const Duration(milliseconds: 260),
+                      curve: Curves.easeOutCubic,
                       heightFactor: _isHeaderVisible ? 1.0 : 0.0,
                       child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 160),
+                        duration: const Duration(milliseconds: 200),
                         curve: Curves.easeOutCubic,
                         opacity: _isHeaderVisible ? 1.0 : 0.0,
                         child: const LibraryHeader(isMetro: true),
@@ -268,42 +274,51 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ),
                   ),
                   LibraryCategoryBar(
-                  selectedFilter: currentFilter,
-                  onFilterChanged: (filter) {
-                    _transitionController.animateTo(filter);
-                  },
-                  onPrevious: () => _transitionController.animateToPrevious(),
-                  onNext: () => _transitionController.animateToNext(),
-                ),
-                const SizedBox(height: 6.0),
-                Expanded(
-                  child: ScrollEdgeFadeMask(
-                    key: const ValueKey('library_scroll_edge_fade_mask'),
-                    topFadeExtent: 36.0,
-                    bottomFadeExtent: 64.0,
-                    child: LibraryTransitionControl(
-                      controller: _transitionController,
-                      children: [
-                        LibraryAlbumsGrid(
-                          key: const ValueKey('library_albums_view'),
-                          albums: widget.initialAlbums,
-                          songDao: widget.songDao,
-                        ),
-                        LibraryArtistsList(
-                          key: const ValueKey('library_artists_view'),
-                          artists: widget.initialArtists,
-                          songDao: widget.songDao,
-                        ),
-                        LibraryPlaylistsView(
-                          key: _playlistsViewKey,
-                          playlists: widget.initialPlaylists,
-                          playlistDao: widget.playlistDao,
-                          songDao: widget.songDao,
-                        ),
-                      ],
+                    showChevrons: false,
+                    selectedFilter: currentFilter,
+                    onFilterChanged: (filter) {
+                      _transitionController.animateTo(filter);
+                    },
+                    onPrevious: () => _transitionController.animateToPrevious(),
+                    onNext: () => _transitionController.animateToNext(),
+                  ),
+                  const SizedBox(height: 6.0),
+                  Expanded(
+                    child: ScrollEdgeFadeMask(
+                      key: const ValueKey('library_scroll_edge_fade_mask'),
+                      topFadeExtent: 36.0,
+                      bottomFadeExtent: 64.0,
+                      child: LibraryTransitionControl(
+                        controller: _transitionController,
+                        children: [
+                          LibraryAlbumsGrid(
+                            key: const ValueKey('library_albums_view'),
+                            albums: widget.initialAlbums,
+                            songDao: widget.songDao,
+                          ),
+                          LibraryArtistsList(
+                            key: const ValueKey('library_artists_view'),
+                            artists: widget.initialArtists,
+                            songDao: widget.songDao,
+                          ),
+                          LibrarySongsList(
+                            key: const ValueKey('library_songs_view'),
+                            songs: widget.initialSongs ??
+                                ((widget.initialAlbums != null || widget.initialArtists != null)
+                                    ? const []
+                                    : null),
+                            songDao: widget.songDao,
+                          ),
+                          LibraryPlaylistsView(
+                            key: _playlistsViewKey,
+                            playlists: widget.initialPlaylists,
+                            playlistDao: widget.playlistDao,
+                            songDao: widget.songDao,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
               ],
             ),
           ),

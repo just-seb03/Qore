@@ -21,7 +21,17 @@ class EsLibraryStrings implements LibraryStrings {
   String get filterArtists => 'Artistas';
 
   @override
+  String get filterSongs => 'Canciones';
+
+  @override
   String get filterPlaylists => 'Listas';
+
+  @override
+  String get emptySongsTitle => 'NO SE ENCONTRARON CANCIONES';
+
+  @override
+  String get emptySongsSubtitle =>
+      'Añade música a tu dispositivo para ver tus canciones aquí';
 
   @override
   String get artistSubtitle => 'Artista';

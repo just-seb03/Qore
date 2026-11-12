@@ -10,12 +10,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/library/components/albums/library_album_card.dart';
 import 'package:project_anima/features/library/components/common/metro_alphabet_scroller.dart';
 import 'package:project_anima/features/library/components/library_category_bar.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
+import 'package:project_anima/features/library/components/songs/library_songs_list.dart';
 import 'package:project_anima/features/library/screens/library.dart';
 
 void main() {
@@ -135,6 +137,7 @@ void main() {
 
       expect(find.text('Álbumes'), findsOneWidget);
       expect(find.text('Artistas'), findsOneWidget);
+      expect(find.text('Canciones'), findsOneWidget);
       expect(find.text('Listas'), findsOneWidget);
 
       // Verify navigation chevrons exist
@@ -215,6 +218,68 @@ void main() {
         ),
       );
       expect(restoredAlign.heightFactor, 1.0);
+    });
+  });
+
+  group('LibrarySongsList & LibrarySongTile Tests', () {
+    final testSongs = [
+      const Song(
+        id: 1,
+        title: 'Come Together',
+        artist: 'The Beatles',
+        album: 'Abbey Road',
+        duration: 259000,
+        path: '/storage/music/come_together.mp3',
+        mediaStoreId: 1001,
+        dateModified: 1600000000,
+      ),
+      const Song(
+        id: 2,
+        title: 'Get Lucky',
+        artist: 'Daft Punk',
+        album: 'Random Access Memories',
+        duration: 369000,
+        path: '/storage/music/get_lucky.mp3',
+        mediaStoreId: 1002,
+        dateModified: 1600000001,
+      ),
+    ];
+
+    testWidgets('renders LibrarySongsList with song items and durations', (tester) async {
+      Song? tappedSong;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('es'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: LibrarySongsList(
+              songs: testSongs,
+              onSongTap: (s) => tappedSong = s,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LibrarySongsList), findsOneWidget);
+      expect(find.text('Come Together'), findsOneWidget);
+      expect(find.text('The Beatles • Abbey Road'), findsOneWidget);
+      expect(find.text('4:19'), findsOneWidget);
+
+      expect(find.text('Get Lucky'), findsOneWidget);
+      expect(find.text('Daft Punk • Random Access Memories'), findsOneWidget);
+      expect(find.text('6:09'), findsOneWidget);
+
+      await tester.tap(find.text('Come Together'));
+      expect(tappedSong, isNotNull);
+      expect(tappedSong?.title, 'Come Together');
     });
   });
 }

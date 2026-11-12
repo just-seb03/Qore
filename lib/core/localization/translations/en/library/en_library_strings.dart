@@ -21,7 +21,16 @@ class EnLibraryStrings implements LibraryStrings {
   String get filterArtists => 'Artists';
 
   @override
+  String get filterSongs => 'Songs';
+
+  @override
   String get filterPlaylists => 'Playlists';
+
+  @override
+  String get emptySongsTitle => 'NO SONGS FOUND';
+
+  @override
+  String get emptySongsSubtitle => 'Add music to your device to see your songs here';
 
   @override
   String get emptyAlbumsTitle => 'NO ALBUMS FOUND';

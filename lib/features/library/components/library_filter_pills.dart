@@ -22,6 +22,7 @@ import 'package:project_anima/core/theme/theme.dart';
 enum LibraryFilter {
   albums,
   artists,
+  songs,
   playlists,
 }
 
@@ -109,6 +110,11 @@ class LibraryFilterPills extends StatelessWidget {
         filter: LibraryFilter.artists,
         icon: Symbols.person_rounded,
         label: context.l10n.library.filterArtists,
+      ),
+      _PillItem(
+        filter: LibraryFilter.songs,
+        icon: Symbols.music_note_rounded,
+        label: context.l10n.library.filterSongs,
       ),
       _PillItem(
         filter: LibraryFilter.playlists,
