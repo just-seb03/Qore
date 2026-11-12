@@ -156,6 +156,12 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
   }
 
   @override
+  void didChangePlatformBrightness() {
+    super.didChangePlatformBrightness();
+    ThemeController.instance.syncWithSystemBrightness();
+  }
+
+  @override
   void didHaveMemoryPressure() {
     super.didHaveMemoryPressure();
     // Proactively purge unpinned raster textures under OS memory pressure

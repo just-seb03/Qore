@@ -586,10 +586,22 @@ void main() {
 
       // 2. Re-initialize controller from persisted DAO
       dao.setMockTheme(family: 'monochrome', isDark: true);
-      await ThemeController.instance.init(appMetadataDao: dao);
+      await ThemeController.instance.init(appMetadataDao: dao, syncWithSystem: false);
 
       expect(ThemeController.instance.activeFamily, 'monochrome');
       expect(ThemeController.instance.isDarkMode, isTrue);
+    });
+
+    test('ThemeController dynamically synchronizes with device system platformBrightness', () async {
+      // Light brightness
+      ThemeController.instance.syncWithSystemBrightness(Brightness.light);
+      expect(ThemeController.instance.isDarkMode, isFalse);
+      expect(ThemeController.instance.currentPalette.brightness, Brightness.light);
+
+      // Dark brightness
+      ThemeController.instance.syncWithSystemBrightness(Brightness.dark);
+      expect(ThemeController.instance.isDarkMode, isTrue);
+      expect(ThemeController.instance.currentPalette.brightness, Brightness.dark);
     });
   });
 }
