@@ -1,11 +1,11 @@
 /// File: explore_metro_view.dart
 /// Description: Discovery view for the Explore screen designed faithfully in the
-/// Windows Phone Metro design language. Combines large Segoe UI Light headers,
-/// sharp 90-degree Live Tiles with zero drop shadows, square artist and album tiles,
-/// and reactive library integration.
+/// Windows Phone Metro design language. Combines large Segoe UI Light headers with
+/// capitalized initial letters, a wide Daily Mix Live Tile, square artist profile tiles,
+/// and a dedicated Recientes section with up to 10 recently played tracks.
 ///
 /// Components / Classes / Functions:
-/// - ExploreMetroView: Stateful discovery widget orchestrating Metro tiles and DAO queries.
+/// - ExploreMetroView: Stateful discovery widget orchestrating Metro tiles, track lists, and DAO queries.
 library;
 
 import 'package:flutter/material.dart';
@@ -16,6 +16,7 @@ import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/selection/today_selection_service.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
@@ -23,6 +24,7 @@ import 'package:project_anima/features/artist/screens/artist_detail_screen.dart'
 import 'package:project_anima/features/explore/components/explore_metro_album_tile.dart';
 import 'package:project_anima/features/explore/components/explore_metro_artist_tile.dart';
 import 'package:project_anima/features/explore/components/explore_metro_tile.dart';
+import 'package:project_anima/features/explore/components/explore_metro_track_tile.dart';
 import 'package:project_anima/features/playlist/screens/playlist_detail_screen.dart';
 
 /// Authentic Windows Phone Metro discovery view for ExploreScreen.
@@ -54,6 +56,9 @@ class ExploreMetroView extends StatefulWidget {
   /// Optional custom callback when an artist tile is tapped.
   final ValueChanged<ArtistDiscoveryItem>? onArtistTap;
 
+  /// Optional custom callback when a recent song is tapped.
+  final ValueChanged<Song>? onSongTap;
+
   /// Optional scroll controller.
   final ScrollController? scrollController;
 
@@ -68,6 +73,7 @@ class ExploreMetroView extends StatefulWidget {
     this.todaySelectionService,
     this.onAlbumTap,
     this.onArtistTap,
+    this.onSongTap,
     this.scrollController,
   });
 
@@ -124,7 +130,7 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
       setState(() {
         _recentlyPlayedSongs = recentSongs;
       });
-      final repIds = recentSongs.take(4).map((s) => s.mediaStoreId).toList();
+      final repIds = recentSongs.take(10).map((s) => s.mediaStoreId).toList();
       ArtworkService.instance.prioritizeSongIds(repIds);
     } catch (e) {
       debugPrint('⚠️ [ExploreMetroView] Error reloading recently played: $e');
@@ -160,8 +166,7 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
 
       final repIds = <int>[
         ...albums.map((a) => a.representativeSongId),
-        ...todaySongs.take(4).map((s) => s.mediaStoreId),
-        ...recentSongs.take(4).map((s) => s.mediaStoreId),
+        ...recentSongs.take(10).map((s) => s.mediaStoreId),
       ];
       ArtworkService.instance.prioritizeSongIds(repIds);
 
@@ -210,14 +215,14 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
     );
   }
 
-  void _handleOpenTodaySelection(BuildContext context) {
+  void _handleOpenDailyMix(BuildContext context) {
     if (_todaySongs.isEmpty) return;
     FocusManager.instance.primaryFocus?.unfocus();
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final todayPlaylist = Playlist(
       id: -1,
-      name: context.l10n.search.todaySelectionTitle,
+      name: 'Daily Mix',
       createdAt: nowMs,
       updatedAt: nowMs,
       firstMediaStoreId:
@@ -234,41 +239,35 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
     );
   }
 
-  void _handleOpenRecientes(BuildContext context) {
-    if (_recentlyPlayedSongs.isEmpty) return;
-    FocusManager.instance.primaryFocus?.unfocus();
+  void _handleTrackTap(Song song, int index) {
+    if (widget.onSongTap != null) {
+      widget.onSongTap!(song);
+      return;
+    }
 
-    final nowMs = DateTime.now().millisecondsSinceEpoch;
-    final recentPlaylist = Playlist(
-      id: -2,
-      name: context.l10n.search.recentlyPlayedTitle,
-      createdAt: nowMs,
-      updatedAt: nowMs,
-      firstMediaStoreId: _recentlyPlayedSongs.isNotEmpty
-          ? _recentlyPlayedSongs.first.mediaStoreId
-          : null,
+    final recent10 = _recentlyPlayedSongs.take(10).toList();
+    PlaybackController.instance.playSong(
+      song,
+      queue: recent10,
     );
+  }
 
-    Navigator.of(context).push(
-      PlaylistDetailScreen.route(
-        playlist: recentPlaylist,
-        initialSongs: _recentlyPlayedSongs,
-        isEditable: false,
-        showHeroCover: false,
-      ),
-    );
+  String _capitalize(String text) {
+    if (text.isEmpty) return text;
+    final lower = text.toLowerCase();
+    return lower[0].toUpperCase() + lower.substring(1);
   }
 
   Widget _buildMetroSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
       child: Text(
-        title.toLowerCase(),
+        _capitalize(title),
         style: AppFonts.segoe(
-          fontSize: 21.0,
+          fontSize: 22.0,
           fontWeight: FontWeight.w300,
           color: AppColors.onBackground,
-          letterSpacing: -0.3,
+          letterSpacing: -0.2,
         ),
       ),
     );
@@ -281,45 +280,29 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
     }
 
     final l10n = context.l10n;
+    final recentSongs10 = _recentlyPlayedSongs.take(10).toList();
 
     return SingleChildScrollView(
       controller: widget.scrollController,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(top: 4.0, bottom: 140.0),
+      physics: const AlwaysScrollableScrollPhysics(
+        parent: BouncingScrollPhysics(),
+      ),
+      padding: const EdgeInsets.only(top: 4.0, bottom: 220.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 1. Featured Metro Live Tiles (Today Selection & Recientes)
+          // 1. Featured Section (Daily Mix occupying full width / 2 cuadros, solid color with centered icon)
           _buildMetroSectionHeader(l10n.search.featuredSectionHeader),
           const SizedBox(height: 10.0),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Today Selection Live Tile
-                Expanded(
-                  child: ExploreMetroTile(
-                    title: l10n.search.todaySelectionTitle,
-                    subtitle: l10n.search.songCount(_todaySongs.length),
-                    songs: _todaySongs,
-                    icon: Icons.today_rounded,
-                    onTap: () => _handleOpenTodaySelection(context),
-                  ),
-                ),
-                const SizedBox(width: 12.0),
-
-                // Recientes Live Tile
-                Expanded(
-                  child: ExploreMetroTile(
-                    title: l10n.search.recentlyPlayedTitle,
-                    subtitle: l10n.search.songCount(_recentlyPlayedSongs.length),
-                    songs: _recentlyPlayedSongs,
-                    icon: Icons.history_rounded,
-                    onTap: () => _handleOpenRecientes(context),
-                  ),
-                ),
-              ],
+            child: ExploreMetroTile(
+              title: 'Daily Mix',
+              subtitle: l10n.search.songCount(_todaySongs.length),
+              icon: Icons.today_rounded,
+              isSolid: true,
+              aspectRatio: 2.3,
+              onTap: () => _handleOpenDailyMix(context),
             ),
           ),
           const SizedBox(height: 24.0),
@@ -348,7 +331,7 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
             const SizedBox(height: 24.0),
           ],
 
-          // 3. Artistas Section (top 5 newest artists)
+          // 3. Artistas Nuevos Section (top 5 newest artists)
           if (_newestArtists.isNotEmpty) ...[
             _buildMetroSectionHeader(l10n.search.newArtistsSectionHeader),
             const SizedBox(height: 10.0),
@@ -369,10 +352,28 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
                 },
               ),
             ),
+            const SizedBox(height: 24.0),
+          ],
+
+          // 4. Recientes Section (up to 10 recently played songs)
+          if (recentSongs10.isNotEmpty) ...[
+            _buildMetroSectionHeader(l10n.search.recentlyPlayedTitle),
+            const SizedBox(height: 8.0),
+            ListView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: recentSongs10.length,
+              itemBuilder: (context, index) {
+                final song = recentSongs10[index];
+                return ExploreMetroTrackTile(
+                  song: song,
+                  onTap: () => _handleTrackTap(song, index),
+                );
+              },
+            ),
           ],
         ],
       ),
     );
   }
 }
-

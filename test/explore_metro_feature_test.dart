@@ -1,7 +1,7 @@
 /// File: explore_metro_feature_test.dart
 /// Description: Comprehensive widget and unit tests for the Windows Phone Metro Explore screen,
-/// validating authentic Metro design (sharp 90-degree corners, zero drop shadows, square artist tiles,
-/// Segoe UI Light pivot typography) and ambient particles simulation backdrop integration.
+/// validating authentic Metro design (sharp 90-degree corners, zero drop shadows, square artist profile tiles,
+/// capitalized section headers, wide Daily Mix tile, and recent songs tracklist) with ambient particles simulation.
 library;
 
 import 'package:flutter/material.dart';
@@ -63,7 +63,7 @@ void main() {
   );
 
   group('Windows Phone Metro Explore UI Widget Tests', () {
-    testWidgets('ExploreScreen integrates AmbientParticlesCanvas backdrop and ExploreMetroView',
+    testWidgets('ExploreScreen integrates AmbientParticlesCanvas backdrop and ExploreMetroView without category overline',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -79,16 +79,16 @@ void main() {
       // 1. Ambient particles simulation backdrop is mounted
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
 
-      // 2. ExploreHeader with Metro pivot typography is mounted
+      // 2. ExploreHeader with prominent Segoe UI Light typography is mounted (no MÚSICA overline)
       expect(find.byType(ExploreHeader), findsOneWidget);
-      expect(find.text('MÚSICA'), findsOneWidget);
-      expect(find.text('explorar'), findsOneWidget);
+      expect(find.text('MÚSICA'), findsNothing);
+      expect(find.text('Explorar'), findsOneWidget);
 
       // 3. Discovery view with backward-compatible key is mounted
       expect(find.byKey(const ValueKey('explore_discovery_view')), findsOneWidget);
     });
 
-    testWidgets('ExploreMetroTile features sharp 90-degree corners and zero drop shadows',
+    testWidgets('ExploreMetroTile features sharp 90-degree corners, zero drop shadows, and wide solid mode',
         (tester) async {
       await tester.pumpWidget(
         MaterialApp(
@@ -98,13 +98,13 @@ void main() {
           home: Scaffold(
             body: Center(
               child: SizedBox(
-                width: 160.0,
-                height: 160.0,
+                width: 320.0,
                 child: ExploreMetroTile(
-                  title: 'Today Selection',
+                  title: 'Daily Mix',
                   subtitle: '24 canciones',
-                  songs: [testSong1, testSong2],
                   icon: Icons.today_rounded,
+                  isSolid: true,
+                  aspectRatio: 2.3,
                 ),
               ),
             ),
@@ -114,7 +114,7 @@ void main() {
       await tester.pump();
 
       // Check title and subtitle in Segoe UI
-      expect(find.text('Today Selection'), findsOneWidget);
+      expect(find.text('Daily Mix'), findsOneWidget);
       expect(find.text('24 canciones'), findsOneWidget);
       expect(find.byIcon(Icons.today_rounded), findsOneWidget);
 
@@ -163,7 +163,7 @@ void main() {
       expect(decoration.boxShadow, isNull);
     });
 
-    testWidgets('ExploreMetroArtistTile enforces "People tiles are square" (no circles, zero shadows)',
+    testWidgets('ExploreMetroArtistTile enforces artist profile rendering without album covers',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -183,6 +183,8 @@ void main() {
       await tester.pump();
 
       expect(find.text('Metro Artist 1'), findsOneWidget);
+      // Renders person profile silhouette icon instead of album cover
+      expect(find.byIcon(Icons.person_rounded), findsOneWidget);
 
       final container = tester.widget<Container>(
         find.descendant(
@@ -196,10 +198,11 @@ void main() {
       expect(decoration.shape, BoxShape.rectangle);
     });
 
-    testWidgets('ExploreMetroView renders featured live tiles, newest albums, and artist tiles',
+    testWidgets('ExploreMetroView renders Daily Mix wide tile, albums, artists, and Recientes tracklist',
         (tester) async {
       AlbumDiscoveryItem? tappedAlbum;
       ArtistDiscoveryItem? tappedArtist;
+      Song? tappedSong;
 
       await tester.pumpWidget(
         MaterialApp(
@@ -215,24 +218,26 @@ void main() {
               initialRecentSongs: [testSong2],
               onAlbumTap: (a) => tappedAlbum = a,
               onArtistTap: (ar) => tappedArtist = ar,
+              onSongTap: (s) => tappedSong = s,
             ),
           ),
         ),
       );
       await tester.pump();
 
-      // Featured Live Tiles
-      expect(find.byType(ExploreMetroTile), findsNWidgets(2));
-      expect(find.text('Today Selection'), findsOneWidget);
-      expect(find.text('Recientes'), findsOneWidget);
+      // 1. Featured Section: 1 wide Daily Mix tile (no Recientes in featured)
+      expect(find.byType(ExploreMetroTile), findsOneWidget);
+      expect(find.text('Daily Mix'), findsOneWidget);
+      expect(find.text('Destacadas'), findsOneWidget);
 
-      // Metro Album Tile
+      // 2. Metro Album Tile
+      expect(find.text('Nuevos álbumes'), findsOneWidget);
       expect(find.byType(ExploreMetroAlbumTile), findsOneWidget);
       expect(find.text('Metro Album 1'), findsOneWidget);
 
-      // Metro Artist Tile
+      // 3. Metro Artist Tile
+      expect(find.text('Artistas nuevos'), findsOneWidget);
       expect(find.byType(ExploreMetroArtistTile), findsOneWidget);
-      expect(find.text('Metro Artist 1'), findsNWidgets(2)); // in album and in artist
 
       // Tap album
       await tester.tap(find.byType(ExploreMetroAlbumTile));
@@ -245,6 +250,18 @@ void main() {
       await tester.tap(find.byType(ExploreMetroArtistTile));
       await tester.pump();
       expect(tappedArtist?.name, 'Metro Artist 1');
+
+      // 4. Recientes Section: 10 recently played songs under artists
+      await tester.ensureVisible(find.byType(ExploreMetroTrackTile));
+      await tester.pumpAndSettle();
+      expect(find.text('Recientes'), findsOneWidget);
+      expect(find.byType(ExploreMetroTrackTile), findsOneWidget);
+      expect(find.text('Metro Track 2'), findsOneWidget);
+
+      // Tap recent track
+      await tester.tap(find.byType(ExploreMetroTrackTile));
+      await tester.pump();
+      expect(tappedSong?.title, 'Metro Track 2');
     });
 
     testWidgets('ExploreMetroView returns SizedBox.shrink when song count is 0',
@@ -266,6 +283,7 @@ void main() {
       expect(find.byType(ExploreMetroTile), findsNothing);
       expect(find.byType(ExploreMetroAlbumTile), findsNothing);
       expect(find.byType(ExploreMetroArtistTile), findsNothing);
+      expect(find.byType(ExploreMetroTrackTile), findsNothing);
     });
   });
 }

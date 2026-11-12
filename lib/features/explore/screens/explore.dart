@@ -83,8 +83,8 @@ class ExploreScreen extends StatelessWidget {
                           ],
                           stops: [
                             0.0,
-                            0.02,
-                            0.94,
+                            0.015,
+                            0.985,
                             1.0,
                           ],
                         ).createShader(bounds);
