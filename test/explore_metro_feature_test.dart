@@ -225,10 +225,10 @@ void main() {
       );
       await tester.pump();
 
-      // 1. Featured Section: 1 wide Daily Mix tile (no Recientes in featured)
+      // 1. Featured Section: 1 wide Daily Mix tile (no Destacadas or Recientes header in featured)
       expect(find.byType(ExploreMetroTile), findsOneWidget);
       expect(find.text('Daily Mix'), findsOneWidget);
-      expect(find.text('Destacadas'), findsOneWidget);
+      expect(find.text('Destacadas'), findsNothing);
 
       // 2. Metro Album Tile
       expect(find.text('Nuevos álbumes'), findsOneWidget);
@@ -284,6 +284,65 @@ void main() {
       expect(find.byType(ExploreMetroAlbumTile), findsNothing);
       expect(find.byType(ExploreMetroArtistTile), findsNothing);
       expect(find.byType(ExploreMetroTrackTile), findsNothing);
+    });
+
+    testWidgets('ExploreScreen collapses header when scrolling down and restores it when scrolling up',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: testDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('es'),
+          home: Scaffold(
+            body: ExploreScreen(
+              showBottomNav: false,
+              initialSongCount: 15,
+              initialAlbums: const [testAlbum],
+              initialArtists: const [testArtist],
+              initialTodaySongs: [testSong1],
+              initialRecentSongs: List.generate(
+                10,
+                (i) => Song(
+                  id: 10 + i,
+                  mediaStoreId: 200 + i,
+                  title: 'Track $i',
+                  artist: 'Artist $i',
+                  album: 'Album $i',
+                  path: '/music/$i.mp3',
+                  duration: 180000,
+                  dateAdded: 1000 + i,
+                  dateModified: 1000 + i,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      final animatedAlignFinder = find.ancestor(
+        of: find.byType(ExploreHeader),
+        matching: find.byType(AnimatedAlign),
+      );
+      expect(animatedAlignFinder, findsOneWidget);
+
+      AnimatedAlign alignWidget = tester.widget<AnimatedAlign>(animatedAlignFinder);
+      expect(alignWidget.heightFactor, 1.0);
+
+      // Scroll down
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -300), warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 300));
+
+      alignWidget = tester.widget<AnimatedAlign>(animatedAlignFinder);
+      expect(alignWidget.heightFactor, 0.0);
+
+      // Scroll back up
+      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, 300), warnIfMissed: false);
+      await tester.pump(const Duration(milliseconds: 300));
+
+      alignWidget = tester.widget<AnimatedAlign>(animatedAlignFinder);
+      expect(alignWidget.heightFactor, 1.0);
     });
   });
 }

@@ -287,13 +287,11 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding: const EdgeInsets.only(top: 4.0, bottom: 220.0),
+      padding: const EdgeInsets.only(top: 6.0, bottom: 100.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 1. Featured Section (Daily Mix occupying full width / 2 cuadros, solid color with centered icon)
-          _buildMetroSectionHeader(l10n.search.featuredSectionHeader),
-          const SizedBox(height: 10.0),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20.0),
             child: ExploreMetroTile(
