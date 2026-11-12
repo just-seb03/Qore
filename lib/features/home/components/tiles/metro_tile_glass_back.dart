@@ -42,7 +42,7 @@ class MetroTileGlassBack extends StatelessWidget {
               label,
               style: AppFonts.segoe(
                 fontSize: 12.0,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
                 letterSpacing: 1.5,
                 color: AppColors.onSurface,
               ),

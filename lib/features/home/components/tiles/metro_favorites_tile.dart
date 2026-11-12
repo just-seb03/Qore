@@ -97,7 +97,7 @@ class MetroFavoritesTile extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: AppFonts.segoe(
                 fontSize: 12.5,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
                 letterSpacing: 1.4,
                 color: AppColors.onSurface,
               ),

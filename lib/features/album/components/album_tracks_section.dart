@@ -54,7 +54,7 @@ class AlbumTracksSection extends StatelessWidget {
               context.l10n.album.tracksHeader,
               style: AppFonts.segoe(
                 fontSize: 13.0,
-                fontWeight: FontWeight.w700,
+                fontWeight: FontWeight.w400,
                 letterSpacing: 1.4,
                 color: AppColors.onSurfaceVariant,
               ),

@@ -99,14 +99,14 @@ abstract class AppThemePalette {
 
     final selectedNavLabelStyle = AppFonts.segoe(
       fontSize: 12.0,
-      fontWeight: FontWeight.w600,
+      fontWeight: FontWeight.w400,
       color: navActiveLabel,
       letterSpacing: 0.3,
     );
 
     final unselectedNavLabelStyle = AppFonts.segoe(
       fontSize: 12.0,
-      fontWeight: FontWeight.w500,
+      fontWeight: FontWeight.w300,
       color: navInactiveLabel,
       letterSpacing: 0.2,
     );
@@ -163,7 +163,7 @@ abstract class AppThemePalette {
         iconTheme: IconThemeData(color: onBackground),
         titleTextStyle: TextStyle(
           fontSize: 20.0,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w300,
           color: onBackground,
           letterSpacing: -0.5,
         ),

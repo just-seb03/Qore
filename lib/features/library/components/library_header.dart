@@ -23,7 +23,7 @@ class LibraryHeader extends StatelessWidget {
   /// Dynamic text style for the Inconsolata title to respect active theme palette.
   static TextStyle get _titleTextStyle => AppFonts.segoe(
     fontSize: 24.0,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w300,
     letterSpacing: 1.5,
     color: AppColors.onBackground,
   );

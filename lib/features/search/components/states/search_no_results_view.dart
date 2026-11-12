@@ -22,7 +22,7 @@ class SearchNoResultsView extends StatelessWidget {
 
   static final TextStyle _noResultsHeaderStyle = AppFonts.segoe(
     fontSize: 14.0,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w400,
     letterSpacing: 1.4,
     color: AppColors.futuristicWhite.withValues(alpha: 0.4),
   );

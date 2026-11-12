@@ -31,14 +31,14 @@ class SearchRecentList extends StatelessWidget {
 
   static TextStyle get _headerStyle => AppFonts.segoe(
     fontSize: 14.0,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w400,
     letterSpacing: 1.4,
     color: AppColors.onBackground,
   );
 
   static TextStyle get _clearAllStyle => AppFonts.segoe(
     fontSize: 13.0,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,
   );
 

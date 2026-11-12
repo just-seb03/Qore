@@ -40,7 +40,7 @@ class ArtistTracksHeader extends StatelessWidget {
             context.l10n.artistTracks.headerTitle,
             style: AppFonts.segoe(
               fontSize: 13.0,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w400,
               letterSpacing: 1.6,
               color: AppColors.onSurfaceVariant,
             ),
@@ -52,7 +52,7 @@ class ArtistTracksHeader extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
             style: AppFonts.segoe(
               fontSize: 24.0,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w300,
               color: AppColors.onBackground,
               letterSpacing: -0.3,
             ),

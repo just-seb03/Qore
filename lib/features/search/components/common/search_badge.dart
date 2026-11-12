@@ -30,7 +30,7 @@ class SearchBadge extends StatelessWidget {
   static TextStyle get _badgeTextStyle => AppFonts.segoe(
     fontSize: 11.5,
     letterSpacing: 1.2,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,
   );
 

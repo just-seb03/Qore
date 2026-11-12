@@ -81,10 +81,17 @@ flutter:
   fonts:
     - family: Segoe UI
       fonts:
-        - asset: assets/fonts/selawk.ttf
-        - asset: assets/fonts/selawkb.ttf
-          weight: 700
-        - asset: assets/fonts/selawksb.ttf
-          weight: 600
         - asset: assets/fonts/selawkl.ttf
           weight: 300
+        - asset: assets/fonts/selawkl.ttf
+          weight: 400
+        - asset: assets/fonts/selawksl.ttf
+          weight: 500
+        - asset: assets/fonts/selawksl.ttf
+          weight: 600
+        - asset: assets/fonts/selawk.ttf
+          weight: 700
+        - asset: assets/fonts/selawksb.ttf
+          weight: 800
+        - asset: assets/fonts/selawkb.ttf
+          weight: 900

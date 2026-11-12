@@ -33,7 +33,7 @@ class SearchSectionHeader extends StatelessWidget {
 
   static TextStyle get _headerStyle => AppFonts.segoe(
     fontSize: 13.5,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w400,
     letterSpacing: 1.4,
     color: AppColors.onSurfaceVariant,
   );

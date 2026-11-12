@@ -72,15 +72,15 @@ void main() {
       expect(libraryText.textAlign, TextAlign.center);
 
       expect(spaceText.style?.fontSize, equals(24.0));
-      expect(spaceText.style?.fontWeight, equals(FontWeight.w700));
+      expect(spaceText.style?.fontWeight, equals(FontWeight.w300));
       expect(spaceText.style?.letterSpacing, equals(1.5));
 
       expect(searchText.style?.fontSize, equals(24.0));
-      expect(searchText.style?.fontWeight, equals(FontWeight.w700));
+      expect(searchText.style?.fontWeight, equals(FontWeight.w300));
       expect(searchText.style?.letterSpacing, equals(1.5));
 
       expect(libraryText.style?.fontSize, equals(24.0));
-      expect(libraryText.style?.fontWeight, equals(FontWeight.w700));
+      expect(libraryText.style?.fontWeight, equals(FontWeight.w300));
       expect(libraryText.style?.letterSpacing, equals(1.5));
     });
   });

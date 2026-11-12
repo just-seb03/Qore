@@ -162,7 +162,7 @@ class SearchTopResultCard extends StatelessWidget {
 
   static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 20.0,
-    fontWeight: FontWeight.w700,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
     letterSpacing: -0.2,
   );

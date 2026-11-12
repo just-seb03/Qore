@@ -118,7 +118,7 @@ class MetroAlbumTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppFonts.segoe(
                       fontSize: 13.0,
-                      fontWeight: FontWeight.w700,
+                      fontWeight: FontWeight.w400,
                       color: Colors.white,
                     ),
                   ),

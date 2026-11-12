@@ -68,4 +68,48 @@ abstract final class AppFonts {
       decorationThickness: decorationThickness ?? effectiveStyle.decorationThickness,
     );
   }
+
+  /// Light weight (FontWeight.w300) - Segoe UI Light, the quintessential airy and elegant Metro header font.
+  static TextStyle light({
+    TextStyle? textStyle,
+    Color? color,
+    Color? backgroundColor,
+    double? fontSize,
+    FontStyle? fontStyle,
+    double? letterSpacing,
+    double? height,
+  }) {
+    return segoe(
+      textStyle: textStyle,
+      color: color,
+      backgroundColor: backgroundColor,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w300,
+      fontStyle: fontStyle,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+  }
+
+  /// SemiLight weight (FontWeight.w400) - Segoe UI Semilight, the refined reading font of Windows 8 / Phone 8.
+  static TextStyle semiLight({
+    TextStyle? textStyle,
+    Color? color,
+    Color? backgroundColor,
+    double? fontSize,
+    FontStyle? fontStyle,
+    double? letterSpacing,
+    double? height,
+  }) {
+    return segoe(
+      textStyle: textStyle,
+      color: color,
+      backgroundColor: backgroundColor,
+      fontSize: fontSize,
+      fontWeight: FontWeight.w400,
+      fontStyle: fontStyle,
+      letterSpacing: letterSpacing,
+      height: height,
+    );
+  }
 }
