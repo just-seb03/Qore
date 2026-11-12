@@ -12,7 +12,6 @@ library;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
@@ -192,7 +191,7 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
   }
 
   Widget _buildStepText(BuildContext context) {
-    final baseStyle = GoogleFonts.inconsolata(
+    final baseStyle = AppFonts.segoe(
       fontSize: 15.0,
       fontWeight: FontWeight.w500,
       height: 1.45,

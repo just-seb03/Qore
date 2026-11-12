@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -98,7 +97,7 @@ class PlaylistTrackTile extends StatelessWidget {
                           : Text(
                               _displayTrackNumber,
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.inconsolata(
+                              style: AppFonts.segoe(
                                 fontSize: 13.5,
                                 fontWeight: FontWeight.w600,
                                 color: isCurrentTrack
@@ -131,7 +130,7 @@ class PlaylistTrackTile extends StatelessWidget {
                             song.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.outfit(
+                            style: AppFonts.segoe(
                               fontSize: 15.0,
                               fontWeight: isCurrentTrack ? FontWeight.w600 : FontWeight.w400,
                               color: isCurrentTrack ? AppColors.accent : AppColors.onSurface,
@@ -142,7 +141,7 @@ class PlaylistTrackTile extends StatelessWidget {
                             song.artist ?? context.l10n.common.unknownArtist,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inconsolata(
+                            style: AppFonts.segoe(
                               fontSize: 12.5,
                               fontWeight: FontWeight.w400,
                               color: AppColors.onSurfaceVariant,

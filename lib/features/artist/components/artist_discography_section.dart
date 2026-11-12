@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -46,7 +45,7 @@ class ArtistDiscographySection extends StatelessWidget {
             children: [
               Text(
                 context.l10n.artist.discographyHeader,
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 13.0,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.4,
@@ -138,7 +137,7 @@ class ArtistDiscographySection extends StatelessWidget {
                         album.name,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.outfit(
+                        style: AppFonts.segoe(
                           fontSize: 14.0,
                           fontWeight: FontWeight.w600,
                           color: AppColors.onSurface,
@@ -149,7 +148,7 @@ class ArtistDiscographySection extends StatelessWidget {
                         countStr,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 12.0,
                           color: AppColors.onSurfaceVariant,
                         ),

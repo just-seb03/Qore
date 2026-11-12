@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Section header displaying title in Inconsolata styling with optional trailing widget.
@@ -32,7 +31,7 @@ class SearchSectionHeader extends StatelessWidget {
     this.verticalPadding = 8.0,
   });
 
-  static TextStyle get _headerStyle => GoogleFonts.inconsolata(
+  static TextStyle get _headerStyle => AppFonts.segoe(
     fontSize: 13.5,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,

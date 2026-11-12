@@ -15,6 +15,8 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/core/theme/contracts/app_theme_palette.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 
+export 'package:project_anima/core/theme/app_fonts.dart';
+
 /// Centralized design tokens palette.
 ///
 /// Provides dynamic runtime access to the active [ThemeController.instance.currentPalette].

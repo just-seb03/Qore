@@ -14,7 +14,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -158,14 +157,14 @@ class _ConnectedPillButton extends StatelessWidget {
   final VoidCallback onTap;
 
   /// Pre-cached Inconsolata style for selected pill.
-  static final TextStyle _selectedTextStyle = GoogleFonts.inconsolata(
+  static final TextStyle _selectedTextStyle = AppFonts.segoe(
     fontSize: 13.5,
     fontWeight: FontWeight.w600,
     letterSpacing: 0.2,
   );
 
   /// Pre-cached Inconsolata style for unselected pill.
-  static final TextStyle _unselectedTextStyle = GoogleFonts.inconsolata(
+  static final TextStyle _unselectedTextStyle = AppFonts.segoe(
     fontSize: 13.5,
     fontWeight: FontWeight.w500,
     letterSpacing: 0.2,

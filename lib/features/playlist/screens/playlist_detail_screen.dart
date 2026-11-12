@@ -12,7 +12,6 @@ library;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
@@ -472,7 +471,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
             children: [
               Text(
                 context.l10n.playlist.tracksHeader,
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 13.0,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.4,
@@ -508,7 +507,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                   Text(
                     context.l10n.playlist.emptyPlaylistTitle,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inconsolata(
+                    style: AppFonts.segoe(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
@@ -519,7 +518,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                   Text(
                     context.l10n.playlist.emptyPlaylistSubtitle,
                     textAlign: TextAlign.center,
-                    style: GoogleFonts.inconsolata(
+                    style: AppFonts.segoe(
                       fontSize: 13.5,
                       color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
                     ),

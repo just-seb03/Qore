@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -30,13 +29,13 @@ class SearchAlbumCard extends StatelessWidget {
     this.width = 130.0,
   });
 
-  static TextStyle get _albumTitleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _albumTitleStyle => AppFonts.segoe(
     fontSize: 14.0,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurface,
   );
 
-  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => AppFonts.segoe(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,

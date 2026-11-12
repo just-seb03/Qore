@@ -11,7 +11,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/components/artist_avatar_crop_view.dart';
 
@@ -42,14 +41,14 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
   final TransformationController _transformController = TransformationController();
   bool _isProcessing = false;
 
-  static final TextStyle _titleStyle = GoogleFonts.outfit(
+  static final TextStyle _titleStyle = AppFonts.segoe(
     fontSize: 18.0,
     fontWeight: FontWeight.w600,
     color: Colors.white,
     letterSpacing: 0.5,
   );
 
-  static final TextStyle _buttonStyle = GoogleFonts.outfit(
+  static final TextStyle _buttonStyle = AppFonts.segoe(
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
     color: Colors.white,
@@ -167,7 +166,7 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
                       const SizedBox(width: 8.0),
                       Text(
                         'Pinch & drag to adjust',
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 13.0,
                           color: AppColors.onSurfaceVariant,
                         ),

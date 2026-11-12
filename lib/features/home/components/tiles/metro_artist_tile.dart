@@ -9,7 +9,6 @@ library;
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -129,7 +128,7 @@ class MetroArtistTile extends StatelessWidget {
                     artist.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inconsolata(
+                    style: AppFonts.segoe(
                       fontSize: 16.0,
                       fontWeight: FontWeight.w800,
                       color: Colors.white,

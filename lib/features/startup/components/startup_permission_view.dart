@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -72,7 +71,7 @@ class StartupPermissionView extends StatelessWidget {
             Text(
               title ?? context.l10n.startup.audioAccessRequiredTitle,
               textAlign: TextAlign.center,
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 fontSize: 18.0,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 2.0,
@@ -86,7 +85,7 @@ class StartupPermissionView extends StatelessWidget {
               child: Text(
                 message ?? context.l10n.startup.audioAccessRequiredMessage,
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 13.5,
                   fontWeight: FontWeight.w400,
                   height: 1.5,
@@ -123,7 +122,7 @@ class StartupPermissionView extends StatelessWidget {
                     children: [
                       Text(
                         actionText ?? context.l10n.startup.continueAction,
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 14.0,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.6,

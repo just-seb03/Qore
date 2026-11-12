@@ -8,7 +8,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Interactive modal dialog allowing precise visual and HEX color selection.
@@ -159,7 +158,7 @@ class _PlaylistColorPickerDialogState extends State<PlaylistColorPickerDialog> {
                 children: [
                   Text(
                     widget.title,
-                    style: GoogleFonts.inconsolata(
+                    style: AppFonts.segoe(
                       fontSize: 14.0,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
@@ -198,7 +197,7 @@ class _PlaylistColorPickerDialogState extends State<PlaylistColorPickerDialog> {
                 alignment: Alignment.center,
                 child: Text(
                   '#${_colorToHex(activeColor)}',
-                  style: GoogleFonts.inconsolata(
+                  style: AppFonts.segoe(
                     fontSize: 20.0,
                     fontWeight: FontWeight.w800,
                     letterSpacing: 2.0,
@@ -223,7 +222,7 @@ class _PlaylistColorPickerDialogState extends State<PlaylistColorPickerDialog> {
                   children: [
                     Text(
                       '#',
-                      style: GoogleFonts.inconsolata(
+                      style: AppFonts.segoe(
                         fontSize: 18.0,
                         fontWeight: FontWeight.w700,
                         color: AppColors.accent,
@@ -235,7 +234,7 @@ class _PlaylistColorPickerDialogState extends State<PlaylistColorPickerDialog> {
                         controller: _hexController,
                         onChanged: _handleHexInput,
                         maxLength: 6,
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 16.0,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 2.0,
@@ -361,7 +360,7 @@ class _PlaylistColorPickerDialogState extends State<PlaylistColorPickerDialog> {
                     ),
                     child: Text(
                       'CANCELAR',
-                      style: GoogleFonts.inconsolata(
+                      style: AppFonts.segoe(
                         fontSize: 13.0,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 1.0,
@@ -382,7 +381,7 @@ class _PlaylistColorPickerDialogState extends State<PlaylistColorPickerDialog> {
                     icon: const Icon(Icons.check_rounded, size: 18.0),
                     label: Text(
                       'APLICAR',
-                      style: GoogleFonts.inconsolata(
+                      style: AppFonts.segoe(
                         fontSize: 13.0,
                         fontWeight: FontWeight.w800,
                         letterSpacing: 1.2,
@@ -406,7 +405,7 @@ class _PlaylistColorPickerDialogState extends State<PlaylistColorPickerDialog> {
         children: [
           Text(
             title,
-            style: GoogleFonts.inconsolata(
+            style: AppFonts.segoe(
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.0,
@@ -416,7 +415,7 @@ class _PlaylistColorPickerDialogState extends State<PlaylistColorPickerDialog> {
           if (val.isNotEmpty)
             Text(
               val,
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w700,
                 color: AppColors.onSurface,

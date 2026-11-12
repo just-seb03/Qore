@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -26,25 +25,25 @@ class PlaylistReorderableSongList extends StatelessWidget {
     required this.onReorder,
   });
 
-  static TextStyle get _headerStyle => GoogleFonts.inconsolata(
+  static TextStyle get _headerStyle => AppFonts.segoe(
     fontSize: 13.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
     color: AppColors.onSurfaceVariant,
   );
 
-  static TextStyle get _emptyStyle => GoogleFonts.inconsolata(
+  static TextStyle get _emptyStyle => AppFonts.segoe(
     fontSize: 13.5,
     color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
   );
 
-  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurface,
   );
 
-  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => AppFonts.segoe(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,
@@ -89,7 +88,7 @@ class PlaylistReorderableSongList extends StatelessWidget {
             ),
             Text(
               context.l10n.playlist.dragToReorder,
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 fontSize: 11.5,
                 color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
               ),

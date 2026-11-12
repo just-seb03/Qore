@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Pill badge displaying category type in Top Result cards.
@@ -28,7 +27,7 @@ class SearchBadge extends StatelessWidget {
     this.textColor,
   });
 
-  static TextStyle get _badgeTextStyle => GoogleFonts.inconsolata(
+  static TextStyle get _badgeTextStyle => AppFonts.segoe(
     fontSize: 11.5,
     letterSpacing: 1.2,
     fontWeight: FontWeight.w700,

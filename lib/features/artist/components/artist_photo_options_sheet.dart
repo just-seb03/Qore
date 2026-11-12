@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -73,7 +72,7 @@ class ArtistPhotoOptionsSheet extends StatelessWidget {
               leading: Icon(Icons.photo_library_outlined, color: AppColors.onSurface),
               title: Text(
                 context.l10n.artist.changeArtistPhoto,
-                style: GoogleFonts.outfit(
+                style: AppFonts.segoe(
                   fontSize: 15.0,
                   fontWeight: FontWeight.w500,
                   color: AppColors.onSurface,
@@ -85,7 +84,7 @@ class ArtistPhotoOptionsSheet extends StatelessWidget {
               leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
               title: Text(
                 context.l10n.artist.removeCustomPhoto,
-                style: GoogleFonts.outfit(
+                style: AppFonts.segoe(
                   fontSize: 15.0,
                   fontWeight: FontWeight.w500,
                   color: Colors.redAccent,

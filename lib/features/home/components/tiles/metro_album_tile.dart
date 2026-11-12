@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -117,7 +116,7 @@ class MetroAlbumTile extends StatelessWidget {
                     album.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inconsolata(
+                    style: AppFonts.segoe(
                       fontSize: 13.0,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -128,7 +127,7 @@ class MetroAlbumTile extends StatelessWidget {
                       album.subtitle!,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inconsolata(
+                      style: AppFonts.segoe(
                         fontSize: 11.0,
                         fontWeight: FontWeight.w400,
                         color: Colors.white70,

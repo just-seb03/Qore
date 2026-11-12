@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
@@ -78,7 +77,7 @@ class ArtistCompactTrackTile extends StatelessWidget {
                             song.title,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.outfit(
+                            style: AppFonts.segoe(
                               fontSize: 14.0,
                               fontWeight: isCurrentTrack
                                   ? FontWeight.w600
@@ -93,7 +92,7 @@ class ArtistCompactTrackTile extends StatelessWidget {
                             song.album ?? 'Unknown Album',
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.inconsolata(
+                            style: AppFonts.segoe(
                               fontSize: 11.5,
                               color: AppColors.onSurfaceVariant,
                             ),

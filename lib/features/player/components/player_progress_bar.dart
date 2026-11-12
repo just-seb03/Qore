@@ -9,7 +9,6 @@ library;
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -33,7 +32,7 @@ class _PlayerProgressBarState extends State<PlayerProgressBar>
   bool _isDragging = false;
   double _dragProgress = 0.0;
 
-  static TextStyle get _timestampStyle => GoogleFonts.inconsolata(
+  static TextStyle get _timestampStyle => AppFonts.segoe(
     fontSize: 12.5,
     fontWeight: FontWeight.w500,
     color: AppColors.onSurfaceVariant,

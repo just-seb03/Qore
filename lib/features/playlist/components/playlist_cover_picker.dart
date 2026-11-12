@@ -9,7 +9,6 @@ library;
 
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -58,7 +57,7 @@ class PlaylistCoverPicker extends StatelessWidget {
     }
   }
 
-  static final TextStyle _changePhotoStyle = GoogleFonts.inconsolata(
+  static final TextStyle _changePhotoStyle = AppFonts.segoe(
     fontSize: 12.0,
     fontWeight: FontWeight.w600,
     color: AppColors.futuristicWhite,
@@ -202,7 +201,7 @@ class PlaylistCoverPicker extends StatelessWidget {
             const SizedBox(height: 6.0),
             Text(
               context.l10n.playlist.heroBannerPlaceholder,
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 fontSize: 11.5,
                 fontWeight: FontWeight.w600,
                 letterSpacing: 1.2,

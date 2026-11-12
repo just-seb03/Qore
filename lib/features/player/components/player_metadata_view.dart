@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -29,21 +28,21 @@ class PlayerMetadataView extends StatelessWidget {
     this.onAlbumTap,
   });
 
-  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 22.0,
     fontWeight: FontWeight.w700,
     color: AppColors.futuristicWhite,
     letterSpacing: -0.2,
   );
 
-  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => AppFonts.segoe(
     fontSize: 16.0,
     fontWeight: FontWeight.w500,
     color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );
 
-  static TextStyle get _albumStyle => GoogleFonts.inconsolata(
+  static TextStyle get _albumStyle => AppFonts.segoe(
     fontSize: 13.5,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceDisabled,

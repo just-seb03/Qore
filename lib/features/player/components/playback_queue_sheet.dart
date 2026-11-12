@@ -9,7 +9,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -104,7 +103,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Text(
                         context.l10n.player.nowPlayingHeader,
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 12.0,
                           fontWeight: FontWeight.w700,
                           letterSpacing: 1.5,
@@ -147,7 +146,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                     currentSong.title,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.outfit(
+                                    style: AppFonts.segoe(
                                       fontSize: 15.0,
                                       fontWeight: FontWeight.w600,
                                       color: AppColors.onSurface,
@@ -158,7 +157,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                     currentSong.artist ?? context.l10n.common.unknownArtist,
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inconsolata(
+                                    style: AppFonts.segoe(
                                       fontSize: 12.5,
                                       color: AppColors.onSurfaceVariant,
                                     ),
@@ -191,7 +190,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                       children: [
                         Text(
                           context.l10n.player.upNextHeader(upcomingSongs.length),
-                          style: GoogleFonts.inconsolata(
+                          style: AppFonts.segoe(
                             fontSize: 12.0,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 1.5,
@@ -206,7 +205,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                             },
                             child: Text(
                               context.l10n.player.clearQueue,
-                              style: GoogleFonts.inconsolata(
+                              style: AppFonts.segoe(
                                 fontSize: 13.0,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.onSurfaceVariant,
@@ -224,7 +223,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                         ? Center(
                             child: Text(
                               context.l10n.player.emptyQueue,
-                              style: GoogleFonts.inconsolata(
+                              style: AppFonts.segoe(
                                 fontSize: 14.0,
                                 color: AppColors.onSurfaceDisabled,
                               ),
@@ -261,7 +260,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                           child: Text(
                                             '${index + 1}',
                                             textAlign: TextAlign.center,
-                                            style: GoogleFonts.inconsolata(
+                                            style: AppFonts.segoe(
                                               fontSize: 12.0,
                                               fontWeight: FontWeight.w600,
                                               color: AppColors.onSurfaceVariant,
@@ -285,7 +284,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                       song.title,
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.outfit(
+                                      style: AppFonts.segoe(
                                         fontSize: 14.5,
                                         fontWeight: FontWeight.w500,
                                         color: AppColors.onSurface,
@@ -295,7 +294,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                       '${song.artist ?? context.l10n.common.unknownArtist} • ${_formatDuration(song.duration)}',
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
-                                      style: GoogleFonts.inconsolata(
+                                      style: AppFonts.segoe(
                                         fontSize: 12.0,
                                         color: AppColors.onSurfaceVariant,
                                       ),

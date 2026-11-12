@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
@@ -48,14 +47,14 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
   List<AlbumDiscoveryItem>? _albums;
   bool _isLoading = true;
 
-  static final TextStyle _emptyHeaderStyle = GoogleFonts.inconsolata(
+  static final TextStyle _emptyHeaderStyle = AppFonts.segoe(
     fontSize: 14.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.5,
     color: AppColors.futuristicWhite.withValues(alpha: 0.35),
   );
 
-  static final TextStyle _emptySubtitleStyle = GoogleFonts.inconsolata(
+  static final TextStyle _emptySubtitleStyle = AppFonts.segoe(
     fontSize: 13.5,
     color: AppColors.futuristicWhite.withValues(alpha: 0.25),
   );

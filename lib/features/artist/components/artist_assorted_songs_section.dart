@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -49,7 +48,7 @@ class ArtistAssortedSongsSection extends StatelessWidget {
             children: [
               Text(
                 context.l10n.artist.songsHeader,
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 13.0,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.4,

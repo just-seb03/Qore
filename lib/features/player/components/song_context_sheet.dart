@@ -13,7 +13,6 @@ import 'dart:ui';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
@@ -153,7 +152,7 @@ class SongContextSheet extends StatelessWidget {
         const SizedBox(height: 6.0),
         Text(
           label,
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontSize: 12.0,
             fontWeight: FontWeight.w500,
             color: AppColors.onSurfaceVariant,
@@ -169,7 +168,7 @@ class SongContextSheet extends StatelessWidget {
       children: [
         Text(
           label,
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontSize: 11.0,
             fontWeight: FontWeight.w700,
             letterSpacing: 1.2,
@@ -179,7 +178,7 @@ class SongContextSheet extends StatelessWidget {
         const SizedBox(height: 4.0),
         Text(
           value,
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontSize: 14.5,
             fontWeight: FontWeight.w700,
             color: AppColors.onSurface,
@@ -236,7 +235,7 @@ class SongContextSheet extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.outfit(
+                    style: AppFonts.segoe(
                       fontSize: 18.0,
                       fontWeight: FontWeight.w700,
                       color: AppColors.onSurface,
@@ -248,7 +247,7 @@ class SongContextSheet extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inconsolata(
+                    style: AppFonts.segoe(
                       fontSize: 13.5,
                       color: AppColors.onSurfaceVariant,
                     ),
@@ -338,7 +337,7 @@ class SongContextSheet extends StatelessWidget {
                           SnackBar(
                             content: Text(
                               'Canción eliminada de la biblioteca',
-                              style: GoogleFonts.inconsolata(color: AppColors.onSurface),
+                              style: AppFonts.segoe(color: AppColors.onSurface),
                             ),
                             backgroundColor: AppColors.surfaceContainerHigh,
                           ),

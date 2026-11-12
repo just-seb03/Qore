@@ -11,7 +11,6 @@ library;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -206,7 +205,7 @@ class _StartupPermissionCardViewState extends State<StartupPermissionCardView>
                       activeText,
                       key: ValueKey('text_$activeKeyId'),
                       textAlign: TextAlign.center,
-                      style: GoogleFonts.inconsolata(
+                      style: AppFonts.segoe(
                         fontSize: 14.5,
                         fontWeight: _isDenied ? FontWeight.w500 : FontWeight.w400,
                         height: 1.5,
@@ -237,7 +236,7 @@ class _StartupPermissionCardViewState extends State<StartupPermissionCardView>
                               offset: Offset(-offset, 0),
                               child: Text(
                                 '<',
-                                style: GoogleFonts.inconsolata(
+                                style: AppFonts.segoe(
                                   fontSize: 20.0,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.onSurfaceVariant
@@ -253,7 +252,7 @@ class _StartupPermissionCardViewState extends State<StartupPermissionCardView>
                               child: Text(
                                 '$_page',
                                 key: ValueKey('page_number_$_page'),
-                                style: GoogleFonts.inconsolata(
+                                style: AppFonts.segoe(
                                   fontSize: 18.0,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.futuristicWhite,
@@ -265,7 +264,7 @@ class _StartupPermissionCardViewState extends State<StartupPermissionCardView>
                               offset: Offset(offset, 0),
                               child: Text(
                                 '>',
-                                style: GoogleFonts.inconsolata(
+                                style: AppFonts.segoe(
                                   fontSize: 20.0,
                                   fontWeight: FontWeight.w600,
                                   color: AppColors.onSurfaceVariant
@@ -306,7 +305,7 @@ class _StartupPermissionCardViewState extends State<StartupPermissionCardView>
                       child: Center(
                         child: Text(
                           l10n.nextAction,
-                          style: GoogleFonts.inconsolata(
+                          style: AppFonts.segoe(
                             fontSize: 15.0,
                             fontWeight: FontWeight.w700,
                             letterSpacing: 2.2,

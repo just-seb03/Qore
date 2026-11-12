@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -20,7 +19,7 @@ class ExploreHeader extends StatelessWidget {
   final EdgeInsetsGeometry padding;
 
   /// Dynamic text style for the Inconsolata title matching active theme.
-  static TextStyle get _titleTextStyle => GoogleFonts.inconsolata(
+  static TextStyle get _titleTextStyle => AppFonts.segoe(
     fontSize: 24.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.5,

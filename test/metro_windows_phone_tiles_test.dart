@@ -432,4 +432,31 @@ void main() {
       expect(find.text('Desanclar de Space'), findsNothing);
     });
   });
+
+  group('AppFonts Segoe UI Windows Metro Typography Tests', () {
+    test('AppFonts provides Segoe UI as primary font family and valid fallbacks', () {
+      expect(AppFonts.segoeUi, equals('Segoe UI'));
+      expect(AppFonts.fallbackChain, contains('Segoe UI'));
+      expect(AppFonts.fallbackChain, contains('Selawik'));
+      expect(AppFonts.fallbackChain, contains('sans-serif'));
+
+      final style = AppFonts.segoe(
+        fontSize: 16.0,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 0.5,
+      );
+
+      expect(style.fontFamily, equals('Segoe UI'));
+      expect(style.fontSize, equals(16.0));
+      expect(style.fontWeight, equals(FontWeight.w600));
+      expect(style.letterSpacing, equals(0.5));
+      expect(style.fontFamilyFallback, contains('Selawik'));
+    });
+
+    test('ThemeData toThemeData applies Segoe UI across primary typography', () {
+      final theme = AppTheme.theme;
+      expect(theme.navigationBarTheme.labelTextStyle?.resolve({})?.fontFamily, equals('Segoe UI'));
+      expect(theme.textTheme.bodyMedium?.fontFamily, equals('Segoe UI'));
+    });
+  });
 }

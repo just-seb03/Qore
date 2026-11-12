@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -16,14 +15,14 @@ import 'package:project_anima/core/theme/theme.dart';
 class LibraryPlaylistsPlaceholder extends StatelessWidget {
   const LibraryPlaylistsPlaceholder({super.key});
 
-  static final TextStyle _headerStyle = GoogleFonts.inconsolata(
+  static final TextStyle _headerStyle = AppFonts.segoe(
     fontSize: 14.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.5,
     color: AppColors.futuristicWhite.withValues(alpha: 0.35),
   );
 
-  static final TextStyle _subtitleStyle = GoogleFonts.inconsolata(
+  static final TextStyle _subtitleStyle = AppFonts.segoe(
     fontSize: 13.5,
     color: AppColors.futuristicWhite.withValues(alpha: 0.25),
   );

@@ -9,7 +9,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
@@ -30,14 +29,14 @@ class SearchRecentList extends StatelessWidget {
     this.controller,
   });
 
-  static TextStyle get _headerStyle => GoogleFonts.inconsolata(
+  static TextStyle get _headerStyle => AppFonts.segoe(
     fontSize: 14.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
     color: AppColors.onBackground,
   );
 
-  static TextStyle get _clearAllStyle => GoogleFonts.inconsolata(
+  static TextStyle get _clearAllStyle => AppFonts.segoe(
     fontSize: 13.0,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurfaceVariant,
@@ -117,13 +116,13 @@ class _RecentSearchTile extends StatelessWidget {
     required this.onRemove,
   });
 
-  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 15.0,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurface,
   );
 
-  static TextStyle get _subtitleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _subtitleStyle => AppFonts.segoe(
     fontSize: 13.0,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,

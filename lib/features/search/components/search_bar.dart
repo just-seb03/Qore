@@ -17,7 +17,6 @@ library;
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -59,13 +58,13 @@ class AppSearchBar extends StatefulWidget {
   final EdgeInsetsGeometry padding;
 
   /// Pre-cached base text style for the search input hint.
-  static final TextStyle _baseHintTextStyle = GoogleFonts.inconsolata(
+  static final TextStyle _baseHintTextStyle = AppFonts.segoe(
     fontSize: 14.5,
     fontWeight: FontWeight.w400,
   );
 
   /// Pre-cached base text style for the search input text.
-  static final TextStyle _baseTextStyle = GoogleFonts.inconsolata(
+  static final TextStyle _baseTextStyle = AppFonts.segoe(
     fontSize: 15.0,
     fontWeight: FontWeight.w500,
   );

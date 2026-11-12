@@ -10,7 +10,6 @@ library;
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
@@ -174,7 +173,7 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                 children: [
                   Text(
                     'AÑADIR A PLAYLIST',
-                    style: GoogleFonts.inconsolata(
+                    style: AppFonts.segoe(
                       fontSize: 16.0,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 1.4,
@@ -186,7 +185,7 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                     widget.song.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inconsolata(
+                    style: AppFonts.segoe(
                       fontSize: 13.0,
                       color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
                     ),
@@ -212,7 +211,7 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                             child: Text(
                               'No tienes playlists creadas todavía',
                               textAlign: TextAlign.center,
-                              style: GoogleFonts.inconsolata(
+                              style: AppFonts.segoe(
                                 fontSize: 14.0,
                                 color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
                               ),
@@ -313,7 +312,7 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                                                   const SizedBox(width: 4.0),
                                                   Text(
                                                     'EN PLAYLIST',
-                                                    style: GoogleFonts.inconsolata(
+                                                    style: AppFonts.segoe(
                                                       fontSize: 11.0,
                                                       fontWeight: FontWeight.w700,
                                                       color: Colors.white,

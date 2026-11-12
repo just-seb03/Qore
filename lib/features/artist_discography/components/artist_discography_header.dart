@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -35,7 +34,7 @@ class ArtistDiscographyHeader extends StatelessWidget {
         children: [
           Text(
             context.l10n.artistDiscography.headerTitle,
-            style: GoogleFonts.inconsolata(
+            style: AppFonts.segoe(
               fontSize: 13.0,
               fontWeight: FontWeight.w700,
               letterSpacing: 1.6,
@@ -47,7 +46,7 @@ class ArtistDiscographyHeader extends StatelessWidget {
             artistName,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inconsolata(
+            style: AppFonts.segoe(
               fontSize: 24.0,
               fontWeight: FontWeight.w700,
               color: AppColors.onBackground,

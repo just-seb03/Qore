@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -26,13 +25,13 @@ class PlaylistSongSearchBar extends StatelessWidget {
     this.hintText,
   });
 
-  static TextStyle get _textStyle => GoogleFonts.inconsolata(
+  static TextStyle get _textStyle => AppFonts.segoe(
     fontSize: 15.0,
     fontWeight: FontWeight.w500,
     color: AppColors.onSurface,
   );
 
-  static TextStyle get _hintStyle => GoogleFonts.inconsolata(
+  static TextStyle get _hintStyle => AppFonts.segoe(
     fontSize: 14.5,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),

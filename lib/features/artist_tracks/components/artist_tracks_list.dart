@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist_tracks/components/artist_track_tile.dart';
@@ -44,7 +43,7 @@ class ArtistTracksList extends StatelessWidget {
               const SizedBox(height: 16.0),
               Text(
                 'NO TRACKS FOUND',
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 14.0,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.4,
@@ -55,7 +54,7 @@ class ArtistTracksList extends StatelessWidget {
               Text(
                 'No indexed audio tracks available for this artist.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 13.0,
                   color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
                 ),

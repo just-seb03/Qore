@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -138,7 +137,7 @@ class AlbumHeaderView extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.outfit(
+            style: AppFonts.segoe(
               fontSize: 24.0,
               fontWeight: FontWeight.w700,
               color: AppColors.onBackground,
@@ -158,7 +157,7 @@ class AlbumHeaderView extends StatelessWidget {
                 if (i > 0)
                   Text(
                     ', ',
-                    style: GoogleFonts.outfit(
+                    style: AppFonts.segoe(
                       fontSize: 16.0,
                       fontWeight: FontWeight.w500,
                       color: AppColors.onSurfaceVariant,
@@ -177,7 +176,7 @@ class AlbumHeaderView extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 3.0),
                       child: Text(
                         splitArtists[i],
-                        style: GoogleFonts.outfit(
+                        style: AppFonts.segoe(
                           fontSize: 16.0,
                           fontWeight: FontWeight.w500,
                           color: AppColors.onSurface,
@@ -208,7 +207,7 @@ class AlbumHeaderView extends StatelessWidget {
                   textAlign: TextAlign.center,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.outfit(
+                  style: AppFonts.segoe(
                     fontSize: 16.0,
                     fontWeight: FontWeight.w500,
                     color: AppColors.onSurface,
@@ -223,7 +222,7 @@ class AlbumHeaderView extends StatelessWidget {
         Text(
           metadataSubtitle,
           textAlign: TextAlign.center,
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontSize: 13.0,
             fontWeight: FontWeight.w500,
             color: AppColors.onSurfaceVariant,

@@ -16,7 +16,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -289,7 +288,7 @@ class _SongOptionsPillState extends State<SongOptionsPill> {
             if (!isExpanded && durationStr != null && durationStr.isNotEmpty) ...[
               Text(
                 durationStr,
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 12.0,
                   fontWeight: FontWeight.w400,
                   color: AppColors.onSurfaceVariant.withValues(alpha: 0.8),

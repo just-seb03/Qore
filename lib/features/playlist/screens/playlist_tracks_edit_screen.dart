@@ -11,7 +11,6 @@ library;
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
@@ -264,7 +263,7 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
           SnackBar(
             content: Text(
               'Error al guardar las canciones',
-              style: GoogleFonts.inconsolata(color: AppColors.onSurface),
+              style: AppFonts.segoe(color: AppColors.onSurface),
             ),
             backgroundColor: AppColors.surfaceContainerHigh,
           ),
@@ -325,7 +324,7 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                           children: [
                             Text(
                               'EDITAR CANCIONES',
-                              style: GoogleFonts.inconsolata(
+                              style: AppFonts.segoe(
                                 fontSize: 16.0,
                                 fontWeight: FontWeight.w700,
                                 letterSpacing: 1.4,
@@ -334,7 +333,7 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                             ),
                             Text(
                               context.l10n.playlist.tracksHeaderWithCount(_songs.length),
-                              style: GoogleFonts.inconsolata(
+                              style: AppFonts.segoe(
                                 fontSize: 12.5,
                                 color: AppColors.onSurfaceVariant,
                               ),
@@ -357,7 +356,7 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                             : const Icon(Icons.check_rounded, size: 18.0),
                         label: Text(
                           context.l10n.playlist.saveAction,
-                          style: GoogleFonts.inconsolata(
+                          style: AppFonts.segoe(
                             fontSize: 13.5,
                             fontWeight: FontWeight.w700,
                           ),
@@ -391,14 +390,14 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                     child: TextField(
                       controller: _searchController,
                       onChanged: _searchSongs,
-                      style: GoogleFonts.inconsolata(
+                      style: AppFonts.segoe(
                         fontSize: 14.5,
                         color: AppColors.onSurface,
                       ),
                       cursorColor: AppColors.accent,
                       decoration: InputDecoration(
                         hintText: 'Buscar canciones para añadir...',
-                        hintStyle: GoogleFonts.inconsolata(
+                        hintStyle: AppFonts.segoe(
                           fontSize: 13.5,
                           color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
                         ),

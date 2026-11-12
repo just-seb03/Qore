@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -30,14 +29,14 @@ class LibraryArtistTile extends StatelessWidget {
     this.onTap,
   });
 
-  static TextStyle get _nameStyle => GoogleFonts.inconsolata(
+  static TextStyle get _nameStyle => AppFonts.segoe(
     fontSize: 15.5,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
-  static TextStyle get _subtitleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _subtitleStyle => AppFonts.segoe(
     fontSize: 13.0,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,

@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -36,7 +35,7 @@ class StartupHeader extends StatelessWidget {
         // Monochromatic brand title with Inconsolata font
         Text(
           title ?? context.l10n.startup.appTitle,
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontSize: 24.0,
             fontWeight: FontWeight.w700,
             letterSpacing: 4.5,

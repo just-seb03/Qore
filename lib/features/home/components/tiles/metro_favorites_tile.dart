@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -96,7 +95,7 @@ class MetroFavoritesTile extends StatelessWidget {
               'FAVORITOS',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.4,

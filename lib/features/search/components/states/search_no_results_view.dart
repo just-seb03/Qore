@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -21,14 +20,14 @@ class SearchNoResultsView extends StatelessWidget {
     required this.query,
   });
 
-  static final TextStyle _noResultsHeaderStyle = GoogleFonts.inconsolata(
+  static final TextStyle _noResultsHeaderStyle = AppFonts.segoe(
     fontSize: 14.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
     color: AppColors.futuristicWhite.withValues(alpha: 0.4),
   );
 
-  static final TextStyle _noResultsSubtitleStyle = GoogleFonts.inconsolata(
+  static final TextStyle _noResultsSubtitleStyle = AppFonts.segoe(
     fontSize: 13.5,
     color: AppColors.futuristicWhite.withValues(alpha: 0.3),
   );

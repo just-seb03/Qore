@@ -9,7 +9,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -33,7 +32,7 @@ class HomeFavoritesHeroCard extends StatelessWidget {
 
   static const int _kFavoritesPlaylistId = -2;
 
-  static final TextStyle _titleStyle = GoogleFonts.outfit(
+  static final TextStyle _titleStyle = AppFonts.segoe(
     fontSize: 22.0,
     fontWeight: FontWeight.w800,
     color: AppColors.futuristicWhite,

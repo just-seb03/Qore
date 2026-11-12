@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -32,13 +31,13 @@ class SearchSongTile extends StatelessWidget {
     this.onOptionsTap,
   });
 
-  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 15.0,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurface,
   );
 
-  static TextStyle get _artistAlbumStyle => GoogleFonts.inconsolata(
+  static TextStyle get _artistAlbumStyle => AppFonts.segoe(
     fontSize: 13.0,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,

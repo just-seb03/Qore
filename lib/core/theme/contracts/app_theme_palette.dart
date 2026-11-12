@@ -7,7 +7,7 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:project_anima/core/theme/app_fonts.dart';
 
 /// Immutable design token contract holding the 5 constituent colors and
 /// Material Design 3 tokens for a specific theme and brightness mode.
@@ -95,16 +95,16 @@ abstract class AppThemePalette {
 
   /// Builds a complete, cached Material 3 Expressive [ThemeData] for this palette.
   ThemeData toThemeData() {
-    final String? fontFamily = GoogleFonts.inconsolata().fontFamily;
+    const String fontFamily = AppFonts.segoeUi;
 
-    final selectedNavLabelStyle = GoogleFonts.inconsolata(
+    final selectedNavLabelStyle = AppFonts.segoe(
       fontSize: 12.0,
       fontWeight: FontWeight.w600,
       color: navActiveLabel,
       letterSpacing: 0.3,
     );
 
-    final unselectedNavLabelStyle = GoogleFonts.inconsolata(
+    final unselectedNavLabelStyle = AppFonts.segoe(
       fontSize: 12.0,
       fontWeight: FontWeight.w500,
       color: navInactiveLabel,
@@ -130,6 +130,7 @@ abstract class AppThemePalette {
         outlineVariant: outlineVariant,
       ),
       fontFamily: fontFamily,
+      fontFamilyFallback: AppFonts.fallbackChain,
       navigationBarTheme: NavigationBarThemeData(
         height: 68.0,
         backgroundColor: bottomNavBackground,

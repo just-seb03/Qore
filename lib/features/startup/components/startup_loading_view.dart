@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/startup/components/startup_celebration_stars.dart';
 import 'package:project_anima/features/startup/components/startup_progress_bar.dart';
@@ -100,7 +99,7 @@ class _StartupLoadingViewState extends State<StartupLoadingView> {
                 padding: const EdgeInsets.only(bottom: 24.0),
                 child: Text(
                   'project_anima',
-                  style: GoogleFonts.inconsolata(
+                  style: AppFonts.segoe(
                     fontSize: 12.0,
                     fontWeight: FontWeight.w500,
                     letterSpacing: 2.2,

@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
@@ -145,7 +144,7 @@ class _StartupSplashViewState extends State<StartupSplashView>
                       Text(
                         l10n.welcomeLine1,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 24.0,
                           fontWeight: FontWeight.w400,
                           letterSpacing: 4.5,
@@ -157,7 +156,7 @@ class _StartupSplashViewState extends State<StartupSplashView>
                       Text(
                         l10n.welcomeLine2,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 20.0,
                           fontWeight: FontWeight.w300,
                           letterSpacing: 3.5,
@@ -169,7 +168,7 @@ class _StartupSplashViewState extends State<StartupSplashView>
                       Text(
                         l10n.welcomeLine3,
                         textAlign: TextAlign.center,
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 48.0,
                           fontWeight: FontWeight.w800,
                           letterSpacing: 6.0,

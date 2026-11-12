@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist_discography/components/artist_discography_album_card.dart';
@@ -43,7 +42,7 @@ class ArtistDiscographyGrid extends StatelessWidget {
               const SizedBox(height: 16.0),
               Text(
                 'NO ALBUMS FOUND',
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 14.0,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 1.4,
@@ -54,7 +53,7 @@ class ArtistDiscographyGrid extends StatelessWidget {
               Text(
                 'No indexed albums available for this artist.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 13.0,
                   color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
                 ),

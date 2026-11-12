@@ -10,7 +10,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
@@ -113,21 +112,21 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
   final List<Song> _playlistSongs = [];
   bool _isSaving = false;
 
-  static TextStyle get _nameHintStyle => GoogleFonts.outfit(
+  static TextStyle get _nameHintStyle => AppFonts.segoe(
     fontSize: 20.0,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
     letterSpacing: -0.3,
   );
 
-  static TextStyle get _sectionHeaderStyle => GoogleFonts.inconsolata(
+  static TextStyle get _sectionHeaderStyle => AppFonts.segoe(
     fontSize: 13.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
     color: AppColors.onSurfaceVariant,
   );
 
-  static TextStyle get _saveButtonStyle => GoogleFonts.inconsolata(
+  static TextStyle get _saveButtonStyle => AppFonts.segoe(
     fontSize: 15.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.4,
@@ -381,7 +380,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                         _coverPath != null
                             ? context.l10n.playlist.changeCover
                             : context.l10n.playlist.addCover,
-                        style: GoogleFonts.inconsolata(
+                        style: AppFonts.segoe(
                           fontSize: 12.0,
                           fontWeight: FontWeight.w600,
                           letterSpacing: 0.8,
@@ -753,7 +752,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
             children: [
               Text(
                 'COLOR ACTUAL',
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 10.5,
                   fontWeight: FontWeight.w700,
                   letterSpacing: 0.8,
@@ -763,7 +762,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
               const SizedBox(height: 2.0),
               Text(
                 '#$hexStr',
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 16.0,
                   fontWeight: FontWeight.w800,
                   letterSpacing: 1.2,
@@ -790,7 +789,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
             icon: const Icon(Icons.palette_outlined, size: 16.0),
             label: Text(
               'Personalizar',
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 fontSize: 13.0,
                 fontWeight: FontWeight.w700,
               ),
@@ -877,7 +876,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                             children: [
                               Text(
                                 'COLOR 1',
-                                style: GoogleFonts.inconsolata(
+                                style: AppFonts.segoe(
                                   fontSize: 10.0,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.onSurfaceVariant,
@@ -885,7 +884,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                               ),
                               Text(
                                 '#$hex1',
-                                style: GoogleFonts.inconsolata(
+                                style: AppFonts.segoe(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.onSurface,
@@ -951,7 +950,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                             children: [
                               Text(
                                 'COLOR 2',
-                                style: GoogleFonts.inconsolata(
+                                style: AppFonts.segoe(
                                   fontSize: 10.0,
                                   fontWeight: FontWeight.w700,
                                   color: AppColors.onSurfaceVariant,
@@ -959,7 +958,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                               ),
                               Text(
                                 '#$hex2',
-                                style: GoogleFonts.inconsolata(
+                                style: AppFonts.segoe(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w800,
                                   color: AppColors.onSurface,
@@ -1055,7 +1054,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
             effect.displayName,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inconsolata(
+            style: AppFonts.segoe(
               fontSize: 14.0,
               fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
               color: isSelected ? AppColors.onAccent : AppColors.onSurface,
@@ -1082,7 +1081,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
               ),
               Text(
                 '${_fontSize.toInt()} px',
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 13.0,
                   fontWeight: FontWeight.w700,
                   color: AppColors.accent,
@@ -1175,7 +1174,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
         ),
         child: Text(
           label,
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontSize: 11.0,
             fontWeight: FontWeight.w700,
             letterSpacing: 0.6,

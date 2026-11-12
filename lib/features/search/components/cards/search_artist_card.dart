@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -31,13 +30,13 @@ class SearchArtistCard extends StatelessWidget {
     this.width = 120.0,
   });
 
-  static TextStyle get _artistNameStyle => GoogleFonts.inconsolata(
+  static TextStyle get _artistNameStyle => AppFonts.segoe(
     fontSize: 14.0,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurface,
   );
 
-  static TextStyle get _subtitleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _subtitleStyle => AppFonts.segoe(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,

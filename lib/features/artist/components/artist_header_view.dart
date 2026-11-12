@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
@@ -135,7 +134,7 @@ class ArtistHeaderView extends StatelessWidget {
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.outfit(
+              style: AppFonts.segoe(
                 fontSize: 27.0,
                 fontWeight: FontWeight.w800,
                 color: AppColors.onBackground,

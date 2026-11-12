@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/startup/models/startup_stage.dart';
 
@@ -72,7 +71,7 @@ class StartupStatusView extends StatelessWidget {
               ],
               Text(
                 resolvedStatus,
-                style: GoogleFonts.inconsolata(
+                style: AppFonts.segoe(
                   fontSize: 13.5,
                   fontWeight: isReady ? FontWeight.w700 : FontWeight.w500,
                   letterSpacing: 1.1,
@@ -88,7 +87,7 @@ class StartupStatusView extends StatelessWidget {
         // Subtle progress percentage
         Text(
           '$percent%',
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontSize: 11.0,
             fontWeight: FontWeight.w600,
             letterSpacing: 0.8,

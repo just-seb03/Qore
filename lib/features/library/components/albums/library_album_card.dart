@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -27,14 +26,14 @@ class LibraryAlbumCard extends StatelessWidget {
     this.onTap,
   });
 
-  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
     color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
-  static TextStyle get _artistStyle => GoogleFonts.inconsolata(
+  static TextStyle get _artistStyle => AppFonts.segoe(
     fontSize: 12.5,
     fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceVariant,

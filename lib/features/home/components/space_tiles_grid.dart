@@ -9,7 +9,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -121,14 +120,14 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: Text(
           'Desanclar de Space',
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontWeight: FontWeight.bold,
             color: AppColors.onSurface,
           ),
         ),
         content: Text(
           '¿Deseas desanclar "${item.title}" de Space?',
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             color: AppColors.onSurfaceVariant,
           ),
         ),
@@ -137,7 +136,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
               'CANCELAR',
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 color: AppColors.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
               ),
@@ -147,7 +146,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
               'DESANCLAR',
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 color: AppColors.accent,
                 fontWeight: FontWeight.w700,
               ),

@@ -7,7 +7,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Modal dialog confirming track deletion from the user library.
@@ -29,20 +28,20 @@ class SongDeleteDialog extends StatelessWidget {
     return result ?? false;
   }
 
-  static TextStyle get _titleStyle => GoogleFonts.inconsolata(
+  static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 18.0,
     fontWeight: FontWeight.w700,
     letterSpacing: 1.2,
     color: AppColors.onSurface,
   );
 
-  static TextStyle get _contentStyle => GoogleFonts.inconsolata(
+  static TextStyle get _contentStyle => AppFonts.segoe(
     fontSize: 14.0,
     color: AppColors.onSurfaceVariant,
     height: 1.4,
   );
 
-  static final TextStyle _actionStyle = GoogleFonts.inconsolata(
+  static final TextStyle _actionStyle = AppFonts.segoe(
     fontSize: 14.5,
     fontWeight: FontWeight.w600,
   );

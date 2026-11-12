@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
 /// Solid back face for Metro live tiles with zero glass effect.
@@ -41,7 +40,7 @@ class MetroTileGlassBack extends StatelessWidget {
             const SizedBox(height: 8.0),
             Text(
               label,
-              style: GoogleFonts.inconsolata(
+              style: AppFonts.segoe(
                 fontSize: 12.0,
                 fontWeight: FontWeight.w700,
                 letterSpacing: 1.5,

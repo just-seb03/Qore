@@ -9,7 +9,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/favorite_heart_button.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -150,7 +149,7 @@ class PlaylistDetailHeader extends StatelessWidget {
         Text(
           metadataSubtitle,
           textAlign: TextAlign.center,
-          style: GoogleFonts.inconsolata(
+          style: AppFonts.segoe(
             fontSize: 13.0,
             fontWeight: FontWeight.w500,
             color: AppColors.onSurfaceVariant,
