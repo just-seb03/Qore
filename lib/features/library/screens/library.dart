@@ -24,6 +24,7 @@ import 'package:project_anima/features/library/components/albums/library_albums_
 import 'package:project_anima/features/library/components/artists/library_artists_list.dart';
 import 'package:project_anima/features/library/components/library_category_bar.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
+import 'package:project_anima/features/library/components/library_header.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_view.dart';
 import 'package:project_anima/features/library/controls/library_transition_controller.dart';
 import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
@@ -191,7 +192,9 @@ class _LibraryScreenState extends State<LibraryScreen> {
           body: SafeArea(
             bottom: false,
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                const LibraryHeader(isMetro: true),
                 LibraryCategoryBar(
                   selectedFilter: currentFilter,
                   onFilterChanged: (filter) {
@@ -200,7 +203,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                   onPrevious: () => _transitionController.animateToPrevious(),
                   onNext: () => _transitionController.animateToNext(),
                 ),
-                const SizedBox(height: 8.0),
+                const SizedBox(height: 6.0),
                 Expanded(
                   child: ScrollEdgeFadeMask(
                     key: const ValueKey('library_scroll_edge_fade_mask'),
@@ -235,21 +238,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
           floatingActionButton: currentFilter == LibraryFilter.playlists
               ? Container(
                   key: const ValueKey('library_create_playlist_fab_container'),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.60),
-                        blurRadius: 18.0,
-                        spreadRadius: 2.0,
-                        offset: const Offset(0, 8),
-                      ),
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.35),
-                        blurRadius: 12.0,
-                        offset: const Offset(0, 2),
-                      ),
-                    ],
+                  decoration: const BoxDecoration(
+                    borderRadius: BorderRadius.zero,
                   ),
                   child: FloatingActionButton(
                     key: const ValueKey('library_create_playlist_fab'),
@@ -258,12 +248,8 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     foregroundColor: AppColors.onAccent,
                     elevation: 0.0,
                     highlightElevation: 0.0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16.0),
-                      side: BorderSide(
-                        color: AppColors.outline.withValues(alpha: 0.4),
-                        width: 1.0,
-                      ),
+                    shape: const RoundedRectangleBorder(
+                      borderRadius: BorderRadius.zero,
                     ),
                     child: const Icon(Icons.add_rounded, size: 28.0),
                   ),

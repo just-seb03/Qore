@@ -28,14 +28,14 @@ class LibraryAlbumCard extends StatelessWidget {
 
   static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 14.5,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
   static TextStyle get _artistStyle => AppFonts.segoe(
     fontSize: 12.5,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );

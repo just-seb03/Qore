@@ -31,14 +31,14 @@ class LibraryArtistTile extends StatelessWidget {
 
   static TextStyle get _nameStyle => AppFonts.segoe(
     fontSize: 15.5,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
   static TextStyle get _subtitleStyle => AppFonts.segoe(
-    fontSize: 13.0,
-    fontWeight: FontWeight.w400,
+    fontSize: 12.5,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );
