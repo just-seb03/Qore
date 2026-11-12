@@ -36,7 +36,7 @@ class NavigationController extends ChangeNotifier {
 
   factory NavigationController() => instance;
 
-  int _currentIndex = 1;
+  int _currentIndex = 2;
 
   /// Maximum elapsed time between taps on the search destination to qualify as consecutive double-tap.
   static const Duration doubleTapTimeout = Duration(milliseconds: 1500);
@@ -98,8 +98,8 @@ class NavigationController extends ChangeNotifier {
     handleDestinationSelected(context, newIndex);
   }
 
-  /// Resets controller state to the initial Search tab.
-  void reset({int initialIndex = 1}) {
+  /// Resets controller state to the initial Space tab.
+  void reset({int initialIndex = 2}) {
     _currentIndex = initialIndex;
     _lastSearchTapTime = null;
     notifyListeners();

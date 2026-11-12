@@ -73,8 +73,8 @@ class MenuTransitionController extends ChangeNotifier {
 
   factory MenuTransitionController() => instance;
 
-  int _currentIndex = 1;
-  int _previousIndex = 1;
+  int _currentIndex = 2;
+  int _previousIndex = 2;
   MenuTransitionDirection _direction = MenuTransitionDirection.forward;
   bool _isAnimating = false;
 
@@ -131,8 +131,8 @@ class MenuTransitionController extends ChangeNotifier {
     }
   }
 
-  /// Resets controller state to the initial Search tab without animating.
-  void reset({int initialIndex = 1}) {
+  /// Resets controller state to the initial Space tab without animating.
+  void reset({int initialIndex = 2}) {
     _currentIndex = initialIndex;
     _previousIndex = initialIndex;
     _direction = MenuTransitionDirection.forward;

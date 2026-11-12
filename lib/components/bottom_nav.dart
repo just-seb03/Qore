@@ -80,7 +80,7 @@ class AppBottomNav extends StatelessWidget {
 
   const AppBottomNav({
     super.key,
-    this.currentIndex = 1,
+    this.currentIndex = 2,
     this.onDestinationSelected,
     this.grainIntensity = 0.035,
     this.showMiniPlayer = true,

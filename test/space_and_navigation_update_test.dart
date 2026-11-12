@@ -19,7 +19,6 @@ import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
 import 'package:project_anima/features/library/screens/library.dart';
 import 'package:project_anima/features/profile/screens/profile.dart';
-import 'package:project_anima/features/search/components/search_bar.dart';
 import 'package:project_anima/features/search/components/search_header.dart';
 import 'package:project_anima/features/search/screens/search.dart';
 
@@ -199,13 +198,13 @@ void main() {
     });
   });
 
-  group('Startup Destination to Search Screen Tests', () {
-    test('NavigationController and MenuTransitionController default to index 1 (Search)', () {
-      expect(NavigationController.instance.currentIndex, equals(1));
-      expect(MenuTransitionController.instance.currentIndex, equals(1));
+  group('Startup Destination to Space Screen Tests', () {
+    test('NavigationController and MenuTransitionController default to index 2 (Space)', () {
+      expect(NavigationController.instance.currentIndex, equals(2));
+      expect(MenuTransitionController.instance.currentIndex, equals(2));
     });
 
-    testWidgets('MenuTransitionControl mounts with Search screen active by default',
+    testWidgets('MenuTransitionControl mounts with Space (HomeScreen) active by default',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -221,10 +220,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // MenuTransitionControl should show SearchScreen with AppSearchBar and Search bottom nav tab
-      expect(find.byType(SearchScreen), findsOneWidget);
-      expect(find.byType(AppSearchBar), findsOneWidget); // Search bar at top
-      expect(find.text('Search'), findsOneWidget); // Bottom nav tab
+      // MenuTransitionControl should show HomeScreen (Space) with SpaceTilesGrid and Space bottom nav tab
+      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.byType(SpaceTilesGrid), findsOneWidget);
+      expect(find.text('Space'), findsOneWidget); // Bottom nav tab
     });
   });
 
@@ -307,8 +306,8 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      // Defaults to SearchScreen (index 1)
-      expect(find.byType(SearchScreen), findsOneWidget);
+      // Defaults to Space (index 2)
+      expect(find.byType(HomeScreen), findsOneWidget);
 
       // Navigate to Explore (index 0)
       MenuTransitionController.instance.animateTo(0);
@@ -316,11 +315,11 @@ void main() {
       await tester.pump(const Duration(milliseconds: 350));
       expect(find.byType(ExploreScreen), findsOneWidget);
 
-      // Navigate to Space (index 2)
-      MenuTransitionController.instance.animateTo(2);
+      // Navigate to Search (index 1)
+      MenuTransitionController.instance.animateTo(1);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
-      expect(find.byType(HomeScreen), findsOneWidget);
+      expect(find.byType(SearchScreen), findsOneWidget);
 
       // Navigate to Library (index 3)
       MenuTransitionController.instance.animateTo(3);
