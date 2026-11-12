@@ -2,7 +2,8 @@
 /// Description: Dedicated Explore screen designed authentically in the Windows Phone Metro
 /// design language. Features sharp 90-degree corners, zero drop shadows, large panoramic
 /// Segoe UI Light typography, Live Tiles, square artist tiles, dynamic ambient particles,
-/// and an interactive collapsible header that disappears on scroll down and reappears on scroll up.
+/// and an interactive collapsible header overlay that slides away on scroll down and reappears
+/// on scroll up without resizing the scrollable viewport.
 ///
 /// Components / Classes / Functions:
 /// - Explore: Type alias for ExploreScreen.
@@ -82,15 +83,33 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _onScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
 
+    final metrics = notification.metrics;
+
+    // 1. If at or near top, always keep header visible
+    if (metrics.pixels <= 25.0) {
+      if (!_isHeaderVisible) {
+        setState(() {
+          _isHeaderVisible = true;
+        });
+      }
+      return false;
+    }
+
+    // 2. Ignore overscroll and bottom bounce to prevent false triggers or snap-back jitter
+    if (metrics.outOfRange || metrics.pixels >= metrics.maxScrollExtent - 40.0) {
+      return false;
+    }
+
+    // 3. Process scrolling movements with threshold
     if (notification is ScrollUpdateNotification) {
       final delta = notification.scrollDelta ?? 0.0;
-      if (delta > 2.0 && notification.metrics.pixels > 15.0) {
+      if (delta > 6.0 && metrics.pixels > 50.0) {
         if (_isHeaderVisible) {
           setState(() {
             _isHeaderVisible = false;
           });
         }
-      } else if (delta < -2.0) {
+      } else if (delta < -6.0) {
         if (!_isHeaderVisible) {
           setState(() {
             _isHeaderVisible = true;
@@ -98,8 +117,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
         }
       }
     } else if (notification is UserScrollNotification) {
-      if (notification.direction == ScrollDirection.reverse &&
-          notification.metrics.pixels > 15.0) {
+      if (notification.direction == ScrollDirection.reverse && metrics.pixels > 50.0) {
         if (_isHeaderVisible) {
           setState(() {
             _isHeaderVisible = false;
@@ -112,12 +130,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
           });
         }
       }
-    }
-
-    if (notification.metrics.pixels <= 10.0 && !_isHeaderVisible) {
-      setState(() {
-        _isHeaderVisible = true;
-      });
     }
 
     return false;
@@ -141,24 +153,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
               bottom: false,
               child: NotificationListener<ScrollNotification>(
                 onNotification: _onScrollNotification,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                child: Stack(
                   children: [
-                    // Dynamic collapsible header: hides on scroll down, slides back on scroll up
-                    ClipRect(
-                      child: AnimatedAlign(
-                        duration: const Duration(milliseconds: 260),
-                        curve: Curves.fastOutSlowIn,
-                        alignment: Alignment.topLeft,
-                        heightFactor: _isHeaderVisible ? 1.0 : 0.0,
-                        child: AnimatedOpacity(
-                          duration: const Duration(milliseconds: 180),
-                          opacity: _isHeaderVisible ? 1.0 : 0.0,
-                          child: const ExploreHeader(),
-                        ),
-                      ),
-                    ),
-                    Expanded(
+                    // 1. Content view with constant viewport constraints (never resizes during scroll)
+                    Positioned.fill(
                       child: ShaderMask(
                         shaderCallback: (Rect bounds) {
                           return const LinearGradient(
@@ -186,8 +184,45 @@ class _ExploreScreenState extends State<ExploreScreen> {
                           initialArtists: widget.initialArtists,
                           initialTodaySongs: widget.initialTodaySongs,
                           initialRecentSongs: widget.initialRecentSongs,
+                          topPadding: 74.0,
+                          bottomPadding: 84.0,
                           onAlbumTap: (album) => _handleAlbumTap(context, album),
                           onArtistTap: (artist) => _handleArtistTap(context, artist),
+                        ),
+                      ),
+                    ),
+
+                    // 2. Animated header overlay: slides up when scrolling down, slides back when scrolling up
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        ignoring: !_isHeaderVisible,
+                        child: AnimatedSlide(
+                          duration: const Duration(milliseconds: 240),
+                          curve: Curves.fastOutSlowIn,
+                          offset: _isHeaderVisible ? Offset.zero : const Offset(0, -1.1),
+                          child: AnimatedOpacity(
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOutCubic,
+                            opacity: _isHeaderVisible ? 1.0 : 0.0,
+                            child: Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    AppColors.bottomNavBackground.withValues(alpha: 0.95),
+                                    AppColors.bottomNavBackground.withValues(alpha: 0.6),
+                                    Colors.transparent,
+                                  ],
+                                  stops: const [0.0, 0.7, 1.0],
+                                ),
+                              ),
+                              child: const ExploreHeader(),
+                            ),
+                          ),
                         ),
                       ),
                     ),

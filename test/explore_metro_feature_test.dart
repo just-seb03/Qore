@@ -321,28 +321,28 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
-      final animatedAlignFinder = find.ancestor(
+      final animatedSlideFinder = find.ancestor(
         of: find.byType(ExploreHeader),
-        matching: find.byType(AnimatedAlign),
+        matching: find.byType(AnimatedSlide),
       );
-      expect(animatedAlignFinder, findsOneWidget);
+      expect(animatedSlideFinder, findsOneWidget);
 
-      AnimatedAlign alignWidget = tester.widget<AnimatedAlign>(animatedAlignFinder);
-      expect(alignWidget.heightFactor, 1.0);
+      AnimatedSlide slideWidget = tester.widget<AnimatedSlide>(animatedSlideFinder);
+      expect(slideWidget.offset, Offset.zero);
 
       // Scroll down
       await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -300), warnIfMissed: false);
       await tester.pump(const Duration(milliseconds: 300));
 
-      alignWidget = tester.widget<AnimatedAlign>(animatedAlignFinder);
-      expect(alignWidget.heightFactor, 0.0);
+      slideWidget = tester.widget<AnimatedSlide>(animatedSlideFinder);
+      expect(slideWidget.offset.dy < 0, isTrue);
 
       // Scroll back up
       await tester.drag(find.byType(SingleChildScrollView), const Offset(0, 300), warnIfMissed: false);
       await tester.pump(const Duration(milliseconds: 300));
 
-      alignWidget = tester.widget<AnimatedAlign>(animatedAlignFinder);
-      expect(alignWidget.heightFactor, 1.0);
+      slideWidget = tester.widget<AnimatedSlide>(animatedSlideFinder);
+      expect(slideWidget.offset, Offset.zero);
     });
   });
 }

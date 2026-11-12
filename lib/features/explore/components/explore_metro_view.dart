@@ -62,6 +62,12 @@ class ExploreMetroView extends StatefulWidget {
   /// Optional scroll controller.
   final ScrollController? scrollController;
 
+  /// Optional top padding for the scroll view. Defaults to 74.0.
+  final double topPadding;
+
+  /// Optional bottom padding for the scroll view. Defaults to 84.0.
+  final double bottomPadding;
+
   const ExploreMetroView({
     super.key,
     this.initialAlbums,
@@ -75,6 +81,8 @@ class ExploreMetroView extends StatefulWidget {
     this.onArtistTap,
     this.onSongTap,
     this.scrollController,
+    this.topPadding = 74.0,
+    this.bottomPadding = 84.0,
   });
 
   @override
@@ -287,7 +295,10 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding: const EdgeInsets.only(top: 6.0, bottom: 100.0),
+      padding: EdgeInsets.only(
+        top: widget.topPadding,
+        bottom: widget.bottomPadding,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
