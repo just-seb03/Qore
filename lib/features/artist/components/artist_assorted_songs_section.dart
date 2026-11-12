@@ -60,7 +60,7 @@ class ArtistAssortedSongsSection extends StatelessWidget {
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(12.0),
+                  borderRadius: BorderRadius.zero,
                   onTap: () {
                     if (onViewAll != null) {
                       onViewAll!();

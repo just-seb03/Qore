@@ -16,6 +16,7 @@ import 'package:project_anima/components/scroll_edge_fade_mask.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist_discography/components/artist_discography_grid.dart';
 import 'package:project_anima/features/artist_discography/components/artist_discography_header.dart';
 import 'package:project_anima/features/artist_discography/controls/artist_discography_controller.dart';
@@ -167,77 +168,85 @@ class _ArtistDiscographyScreenState extends State<ArtistDiscographyScreen>
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.background,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.showMiniPlayer) ...[
-                const SizedBox(height: 6.0),
-                const MiniPlayer(),
-                const SizedBox(height: 6.0),
-              ],
-              ModalDismissIndicator(
-                onDismiss: _handleDismiss,
-                onDragUpdate: _handleDragUpdate,
-                onDragEnd: _handleDragEnd,
-                size: 34.0,
-                color: AppColors.onSurfaceVariant,
-                animate: widget.animateBounce,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8.0,
-                  horizontal: 40.0,
+      color: AppColors.bottomNavBackground,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Dynamic ambient particles backdrop
+          const AmbientParticlesCanvas(),
+
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            bottomNavigationBar: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.showMiniPlayer) ...[
+                    const SizedBox(height: 6.0),
+                    const MiniPlayer(),
+                    const SizedBox(height: 6.0),
+                  ],
+                  ModalDismissIndicator(
+                    onDismiss: _handleDismiss,
+                    onDragUpdate: _handleDragUpdate,
+                    onDragEnd: _handleDragEnd,
+                    size: 34.0,
+                    color: AppColors.onSurfaceVariant,
+                    animate: widget.animateBounce,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8.0,
+                      horizontal: 40.0,
+                    ),
+                  ),
+                  const SizedBox(height: 12.0),
+                ],
+              ),
+            ),
+            body: SafeArea(
+              bottom: false,
+              child: Transform.translate(
+                offset: Offset(0.0, _dragOffset),
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    if (_controller.isLoading) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.accent,
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Top Section Header (Category, Artist Name, Album Count)
+                        ArtistDiscographyHeader(
+                          artistName: widget.artistName,
+                          albumCount: _controller.albumCount,
+                        ),
+                        const SizedBox(height: 4.0),
+
+                        // 2. 2-per-row Albums Grid with dynamic scroll edge transparency
+                        Expanded(
+                          child: ScrollEdgeFadeMask(
+                            scrollController: _scrollController,
+                            child: ArtistDiscographyGrid(
+                              albums: _controller.albums,
+                              scrollController: _scrollController,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
-              const SizedBox(height: 12.0),
-            ],
-          ),
-        ),
-        body: SafeArea(
-          bottom: false,
-          child: Transform.translate(
-            offset: Offset(0.0, _dragOffset),
-            child: ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) {
-                if (_controller.isLoading) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: AppColors.accent,
-                    ),
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Top Section Header (Category, Artist Name, Album Count)
-                    ArtistDiscographyHeader(
-                      artistName: widget.artistName,
-                      albumCount: _controller.albumCount,
-                    ),
-                    const SizedBox(height: 4.0),
-
-                    // 2. 2-per-row Albums Grid with dynamic scroll edge transparency
-                    Expanded(
-                      child: ScrollEdgeFadeMask(
-                        scrollController: _scrollController,
-                        child: ArtistDiscographyGrid(
-                          albums: _controller.albums,
-                          scrollController: _scrollController,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
             ),
           ),
-        ),
+        ],
       ),
     );
   }

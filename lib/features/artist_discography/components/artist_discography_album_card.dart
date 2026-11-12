@@ -30,14 +30,14 @@ class ArtistDiscographyAlbumCard extends StatelessWidget {
 
   static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 14.5,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
   static TextStyle get _metaStyle => AppFonts.segoe(
     fontSize: 12.0,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );
@@ -50,6 +50,7 @@ class ArtistDiscographyAlbumCard extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
+        borderRadius: BorderRadius.zero,
         onTap: onTap ??
             () {
               Navigator.of(context).push(
@@ -67,19 +68,12 @@ class ArtistDiscographyAlbumCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 1. Sharp square artwork with elevation shadow
+            // 1. Sharp square artwork without drop shadow
             AspectRatio(
               aspectRatio: 1.0,
               child: Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      blurRadius: 10.0,
-                      spreadRadius: 1.0,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.zero,
                 ),
                 child: AnimaArtworkImage(
                   mediaStoreId: album.representativeSongId,

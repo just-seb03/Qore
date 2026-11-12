@@ -69,15 +69,17 @@ class ArtistTrackTile extends StatelessWidget {
               color: isCurrentTrack
                   ? AppColors.surfaceContainerHigh.withValues(alpha: 0.5)
                   : Colors.transparent,
-              borderRadius: BorderRadius.circular(10.0),
+              borderRadius: BorderRadius.zero,
               child: InkWell(
-                borderRadius: BorderRadius.circular(10.0),
+                borderRadius: BorderRadius.zero,
                 onTap: handleTap,
+                splashColor: AppColors.accent.withValues(alpha: 0.15),
+                highlightColor: Colors.transparent,
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
                   child: Row(
                     children: [
-                      // 1. Artwork Thumbnail (48x48)
+                      // 1. Artwork Thumbnail (48x48, sharp 90-degree corners)
                       Stack(
                         alignment: Alignment.center,
                         children: [
@@ -93,8 +95,9 @@ class ArtistTrackTile extends StatelessWidget {
                             Container(
                               width: 48.0,
                               height: 48.0,
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.45),
+                              decoration: const BoxDecoration(
+                                color: Colors.black45,
+                                borderRadius: BorderRadius.zero,
                               ),
                               child: Icon(
                                 Icons.equalizer_rounded,
@@ -120,7 +123,7 @@ class ArtistTrackTile extends StatelessWidget {
                                 fontSize: 14.5,
                                 fontWeight: isCurrentTrack
                                     ? FontWeight.w600
-                                    : FontWeight.w500,
+                                    : FontWeight.w400,
                                 color: isCurrentTrack
                                     ? AppColors.accent
                                     : AppColors.onSurface,
@@ -132,7 +135,8 @@ class ArtistTrackTile extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppFonts.segoe(
-                                fontSize: 11.5,
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.w300,
                                 color: AppColors.onSurfaceVariant,
                               ),
                             ),

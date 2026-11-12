@@ -59,47 +59,50 @@ class ArtistCompactTrackTile extends StatelessWidget {
           color: isCurrentTrack
               ? AppColors.surfaceContainerHigh.withValues(alpha: 0.5)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(10.0),
+          borderRadius: BorderRadius.zero,
           child: InkWell(
-            borderRadius: BorderRadius.circular(10.0),
-              onTap: handleTap,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 7.0),
-                child: Row(
-                  children: [
-                    // Title & Album only (No cover)
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            song.title,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppFonts.segoe(
-                              fontSize: 14.0,
-                              fontWeight: isCurrentTrack
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
-                              color: isCurrentTrack
-                                  ? AppColors.accent
-                                  : AppColors.onSurface,
-                            ),
+            borderRadius: BorderRadius.zero,
+            onTap: handleTap,
+            splashColor: AppColors.accent.withValues(alpha: 0.15),
+            highlightColor: Colors.transparent,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 7.0),
+              child: Row(
+                children: [
+                  // Title & Album only (No cover, Metro typography)
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.segoe(
+                            fontSize: 14.5,
+                            fontWeight: isCurrentTrack
+                                ? FontWeight.w600
+                                : FontWeight.w400,
+                            color: isCurrentTrack
+                                ? AppColors.accent
+                                : AppColors.onSurface,
                           ),
-                          const SizedBox(height: 1.5),
-                          Text(
-                            song.album ?? 'Unknown Album',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: AppFonts.segoe(
-                              fontSize: 11.5,
-                              color: AppColors.onSurfaceVariant,
-                            ),
+                        ),
+                        const SizedBox(height: 2.0),
+                        Text(
+                          song.album ?? 'Unknown Album',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppFonts.segoe(
+                            fontSize: 12.0,
+                            fontWeight: FontWeight.w300,
+                            color: AppColors.onSurfaceVariant,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
+                  ),
 
                     // Track Options Pill (beside duration with 3-dots trigger)
                     SongOptionsPill(

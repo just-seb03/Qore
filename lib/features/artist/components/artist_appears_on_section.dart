@@ -61,6 +61,7 @@ class ArtistAppearsOnSection extends StatelessWidget {
                   : context.l10n.artist.albumSongCount(album.songCount);
 
               return InkWell(
+                borderRadius: BorderRadius.zero,
                 onTap: () {
                   Navigator.of(context).push(
                     AlbumDetailScreen.route(
@@ -77,15 +78,10 @@ class ArtistAppearsOnSection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Sharp 90-degree Metro album artwork without drop shadow
                       Container(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              blurRadius: 10.0,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                        decoration: const BoxDecoration(
+                          borderRadius: BorderRadius.zero,
                         ),
                         child: AnimaArtworkImage(
                           mediaStoreId: album.representativeSongId,
@@ -106,7 +102,7 @@ class ArtistAppearsOnSection extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppFonts.segoe(
                           fontSize: 14.0,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           color: AppColors.onSurface,
                         ),
                       ),
@@ -117,6 +113,7 @@ class ArtistAppearsOnSection extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppFonts.segoe(
                           fontSize: 12.0,
+                          fontWeight: FontWeight.w300,
                           color: AppColors.onSurfaceVariant,
                         ),
                       ),

@@ -6,13 +6,14 @@
 /// - ArtistHeaderView: Top header view presenting the artist avatar and title.
 library;
 
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/favorite_heart_button.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/theme/theme.dart';
-import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 
-/// Large interactive header featuring circular avatar, atmospheric halo glow,
-/// floating pencil edit badge, centered artist name, and favorite heart button.
+/// Authentic Windows Phone Metro artist header featuring a sharp square portrait,
+/// sharp corner tile edit badge, majestic Segoe UI Light typography, and favorite heart toggle.
 class ArtistHeaderView extends StatelessWidget {
   /// Name of the artist to display.
   final String artistName;
@@ -36,97 +37,100 @@ class ArtistHeaderView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    const double avatarSize = 160.0;
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Circular Avatar with Atmospheric Halo & Floating Edit Pencil Badge
+          // Authentic Metro Sharp Square Artist Portrait with Sharp Edit Badge
           Stack(
-            alignment: Alignment.center,
+            alignment: Alignment.bottomRight,
             children: [
-              // Ambient soft halo
-              Container(
-                width: 200.0,
-                height: 200.0,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.07),
-                      Colors.white.withValues(alpha: 0.02),
-                      Colors.transparent,
-                    ],
-                    stops: const [0.0, 0.5, 1.0],
+              // 1. Square Artist Portrait (Metro People tile rule: sharp square, never circular)
+              SizedBox(
+                width: avatarSize,
+                height: avatarSize,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.zero,
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                      width: 1.5,
+                    ),
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: ListenableBuilder(
+                    listenable: ArtworkService.instance,
+                    builder: (context, _) {
+                      final customSquare = ArtworkService.instance
+                              .getCustomArtistSquarePhoto(artistName) ??
+                          ArtworkService.instance
+                              .getCustomArtistAvatar(artistName);
+                      final hasCustomPhoto = customSquare != null &&
+                          File(customSquare).existsSync();
+
+                      if (hasCustomPhoto) {
+                        return Image(
+                          image: ResizeImage(
+                            FileImage(File(customSquare)),
+                            width: (avatarSize * 2.5).round(),
+                            height: (avatarSize * 2.5).round(),
+                            policy: ResizeImagePolicy.fit,
+                          ),
+                          fit: BoxFit.cover,
+                          width: avatarSize,
+                          height: avatarSize,
+                        );
+                      }
+
+                      return Container(
+                        color: AppColors.surfaceContainerHigh,
+                        child: Center(
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: 80.0,
+                            color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                          ),
+                        ),
+                      );
+                    },
                   ),
                 ),
               ),
 
-              Stack(
-                alignment: Alignment.bottomRight,
-                children: [
-                  Container(
+              // 2. Sharp Square Metro Edit Button (Tile badge)
+              Material(
+                color: AppColors.surfaceContainerHighest,
+                child: InkWell(
+                  onTap: onEditTap,
+                  splashColor: AppColors.accent.withValues(alpha: 0.2),
+                  highlightColor: Colors.transparent,
+                  borderRadius: BorderRadius.zero,
+                  child: Container(
+                    width: 36.0,
+                    height: 36.0,
                     decoration: BoxDecoration(
-                      shape: BoxShape.circle,
+                      color: AppColors.surfaceContainerHighest,
+                      borderRadius: BorderRadius.zero,
                       border: Border.all(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.5),
-                        width: 1.8,
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          blurRadius: 22.0,
-                          offset: const Offset(0, 8),
-                        ),
-                      ],
-                    ),
-                    child: MaterialArtistAvatar(
-                      radius: 66.0,
-                      artistName: artistName,
-                      backgroundColor: AppColors.surfaceContainerHigh,
-                      iconColor: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-
-                  // Sleek Elevated Edit Button
-                  Material(
-                    color: Colors.transparent,
-                    shape: const CircleBorder(),
-                    child: InkWell(
-                      customBorder: const CircleBorder(),
-                      onTap: onEditTap,
-                      child: Container(
-                        width: 40.0,
-                        height: 40.0,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerHighest,
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.background,
-                            width: 2.8,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.45),
-                              blurRadius: 8.0,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Icon(
-                          Icons.edit_rounded,
-                          size: 19.0,
-                          color: AppColors.onSurface,
-                        ),
+                        color: AppColors.bottomNavBackground,
+                        width: 2.0,
                       ),
                     ),
+                    child: Icon(
+                      Icons.edit_rounded,
+                      size: 18.0,
+                      color: AppColors.onSurface,
+                    ),
                   ),
-                ],
+                ),
               ),
             ],
           ),
-          const SizedBox(height: 8.0),
+          const SizedBox(height: 14.0),
 
-          // Artist Name Typography directly below avatar
+          // 2. Large Segoe UI Light/Semilight Artist Title
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24.0),
             child: Text(
@@ -135,15 +139,15 @@ class ArtistHeaderView extends StatelessWidget {
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: AppFonts.segoe(
-                fontSize: 27.0,
-                fontWeight: FontWeight.w800,
+                fontSize: 32.0,
+                fontWeight: FontWeight.w300,
                 color: AppColors.onBackground,
-                letterSpacing: -0.4,
+                letterSpacing: -0.5,
               ),
             ),
           ),
 
-          // Favorite Heart Button centered below artist name
+          // 3. Favorite Heart Button directly below title
           if (onToggleFavorite != null) ...[
             const SizedBox(height: 10.0),
             FavoriteHeartButton(

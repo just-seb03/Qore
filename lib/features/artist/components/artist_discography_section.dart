@@ -57,7 +57,7 @@ class ArtistDiscographySection extends StatelessWidget {
               Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  borderRadius: BorderRadius.circular(12.0),
+                  borderRadius: BorderRadius.zero,
                   onTap: () {
                     if (onViewAll != null) {
                       onViewAll!();
@@ -94,6 +94,7 @@ class ArtistDiscographySection extends StatelessWidget {
                   context.l10n.artist.albumSongCount(album.songCount);
 
               return InkWell(
+                borderRadius: BorderRadius.zero,
                 onTap: () {
                   Navigator.of(context).push(
                     AlbumDetailScreen.route(
@@ -110,15 +111,10 @@ class ArtistDiscographySection extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      // Sharp 90-degree Metro album artwork without drop shadow
                       Container(
-                        decoration: BoxDecoration(
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              blurRadius: 10.0,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+                        decoration: const BoxDecoration(
+                          borderRadius: BorderRadius.zero,
                         ),
                         child: AnimaArtworkImage(
                           mediaStoreId: album.representativeSongId,
@@ -139,7 +135,7 @@ class ArtistDiscographySection extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppFonts.segoe(
                           fontSize: 14.0,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           color: AppColors.onSurface,
                         ),
                       ),
@@ -150,6 +146,7 @@ class ArtistDiscographySection extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: AppFonts.segoe(
                           fontSize: 12.0,
+                          fontWeight: FontWeight.w300,
                           color: AppColors.onSurfaceVariant,
                         ),
                       ),

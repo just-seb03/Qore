@@ -32,9 +32,9 @@ class ArtistPhotoOptionsSheet extends StatelessWidget {
   }) {
     return showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.surfaceContainerHigh,
+      backgroundColor: AppColors.bottomNavBackground,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.0)),
+        borderRadius: BorderRadius.zero,
       ),
       builder: (sheetContext) {
         return ArtistPhotoOptionsSheet(
@@ -53,46 +53,46 @@ class ArtistPhotoOptionsSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16.0),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 36.0,
-              height: 4.0,
-              margin: const EdgeInsets.only(bottom: 16.0),
-              decoration: BoxDecoration(
-                color: AppColors.outlineVariant,
-                borderRadius: BorderRadius.circular(2.0),
-              ),
-            ),
-            ListTile(
-              leading: Icon(Icons.photo_library_outlined, color: AppColors.onSurface),
-              title: Text(
-                context.l10n.artist.changeArtistPhoto,
-                style: AppFonts.segoe(
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.onSurface,
+    return Material(
+      color: AppColors.bottomNavBackground,
+      shape: Border(
+        top: BorderSide(
+          color: AppColors.accent,
+          width: 2.5,
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: Icon(Icons.photo_library_outlined, color: AppColors.onSurface),
+                title: Text(
+                  context.l10n.artist.changeArtistPhoto,
+                  style: AppFonts.segoe(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w400,
+                    color: AppColors.onSurface,
+                  ),
                 ),
+                onTap: onChangePhoto,
               ),
-              onTap: onChangePhoto,
-            ),
-            ListTile(
-              leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-              title: Text(
-                context.l10n.artist.removeCustomPhoto,
-                style: AppFonts.segoe(
-                  fontSize: 15.0,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.redAccent,
+              ListTile(
+                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
+                title: Text(
+                  context.l10n.artist.removeCustomPhoto,
+                  style: AppFonts.segoe(
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w400,
+                    color: Colors.redAccent,
+                  ),
                 ),
+                onTap: onRemovePhoto,
               ),
-              onTap: onRemovePhoto,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

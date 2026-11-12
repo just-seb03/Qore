@@ -23,6 +23,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist/components/artist_appears_on_section.dart';
 import 'package:project_anima/features/artist/components/artist_assorted_songs_section.dart';
 import 'package:project_anima/features/artist/components/artist_discography_section.dart';
@@ -294,99 +295,107 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
     return AnimatedContainer(
       duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
       curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
-      color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        bottomNavigationBar: const SafeArea(
-          top: false,
-          child: MiniPlayer(),
-        ),
-        body: SafeArea(
-          bottom: false,
-          child: Transform.translate(
-            offset: Offset(0.0, _dragOffset),
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: AppColors.accent,
-                    ),
-                  )
-                : SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Downward Animated Dismiss Chevron
-                        const SizedBox(height: 4.0),
-                        Center(
-                          child: ModalDismissIndicator(
-                            onDismiss: _handleDismiss,
-                            onDragUpdate: _handleDragUpdate,
-                            onDragEnd: _handleDragEnd,
-                            size: 34.0,
-                            color: AppColors.onSurfaceVariant,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: 4.0,
-                              horizontal: 36.0,
+      color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.bottomNavBackground,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Dynamic ambient particles backdrop
+          const AmbientParticlesCanvas(),
+
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            bottomNavigationBar: const SafeArea(
+              top: false,
+              child: MiniPlayer(),
+            ),
+            body: SafeArea(
+              bottom: false,
+              child: Transform.translate(
+                offset: Offset(0.0, _dragOffset),
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.accent,
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Downward Animated Dismiss Chevron
+                            const SizedBox(height: 4.0),
+                            Center(
+                              child: ModalDismissIndicator(
+                                onDismiss: _handleDismiss,
+                                onDragUpdate: _handleDragUpdate,
+                                onDragEnd: _handleDragEnd,
+                                size: 34.0,
+                                color: AppColors.onSurfaceVariant,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 4.0,
+                                  horizontal: 36.0,
+                                ),
+                              ),
                             ),
-                          ),
+                            const SizedBox(height: 8.0),
+
+                            // 1. Top Avatar with Glow, Pencil Badge & Artist Name
+                            ArtistHeaderView(
+                              artistName: _resolvedArtistName,
+                              onEditTap: _handleEditPhoto,
+                              isPinned: _isPinned,
+                              onToggleFavorite: _togglePinned,
+                            ),
+                            const SizedBox(height: 30.0),
+
+                            // 2. User Top 3 Most Listened Tracks
+                            if (_topSongs.isNotEmpty) ...[
+                              ArtistTopTracksSection(
+                                topSongs: _topSongs,
+                                allArtistSongs: _assortedSongs.isNotEmpty
+                                    ? _assortedSongs
+                                    : _topSongs,
+                              ),
+                              const SizedBox(height: 30.0),
+                            ],
+
+                            // 3. Discography Horizontal Carousel
+                            if (_albums.isNotEmpty) ...[
+                              ArtistDiscographySection(
+                                albums: _albums,
+                                artistName: _resolvedArtistName,
+                              ),
+                              const SizedBox(height: 30.0),
+                            ],
+
+                            // 4. Assorted Tracks
+                            if (_assortedSongs.isNotEmpty) ...[
+                              ArtistAssortedSongsSection(
+                                songs: _assortedSongs,
+                                allArtistSongs: _assortedSongs,
+                                artistName: _resolvedArtistName,
+                              ),
+                              const SizedBox(height: 30.0),
+                            ],
+
+                            // 5. Appears On Section (Albums where artist is a secondary / guest contributor)
+                            if (_appearsOnAlbums.isNotEmpty) ...[
+                              ArtistAppearsOnSection(
+                                albums: _appearsOnAlbums,
+                              ),
+                              const SizedBox(height: 30.0),
+                            ],
+
+                            const SizedBox(height: 24.0),
+                          ],
                         ),
-                        const SizedBox(height: 8.0),
-
-                        // 1. Top Avatar with Glow, Pencil Badge & Artist Name
-                        ArtistHeaderView(
-                          artistName: _resolvedArtistName,
-                          onEditTap: _handleEditPhoto,
-                          isPinned: _isPinned,
-                          onToggleFavorite: _togglePinned,
-                        ),
-                        const SizedBox(height: 30.0),
-
-                        // 2. User Top 3 Most Listened Tracks
-                        if (_topSongs.isNotEmpty) ...[
-                          ArtistTopTracksSection(
-                            topSongs: _topSongs,
-                            allArtistSongs: _assortedSongs.isNotEmpty
-                                ? _assortedSongs
-                                : _topSongs,
-                          ),
-                          const SizedBox(height: 30.0),
-                        ],
-
-                        // 3. Discography Horizontal Carousel
-                        if (_albums.isNotEmpty) ...[
-                          ArtistDiscographySection(
-                            albums: _albums,
-                            artistName: _resolvedArtistName,
-                          ),
-                          const SizedBox(height: 30.0),
-                        ],
-
-                        // 4. Assorted Tracks
-                        if (_assortedSongs.isNotEmpty) ...[
-                          ArtistAssortedSongsSection(
-                            songs: _assortedSongs,
-                            allArtistSongs: _assortedSongs,
-                            artistName: _resolvedArtistName,
-                          ),
-                          const SizedBox(height: 30.0),
-                        ],
-
-                        // 5. Appears On Section (Albums where artist is a secondary / guest contributor)
-                        if (_appearsOnAlbums.isNotEmpty) ...[
-                          ArtistAppearsOnSection(
-                            albums: _appearsOnAlbums,
-                          ),
-                          const SizedBox(height: 30.0),
-                        ],
-
-                        const SizedBox(height: 24.0),
-                      ],
-                    ),
-                  ),
+                      ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

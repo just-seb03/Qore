@@ -16,6 +16,7 @@ import 'package:project_anima/components/scroll_edge_fade_mask.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist_tracks/components/artist_tracks_header.dart';
 import 'package:project_anima/features/artist_tracks/components/artist_tracks_list.dart';
 import 'package:project_anima/features/artist_tracks/controls/artist_tracks_controller.dart';
@@ -167,78 +168,86 @@ class _ArtistTracksScreenState extends State<ArtistTracksScreen>
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.background,
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        bottomNavigationBar: SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (widget.showMiniPlayer) ...[
-                const SizedBox(height: 6.0),
-                const MiniPlayer(),
-                const SizedBox(height: 6.0),
-              ],
-              ModalDismissIndicator(
-                onDismiss: _handleDismiss,
-                onDragUpdate: _handleDragUpdate,
-                onDragEnd: _handleDragEnd,
-                size: 34.0,
-                color: AppColors.onSurfaceVariant,
-                animate: widget.animateBounce,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 8.0,
-                  horizontal: 40.0,
+      color: AppColors.bottomNavBackground,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Dynamic ambient particles backdrop
+          const AmbientParticlesCanvas(),
+
+          Scaffold(
+            backgroundColor: Colors.transparent,
+            bottomNavigationBar: SafeArea(
+              top: false,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (widget.showMiniPlayer) ...[
+                    const SizedBox(height: 6.0),
+                    const MiniPlayer(),
+                    const SizedBox(height: 6.0),
+                  ],
+                  ModalDismissIndicator(
+                    onDismiss: _handleDismiss,
+                    onDragUpdate: _handleDragUpdate,
+                    onDragEnd: _handleDragEnd,
+                    size: 34.0,
+                    color: AppColors.onSurfaceVariant,
+                    animate: widget.animateBounce,
+                    padding: const EdgeInsets.symmetric(
+                      vertical: 8.0,
+                      horizontal: 40.0,
+                    ),
+                  ),
+                  const SizedBox(height: 12.0),
+                ],
+              ),
+            ),
+            body: SafeArea(
+              bottom: false,
+              child: Transform.translate(
+                offset: Offset(0.0, _dragOffset),
+                child: ListenableBuilder(
+                  listenable: _controller,
+                  builder: (context, _) {
+                    if (_controller.isLoading) {
+                      return Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.accent,
+                        ),
+                      );
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 1. Top Section Header (Category, Artist Name, Stats)
+                        ArtistTracksHeader(
+                          artistName: widget.artistName,
+                          songCount: _controller.songCount,
+                          totalDurationMs: _controller.totalDurationMs,
+                        ),
+                        const SizedBox(height: 4.0),
+
+                        // 2. High-performance virtualized tracks list with edge fade mask
+                        Expanded(
+                          child: ScrollEdgeFadeMask(
+                            scrollController: _scrollController,
+                            child: ArtistTracksList(
+                              songs: _controller.songs,
+                              scrollController: _scrollController,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
-              const SizedBox(height: 12.0),
-            ],
-          ),
-        ),
-        body: SafeArea(
-          bottom: false,
-          child: Transform.translate(
-            offset: Offset(0.0, _dragOffset),
-            child: ListenableBuilder(
-              listenable: _controller,
-              builder: (context, _) {
-                if (_controller.isLoading) {
-                  return Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: AppColors.accent,
-                    ),
-                  );
-                }
-
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // 1. Top Section Header (Category, Artist Name, Stats)
-                    ArtistTracksHeader(
-                      artistName: widget.artistName,
-                      songCount: _controller.songCount,
-                      totalDurationMs: _controller.totalDurationMs,
-                    ),
-                    const SizedBox(height: 4.0),
-
-                    // 2. High-performance virtualized tracks list with edge fade mask
-                    Expanded(
-                      child: ScrollEdgeFadeMask(
-                        scrollController: _scrollController,
-                        child: ArtistTracksList(
-                          songs: _controller.songs,
-                          scrollController: _scrollController,
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              },
             ),
           ),
-        ),
+        ],
       ),
     );
   }
