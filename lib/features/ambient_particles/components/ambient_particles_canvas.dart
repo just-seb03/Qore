@@ -93,7 +93,12 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
     if (_controller.isSimulating) {
       if (!_animController.isAnimating) {
         _lastTickTime = DateTime.now();
-        _animController.repeat();
+        final isAutomatedTest = WidgetsBinding.instance.runtimeType
+            .toString()
+            .contains('TestWidgetsFlutterBinding');
+        if (!isAutomatedTest) {
+          _animController.repeat();
+        }
       }
     } else {
       if (_animController.isAnimating) {

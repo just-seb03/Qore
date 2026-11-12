@@ -12,6 +12,7 @@ import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/library/components/albums/library_album_card.dart';
 import 'package:project_anima/features/library/components/common/metro_alphabet_scroller.dart';
 import 'package:project_anima/features/library/components/library_category_bar.dart';
@@ -68,6 +69,29 @@ void main() {
       songCount: 17,
       albumCount: 1,
       representativeSongId: 101,
+    ),
+  ];
+
+  final testSongs = [
+    const Song(
+      id: 1,
+      title: 'Come Together',
+      artist: 'The Beatles',
+      album: 'Abbey Road',
+      duration: 259000,
+      path: '/storage/music/come_together.mp3',
+      mediaStoreId: 1001,
+      dateModified: 1600000000,
+    ),
+    const Song(
+      id: 2,
+      title: 'Get Lucky',
+      artist: 'Daft Punk',
+      album: 'Random Access Memories',
+      duration: 369000,
+      path: '/storage/music/get_lucky.mp3',
+      mediaStoreId: 1002,
+      dateModified: 1600000001,
     ),
   ];
 
@@ -222,29 +246,6 @@ void main() {
   });
 
   group('LibrarySongsList & LibrarySongTile Tests', () {
-    final testSongs = [
-      const Song(
-        id: 1,
-        title: 'Come Together',
-        artist: 'The Beatles',
-        album: 'Abbey Road',
-        duration: 259000,
-        path: '/storage/music/come_together.mp3',
-        mediaStoreId: 1001,
-        dateModified: 1600000000,
-      ),
-      const Song(
-        id: 2,
-        title: 'Get Lucky',
-        artist: 'Daft Punk',
-        album: 'Random Access Memories',
-        duration: 369000,
-        path: '/storage/music/get_lucky.mp3',
-        mediaStoreId: 1002,
-        dateModified: 1600000001,
-      ),
-    ];
-
     testWidgets('renders LibrarySongsList with song items and durations', (tester) async {
       Song? tappedSong;
 
@@ -280,6 +281,54 @@ void main() {
       await tester.tap(find.text('Come Together'));
       expect(tappedSong, isNotNull);
       expect(tappedSong?.title, 'Come Together');
+    });
+  });
+
+  group('LibraryScreen Persistent AmbientParticlesCanvas Tests', () {
+    testWidgets('LibraryScreen mounts AmbientParticlesCanvas as persistent backdrop across tab switches', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('es'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: LibraryScreen(
+            showBottomNav: false,
+            initialAlbums: testAlbums,
+            initialArtists: testArtists,
+            initialSongs: testSongs,
+            initialPlaylists: const [],
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      // 1. AmbientParticlesCanvas is mounted behind content
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+
+      // 2. Switch from Albums to Artists tab
+      await tester.tap(find.byKey(const ValueKey('library_category_artists')));
+      await tester.pumpAndSettle();
+
+      // AmbientParticlesCanvas remains strictly 1 instance, not recreated or slid
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+
+      // 3. Switch to Songs tab
+      await tester.tap(find.byKey(const ValueKey('library_category_songs')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+
+      // 4. Switch to Playlists tab
+      await tester.tap(find.byKey(const ValueKey('library_category_playlists')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
     });
   });
 }

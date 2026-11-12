@@ -116,7 +116,7 @@ void main() {
       expect(find.text('PINNED FAVORITES'), findsNothing);
     });
 
-    testWidgets('SearchScreen and LibraryScreen do not contain AmbientParticlesCanvas',
+    testWidgets('SearchScreen does not contain AmbientParticlesCanvas and LibraryScreen integrates AmbientParticlesCanvas',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -127,12 +127,7 @@ void main() {
             GlobalCupertinoLocalizations.delegate,
           ],
           home: Scaffold(
-            body: Column(
-              children: [
-                Expanded(child: SearchScreen(showBottomNav: false)),
-                Expanded(child: LibraryScreen(showBottomNav: false)),
-              ],
-            ),
+            body: SearchScreen(showBottomNav: false),
           ),
         ),
       );
@@ -140,6 +135,24 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
 
       expect(find.byType(AmbientParticlesCanvas), findsNothing);
+
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: LibraryScreen(showBottomNav: false, initialSongs: []),
+          ),
+        ),
+      );
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 50));
+
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
     });
   });
 

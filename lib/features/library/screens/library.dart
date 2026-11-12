@@ -22,6 +22,7 @@ import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/library/components/albums/library_albums_grid.dart';
 import 'package:project_anima/features/library/components/artists/library_artists_list.dart';
 import 'package:project_anima/features/library/components/library_category_bar.dart';
@@ -231,129 +232,143 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        PlaybackController.instance,
-        _transitionController,
-      ]),
-      builder: (context, _) {
-        final currentFilter = _transitionController.currentFilter;
-        final hasMiniPlayer = PlaybackController.instance.currentSong != null;
-        final mqBottom = MediaQuery.paddingOf(context).bottom;
-        // When hosted in MenuTransitionControl, mqBottom already contains the exact height
-        // of the bottom navigation bar (and MiniPlayer if active) plus device safe area.
-        // In standalone/test environments, fallback to explicit baseline offsets.
-        const double separation = 16.0;
-        final double baseBottomOffset = (mqBottom > 60.0)
-            ? mqBottom
-            : (80.0 + (hasMiniPlayer ? 72.0 : 0.0) + mqBottom);
-        final fabBottomOffset = baseBottomOffset + separation;
+    return Container(
+      color: AppColors.bottomNavBackground,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Dynamic ambient particles simulation backdrop (persistent across section transitions)
+          const AmbientParticlesCanvas(),
 
-        return Scaffold(
-          extendBody: true,
-          backgroundColor: AppColors.bottomNavBackground,
-          body: SafeArea(
-            bottom: false,
-            child: NotificationListener<ScrollNotification>(
-              onNotification: _onScrollNotification,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  ClipRect(
-                    child: AnimatedAlign(
-                      alignment: Alignment.topCenter,
-                      duration: const Duration(milliseconds: 260),
-                      curve: Curves.easeOutCubic,
-                      heightFactor: _isHeaderVisible ? 1.0 : 0.0,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeOutCubic,
-                        opacity: _isHeaderVisible ? 1.0 : 0.0,
-                        child: const LibraryHeader(isMetro: true),
-                      ),
+          ListenableBuilder(
+            listenable: Listenable.merge([
+              PlaybackController.instance,
+              _transitionController,
+            ]),
+            builder: (context, _) {
+              final currentFilter = _transitionController.currentFilter;
+              final hasMiniPlayer = PlaybackController.instance.currentSong != null;
+              final mqBottom = MediaQuery.paddingOf(context).bottom;
+              // When hosted in MenuTransitionControl, mqBottom already contains the exact height
+              // of the bottom navigation bar (and MiniPlayer if active) plus device safe area.
+              // In standalone/test environments, fallback to explicit baseline offsets.
+              const double separation = 16.0;
+              final double baseBottomOffset = (mqBottom > 60.0)
+                  ? mqBottom
+                  : (80.0 + (hasMiniPlayer ? 72.0 : 0.0) + mqBottom);
+              final fabBottomOffset = baseBottomOffset + separation;
+
+              return Scaffold(
+                extendBody: true,
+                backgroundColor: Colors.transparent,
+                body: SafeArea(
+                  bottom: false,
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: _onScrollNotification,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        ClipRect(
+                          child: AnimatedAlign(
+                            alignment: Alignment.topCenter,
+                            duration: const Duration(milliseconds: 260),
+                            curve: Curves.easeOutCubic,
+                            heightFactor: _isHeaderVisible ? 1.0 : 0.0,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 200),
+                              curve: Curves.easeOutCubic,
+                              opacity: _isHeaderVisible ? 1.0 : 0.0,
+                              child: const LibraryHeader(isMetro: true),
+                            ),
+                          ),
+                        ),
+                        LibraryCategoryBar(
+                          showChevrons: false,
+                          selectedFilter: currentFilter,
+                          onFilterChanged: (filter) {
+                            _transitionController.animateTo(filter);
+                          },
+                          onPrevious: () => _transitionController.animateToPrevious(),
+                          onNext: () => _transitionController.animateToNext(),
+                        ),
+                        const SizedBox(height: 6.0),
+                        Expanded(
+                          child: ScrollEdgeFadeMask(
+                            key: const ValueKey('library_scroll_edge_fade_mask'),
+                            topFadeExtent: 36.0,
+                            bottomFadeExtent: 64.0,
+                            child: LibraryTransitionControl(
+                              controller: _transitionController,
+                              children: [
+                                LibraryAlbumsGrid(
+                                  key: const ValueKey('library_albums_view'),
+                                  albums: widget.initialAlbums,
+                                  songDao: widget.songDao,
+                                ),
+                                LibraryArtistsList(
+                                  key: const ValueKey('library_artists_view'),
+                                  artists: widget.initialArtists,
+                                  songDao: widget.songDao,
+                                ),
+                                LibrarySongsList(
+                                  key: const ValueKey('library_songs_view'),
+                                  songs: widget.initialSongs ??
+                                      ((widget.initialAlbums != null || widget.initialArtists != null)
+                                          ? const []
+                                          : null),
+                                  songDao: widget.songDao,
+                                ),
+                                LibraryPlaylistsView(
+                                  key: _playlistsViewKey,
+                                  playlists: widget.initialPlaylists ??
+                                      ((widget.initialAlbums != null || widget.initialArtists != null)
+                                          ? const []
+                                          : null),
+                                  playlistDao: widget.playlistDao,
+                                  songDao: widget.songDao,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  LibraryCategoryBar(
-                    showChevrons: false,
-                    selectedFilter: currentFilter,
-                    onFilterChanged: (filter) {
-                      _transitionController.animateTo(filter);
-                    },
-                    onPrevious: () => _transitionController.animateToPrevious(),
-                    onNext: () => _transitionController.animateToNext(),
-                  ),
-                  const SizedBox(height: 6.0),
-                  Expanded(
-                    child: ScrollEdgeFadeMask(
-                      key: const ValueKey('library_scroll_edge_fade_mask'),
-                      topFadeExtent: 36.0,
-                      bottomFadeExtent: 64.0,
-                      child: LibraryTransitionControl(
-                        controller: _transitionController,
-                        children: [
-                          LibraryAlbumsGrid(
-                            key: const ValueKey('library_albums_view'),
-                            albums: widget.initialAlbums,
-                            songDao: widget.songDao,
+                ),
+                floatingActionButton: currentFilter == LibraryFilter.playlists
+                    ? Container(
+                        key: const ValueKey('library_create_playlist_fab_container'),
+                        decoration: const BoxDecoration(
+                          borderRadius: BorderRadius.zero,
+                        ),
+                        child: FloatingActionButton(
+                          key: const ValueKey('library_create_playlist_fab'),
+                          onPressed: _openCreatePlaylistScreen,
+                          backgroundColor: AppColors.accent,
+                          foregroundColor: AppColors.onAccent,
+                          elevation: 0.0,
+                          highlightElevation: 0.0,
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
                           ),
-                          LibraryArtistsList(
-                            key: const ValueKey('library_artists_view'),
-                            artists: widget.initialArtists,
-                            songDao: widget.songDao,
-                          ),
-                          LibrarySongsList(
-                            key: const ValueKey('library_songs_view'),
-                            songs: widget.initialSongs ??
-                                ((widget.initialAlbums != null || widget.initialArtists != null)
-                                    ? const []
-                                    : null),
-                            songDao: widget.songDao,
-                          ),
-                          LibraryPlaylistsView(
-                            key: _playlistsViewKey,
-                            playlists: widget.initialPlaylists,
-                            playlistDao: widget.playlistDao,
-                            songDao: widget.songDao,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
+                          child: const Icon(Icons.add_rounded, size: 28.0),
+                        ),
+                      )
+                    : null,
+                floatingActionButtonLocation: currentFilter == LibraryFilter.playlists
+                    ? LibraryPlaylistsFabLocation(fabBottomOffset)
+                    : null,
+                floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
+                bottomNavigationBar: widget.showBottomNav
+                    ? const AppBottomNav(
+                        currentIndex: 3,
+                      )
+                    : null,
+              );
+            },
           ),
-        ),
-          floatingActionButton: currentFilter == LibraryFilter.playlists
-              ? Container(
-                  key: const ValueKey('library_create_playlist_fab_container'),
-                  decoration: const BoxDecoration(
-                    borderRadius: BorderRadius.zero,
-                  ),
-                  child: FloatingActionButton(
-                    key: const ValueKey('library_create_playlist_fab'),
-                    onPressed: _openCreatePlaylistScreen,
-                    backgroundColor: AppColors.accent,
-                    foregroundColor: AppColors.onAccent,
-                    elevation: 0.0,
-                    highlightElevation: 0.0,
-                    shape: const RoundedRectangleBorder(
-                      borderRadius: BorderRadius.zero,
-                    ),
-                    child: const Icon(Icons.add_rounded, size: 28.0),
-                  ),
-                )
-              : null,
-          floatingActionButtonLocation: currentFilter == LibraryFilter.playlists
-              ? LibraryPlaylistsFabLocation(fabBottomOffset)
-              : null,
-          floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
-          bottomNavigationBar: widget.showBottomNav
-              ? const AppBottomNav(
-                  currentIndex: 3,
-                )
-              : null,
-        );
-      },
+        ],
+      ),
     );
   }
 }
