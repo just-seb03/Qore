@@ -1,10 +1,10 @@
 /// File: library_artists_list.dart
-/// Description: Scrollable list widget displaying user artists in the Library.
-/// Features asynchronous retrieval from SongDao, empty state invitation,
-/// and navigation to ArtistDetailScreen.
+/// Description: Scrollable list widget displaying user artists in the Library styled
+/// in Windows Phone Metro Jump-List design language. Features an interactive alphabet
+/// scrubber rail (#, A-Z) with kinetic depth translation and navigation to ArtistDetailScreen.
 ///
 /// Components / Classes / Functions:
-/// - LibraryArtistsList: Stateful coordinator widget managing artist list rendering.
+/// - LibraryArtistsList: Stateful coordinator widget managing artist list rendering and indexing.
 library;
 
 import 'package:flutter/material.dart';
@@ -14,8 +14,9 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/library/components/artists/library_artist_tile.dart';
+import 'package:project_anima/features/library/components/common/metro_alphabet_scroller.dart';
 
-/// List widget rendering user artists in alphabetical order.
+/// List widget rendering user artists in an authentic Metro jump-list.
 class LibraryArtistsList extends StatefulWidget {
   /// Optional pre-loaded artists (used for testing or pre-fetching).
   final List<ArtistDiscoveryItem>? artists;
@@ -152,20 +153,18 @@ class _LibraryArtistsListState extends State<LibraryArtistsList> {
       );
     }
 
-    return ListView.builder(
-      controller: widget.scrollController,
-      physics: const BouncingScrollPhysics(),
+    return MetroAlphabetScroller<ArtistDiscoveryItem>(
+      items: artists,
+      scrollController: widget.scrollController,
+      titleSelector: (artist) => artist.name,
       itemExtent: LibraryArtistTile.tileHeight,
-      padding: const EdgeInsets.only(
-        top: 10.0,
-        bottom: 160.0,
-      ),
-      itemCount: artists.length,
-      itemBuilder: (context, index) {
-        final artist = artists[index];
-        return LibraryArtistTile(
-          artist: artist,
-          onTap: () => _handleTap(artist),
+      itemBuilder: (context, index, artist, isCurrentSection) {
+        return Transform.translate(
+          offset: Offset(isCurrentSection ? 8.0 : 0.0, 0.0),
+          child: LibraryArtistTile(
+            artist: artist,
+            onTap: () => _handleTap(artist),
+          ),
         );
       },
     );

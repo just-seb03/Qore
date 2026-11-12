@@ -235,18 +235,30 @@ class _LibraryCategoryBarState extends State<LibraryCategoryBar>
               Text(
                 label,
                 style: AppFonts.segoe(
-                  fontSize: 19.0,
+                  fontSize: 20.0,
                   fontWeight: isSelected ? FontWeight.w400 : FontWeight.w300,
                   color: isSelected ? activeTextColor : inactiveTextColor,
                   letterSpacing: -0.2,
                 ),
               ),
-              const SizedBox(width: 5.0),
-              Icon(
-                isSelected ? filledIcon : outlinedIcon,
-                key: ValueKey('${filter.name}_${isSelected ? "filled" : "outline"}'),
-                size: size,
-                color: isSelected ? activeIconColor : inactiveIconColor,
+              Opacity(
+                opacity: 0.0,
+                child: SizedBox(
+                  width: 0.0,
+                  height: 0.0,
+                  child: OverflowBox(
+                    minWidth: 0.0,
+                    maxWidth: 0.0,
+                    minHeight: 0.0,
+                    maxHeight: 0.0,
+                    child: Icon(
+                      isSelected ? filledIcon : outlinedIcon,
+                      key: ValueKey('${filter.name}_${isSelected ? "filled" : "outline"}'),
+                      size: size,
+                      color: isSelected ? activeIconColor : inactiveIconColor,
+                    ),
+                  ),
+                ),
               ),
             ],
           ),

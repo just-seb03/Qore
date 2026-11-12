@@ -11,6 +11,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/components/scroll_edge_fade_mask.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
@@ -108,6 +109,62 @@ class _LibraryScreenState extends State<LibraryScreen> {
   bool _internalControllerCreated = false;
   final GlobalKey<LibraryPlaylistsViewState> _playlistsViewKey =
       GlobalKey<LibraryPlaylistsViewState>();
+  bool _isHeaderVisible = true;
+
+  bool _onScrollNotification(ScrollNotification notification) {
+    if (notification.metrics.axis != Axis.vertical) return false;
+
+    final metrics = notification.metrics;
+
+    // 1. If at or near top, always keep header visible
+    if (metrics.pixels <= 25.0) {
+      if (!_isHeaderVisible) {
+        setState(() {
+          _isHeaderVisible = true;
+        });
+      }
+      return false;
+    }
+
+    // 2. Ignore overscroll and bottom bounce to prevent snap-back jitter
+    if (metrics.outOfRange || metrics.pixels >= metrics.maxScrollExtent - 40.0) {
+      return false;
+    }
+
+    // 3. Process scrolling movements with threshold
+    if (notification is ScrollUpdateNotification) {
+      final delta = notification.scrollDelta ?? 0.0;
+      if (delta > 6.0 && metrics.pixels > 35.0) {
+        if (_isHeaderVisible) {
+          setState(() {
+            _isHeaderVisible = false;
+          });
+        }
+      } else if (delta < -6.0) {
+        if (!_isHeaderVisible) {
+          setState(() {
+            _isHeaderVisible = true;
+          });
+        }
+      }
+    } else if (notification is UserScrollNotification) {
+      if (notification.direction == ScrollDirection.reverse && metrics.pixels > 35.0) {
+        if (_isHeaderVisible) {
+          setState(() {
+            _isHeaderVisible = false;
+          });
+        }
+      } else if (notification.direction == ScrollDirection.forward) {
+        if (!_isHeaderVisible) {
+          setState(() {
+            _isHeaderVisible = true;
+          });
+        }
+      }
+    }
+
+    return false;
+  }
 
   @override
   void initState() {
@@ -191,11 +248,26 @@ class _LibraryScreenState extends State<LibraryScreen> {
           backgroundColor: AppColors.bottomNavBackground,
           body: SafeArea(
             bottom: false,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const LibraryHeader(isMetro: true),
-                LibraryCategoryBar(
+            child: NotificationListener<ScrollNotification>(
+              onNotification: _onScrollNotification,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  ClipRect(
+                    child: AnimatedAlign(
+                      alignment: Alignment.topCenter,
+                      duration: const Duration(milliseconds: 220),
+                      curve: Curves.fastOutSlowIn,
+                      heightFactor: _isHeaderVisible ? 1.0 : 0.0,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 160),
+                        curve: Curves.easeOutCubic,
+                        opacity: _isHeaderVisible ? 1.0 : 0.0,
+                        child: const LibraryHeader(isMetro: true),
+                      ),
+                    ),
+                  ),
+                  LibraryCategoryBar(
                   selectedFilter: currentFilter,
                   onFilterChanged: (filter) {
                     _transitionController.animateTo(filter);
@@ -235,6 +307,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
               ],
             ),
           ),
+        ),
           floatingActionButton: currentFilter == LibraryFilter.playlists
               ? Container(
                   key: const ValueKey('library_create_playlist_fab_container'),

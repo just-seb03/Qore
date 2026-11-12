@@ -1,10 +1,10 @@
 /// File: library_albums_grid.dart
-/// Description: Grid layout widget displaying 2 album cards per row in the Library.
-/// Features asynchronous retrieval from SongDao (filtered by album artist to avoid duplicates),
-/// empty state invitation, and seamless routing to AlbumDetailScreen.
+/// Description: Album collection view for the Library styled in Windows Phone Metro Jump-List
+/// design language. Features a vertical list of album tiles with sharp square artwork,
+/// and an interactive alphabet scrubber rail (#, A-Z) with kinetic depth translation.
 ///
 /// Components / Classes / Functions:
-/// - LibraryAlbumsGrid: Stateful coordinator widget managing album grid rendering.
+/// - LibraryAlbumsGrid: Stateful coordinator widget managing album list rendering and indexing.
 library;
 
 import 'package:flutter/material.dart';
@@ -15,8 +15,9 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/library/components/albums/library_album_card.dart';
+import 'package:project_anima/features/library/components/common/metro_alphabet_scroller.dart';
 
-/// Grid widget rendering user albums 2 per row.
+/// Album collection view rendering albums in an authentic Metro jump-list.
 class LibraryAlbumsGrid extends StatefulWidget {
   /// Optional pre-loaded albums (used for testing or pre-fetching).
   final List<AlbumDiscoveryItem>? albums;
@@ -162,27 +163,19 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
       );
     }
 
-    return GridView.builder(
-      controller: widget.scrollController,
-      physics: const BouncingScrollPhysics(),
-      padding: const EdgeInsets.only(
-        left: 16.0,
-        right: 16.0,
-        top: 10.0,
-        bottom: 160.0,
-      ),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        crossAxisSpacing: 16.0,
-        mainAxisSpacing: 20.0,
-        childAspectRatio: 0.74,
-      ),
-      itemCount: albums.length,
-      itemBuilder: (context, index) {
-        final album = albums[index];
-        return LibraryAlbumCard(
-          album: album,
-          onTap: () => _handleTap(album),
+    return MetroAlphabetScroller<AlbumDiscoveryItem>(
+      items: albums,
+      scrollController: widget.scrollController,
+      titleSelector: (album) => album.name,
+      itemExtent: LibraryAlbumCard.tileHeight,
+      itemBuilder: (context, index, album, isCurrentSection) {
+        return Transform.translate(
+          offset: Offset(isCurrentSection ? 8.0 : 0.0, 0.0),
+          child: LibraryAlbumCard(
+            album: album,
+            isListTile: true,
+            onTap: () => _handleTap(album),
+          ),
         );
       },
     );
