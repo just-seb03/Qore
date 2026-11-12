@@ -404,7 +404,7 @@ void main() {
       expect(find.text('What do you want to listen to?'), findsOneWidget);
     });
 
-    testWidgets('SearchEmptyView renders English invitation', (tester) async {
+    testWidgets('SearchEmptyView renders clean empty state without invitation texts when recent items is empty', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -414,8 +414,9 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('SEARCH YOUR LIBRARY'), findsOneWidget);
-      expect(find.text('Indexed titles, artists, or albums'), findsOneWidget);
+      expect(find.text('SEARCH YOUR LIBRARY'), findsNothing);
+      expect(find.text('Indexed titles, artists, or albums'), findsNothing);
+      expect(find.byType(SizedBox), findsWidgets);
     });
 
     testWidgets('SearchNoResultsView renders in English', (tester) async {
