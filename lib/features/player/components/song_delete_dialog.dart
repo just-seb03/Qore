@@ -28,22 +28,22 @@ class SongDeleteDialog extends StatelessWidget {
     return result ?? false;
   }
 
-  static TextStyle get _titleStyle => AppFonts.segoe(
-    fontSize: 18.0,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 1.2,
+  static TextStyle get _titleStyle => AppFonts.light(
+    fontSize: 20.0,
+    letterSpacing: 0.5,
     color: AppColors.onSurface,
   );
 
   static TextStyle get _contentStyle => AppFonts.segoe(
     fontSize: 14.0,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
     height: 1.4,
   );
 
   static final TextStyle _actionStyle = AppFonts.segoe(
     fontSize: 14.5,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w400,
   );
 
   @override
@@ -51,10 +51,10 @@ class SongDeleteDialog extends StatelessWidget {
     return AlertDialog(
       backgroundColor: AppColors.surfaceContainerHigh,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.0),
+        borderRadius: BorderRadius.zero,
         side: BorderSide(
-          color: AppColors.outline.withValues(alpha: 0.4),
-          width: 0.8,
+          color: AppColors.accent.withValues(alpha: 0.65),
+          width: 1.5,
         ),
       ),
       titlePadding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 12.0),

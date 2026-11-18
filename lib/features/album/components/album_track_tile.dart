@@ -72,9 +72,11 @@ class AlbumTrackTile extends StatelessWidget {
           color: isCurrentTrack
               ? AppColors.surfaceContainerHigh.withValues(alpha: 0.5)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(10.0),
+          borderRadius: BorderRadius.zero,
           child: InkWell(
-            borderRadius: BorderRadius.circular(10.0),
+            borderRadius: BorderRadius.zero,
+              splashColor: AppColors.accent.withValues(alpha: 0.15),
+              highlightColor: Colors.transparent,
               onTap: handleTap,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
@@ -88,7 +90,7 @@ class AlbumTrackTile extends StatelessWidget {
                         textAlign: TextAlign.center,
                         style: AppFonts.segoe(
                           fontSize: 13.5,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w400,
                           color: isCurrentTrack
                               ? AppColors.accent
                               : AppColors.onSurfaceVariant.withValues(alpha: 0.75),
@@ -108,10 +110,8 @@ class AlbumTrackTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppFonts.segoe(
-                              fontSize: 15.0,
-                              fontWeight: isCurrentTrack
-                                  ? FontWeight.w600
-                                  : FontWeight.w500,
+                              fontSize: 15.5,
+                              fontWeight: FontWeight.w400,
                               color: isCurrentTrack
                                   ? AppColors.accent
                                   : AppColors.onSurface,
@@ -123,7 +123,8 @@ class AlbumTrackTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppFonts.segoe(
-                              fontSize: 12.0,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w300,
                               color: AppColors.onSurfaceVariant,
                             ),
                           ),

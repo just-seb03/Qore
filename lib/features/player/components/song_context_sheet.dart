@@ -141,7 +141,7 @@ class SongContextSheet extends StatelessWidget {
           style: IconButton.styleFrom(
             backgroundColor: AppColors.surfaceContainer,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16.0),
+              borderRadius: BorderRadius.zero,
               side: BorderSide(
                 color: AppColors.outline.withValues(alpha: 0.25),
                 width: 0.8,
@@ -154,7 +154,7 @@ class SongContextSheet extends StatelessWidget {
           label,
           style: AppFonts.segoe(
             fontSize: 12.0,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w400,
             color: AppColors.onSurfaceVariant,
           ),
         ),
@@ -170,17 +170,17 @@ class SongContextSheet extends StatelessWidget {
           label,
           style: AppFonts.segoe(
             fontSize: 11.0,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.2,
-            color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+            fontWeight: FontWeight.w400,
+            letterSpacing: 1.4,
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.75),
           ),
         ),
         const SizedBox(height: 4.0),
         Text(
           value,
           style: AppFonts.segoe(
-            fontSize: 14.5,
-            fontWeight: FontWeight.w700,
+            fontSize: 15.0,
+            fontWeight: FontWeight.w400,
             color: AppColors.onSurface,
           ),
         ),
@@ -198,18 +198,13 @@ class SongContextSheet extends StatelessWidget {
         padding: const EdgeInsets.only(bottom: 24.0),
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerHigh.withValues(alpha: 0.96),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-          border: Border.all(
-            color: AppColors.outline.withValues(alpha: 0.25),
-            width: 0.8,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.75),
-              blurRadius: 32.0,
-              offset: const Offset(0, -8),
+          borderRadius: BorderRadius.zero,
+          border: Border(
+            top: BorderSide(
+              color: AppColors.accent,
+              width: 2.5,
             ),
-          ],
+          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -235,9 +230,8 @@ class SongContextSheet extends StatelessWidget {
                     textAlign: TextAlign.center,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppFonts.segoe(
-                      fontSize: 18.0,
-                      fontWeight: FontWeight.w700,
+                    style: AppFonts.light(
+                      fontSize: 21.0,
                       color: AppColors.onSurface,
                     ),
                   ),
@@ -249,6 +243,7 @@ class SongContextSheet extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: AppFonts.segoe(
                       fontSize: 13.5,
+                      fontWeight: FontWeight.w300,
                       color: AppColors.onSurfaceVariant,
                     ),
                   ),
@@ -357,7 +352,7 @@ class SongContextSheet extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.circular(16.0),
+                  borderRadius: BorderRadius.zero,
                   border: Border.all(
                     color: AppColors.outline.withValues(alpha: 0.25),
                     width: 0.8,

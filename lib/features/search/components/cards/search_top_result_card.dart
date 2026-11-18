@@ -203,12 +203,6 @@ class SearchTopResultCard extends StatelessWidget {
             decoration: BoxDecoration(
               color: AppColors.surfaceContainer.withValues(alpha: 0.85),
               borderRadius: BorderRadius.zero,
-              border: Border(
-                left: BorderSide(
-                  color: AppColors.accent,
-                  width: 3.0,
-                ),
-              ),
             ),
             child: Material(
               color: Colors.transparent,

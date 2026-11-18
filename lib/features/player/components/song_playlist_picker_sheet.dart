@@ -141,18 +141,13 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
         height: screenHeight * 0.75,
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerHigh.withValues(alpha: 0.96),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-          border: Border.all(
-            color: AppColors.outline.withValues(alpha: 0.25),
-            width: 0.8,
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.75),
-              blurRadius: 32.0,
-              offset: const Offset(0, -8),
+          borderRadius: BorderRadius.zero,
+          border: Border(
+            top: BorderSide(
+              color: AppColors.accent,
+              width: 2.5,
             ),
-          ],
+          ),
         ),
         child: Column(
           children: [
@@ -174,9 +169,9 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                   Text(
                     'AÑADIR A PLAYLIST',
                     style: AppFonts.segoe(
-                      fontSize: 16.0,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.4,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w400,
+                      letterSpacing: 1.5,
                       color: AppColors.onSurface,
                     ),
                   ),
@@ -187,6 +182,7 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                     overflow: TextOverflow.ellipsis,
                     style: AppFonts.segoe(
                       fontSize: 13.0,
+                      fontWeight: FontWeight.w300,
                       color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
                     ),
                   ),
@@ -238,13 +234,6 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                                 decoration: BoxDecoration(
                                   color: AppColors.surfaceContainerHigh,
                                   borderRadius: BorderRadius.zero, // Sharp corners
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: Colors.black.withValues(alpha: 0.45),
-                                      blurRadius: 10.0,
-                                      offset: const Offset(0, 4),
-                                    ),
-                                  ],
                                 ),
                                 clipBehavior: Clip.antiAlias,
                                 child: Material(
@@ -292,14 +281,7 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                                               ),
                                               decoration: BoxDecoration(
                                                 color: AppColors.accent,
-                                                borderRadius: BorderRadius.circular(10.0),
-                                                boxShadow: [
-                                                  BoxShadow(
-                                                    color: Colors.black.withValues(alpha: 0.4),
-                                                    blurRadius: 4.0,
-                                                    offset: const Offset(0, 2),
-                                                  ),
-                                                ],
+                                                borderRadius: BorderRadius.zero,
                                               ),
                                               child: Row(
                                                 mainAxisSize: MainAxisSize.min,

@@ -21,6 +21,7 @@ import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/components/album_header_view.dart';
 import 'package:project_anima/features/album/components/album_tracks_section.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
 
 /// Full album presentation view with large square artwork, metadata, and ordered tracklist.
@@ -330,60 +331,65 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
           top: false,
           child: MiniPlayer(),
         ),
-        body: SafeArea(
-          bottom: false,
-          child: Transform.translate(
-            offset: Offset(0.0, _dragOffset),
-            child: _isLoading
-                ? Center(
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2.5,
-                      color: AppColors.accent,
-                    ),
-                  )
-                : SingleChildScrollView(
-                    physics: const BouncingScrollPhysics(),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // 1. Universal Animated Dismiss Chevron (identical to player and artist)
-                        const SizedBox(height: 4.0),
-                        ModalDismissIndicator(
-                          onDismiss: _handleDismiss,
-                          onDragUpdate: _handleDragUpdate,
-                          onDragEnd: _handleDragEnd,
-                          size: 34.0,
-                          color: AppColors.onSurfaceVariant,
-                          animate: widget.animateBounce,
-                          padding: const EdgeInsets.symmetric(
-                            vertical: 6.0,
-                            horizontal: 36.0,
-                          ),
+        body: Stack(
+          children: [
+            const AmbientParticlesCanvas(),
+            SafeArea(
+              bottom: false,
+              child: Transform.translate(
+                offset: Offset(0.0, _dragOffset),
+                child: _isLoading
+                    ? Center(
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2.5,
+                          color: AppColors.accent,
                         ),
-                        const SizedBox(height: 8.0),
+                      )
+                    : SingleChildScrollView(
+                        physics: const BouncingScrollPhysics(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // 1. Universal Animated Dismiss Chevron (identical to player and artist)
+                            const SizedBox(height: 4.0),
+                            ModalDismissIndicator(
+                              onDismiss: _handleDismiss,
+                              onDragUpdate: _handleDragUpdate,
+                              onDragEnd: _handleDragEnd,
+                              size: 34.0,
+                              color: AppColors.onSurfaceVariant,
+                              animate: widget.animateBounce,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 6.0,
+                                horizontal: 36.0,
+                              ),
+                            ),
+                            const SizedBox(height: 8.0),
 
-                        // 2. Cohesive Album Header: Large Sharp Cover + Title + Artist + Duration + Heart
-                        AlbumHeaderView(
-                          albumName: widget.albumName,
-                          artistName: _resolvedArtist,
-                          albumId: widget.albumId,
-                          representativeSongId: _resolvedRepresentativeId,
-                          songCount: _songs.length,
-                          totalDurationMs: totalMs,
-                          isPinned: _isPinned,
-                          onToggleFavorite: _togglePinned,
+                            // 2. Cohesive Album Header: Large Sharp Cover + Title + Artist + Duration + Heart
+                            AlbumHeaderView(
+                              albumName: widget.albumName,
+                              artistName: _resolvedArtist,
+                              albumId: widget.albumId,
+                              representativeSongId: _resolvedRepresentativeId,
+                              songCount: _songs.length,
+                              totalDurationMs: totalMs,
+                              isPinned: _isPinned,
+                              onToggleFavorite: _togglePinned,
+                            ),
+                            const SizedBox(height: 24.0),
+
+                            // 3. Cohesive Tracks Section: 'TRACKS' header + ordered track tiles
+                            AlbumTracksSection(songs: _songs),
+
+                            // Spacing above bottom MiniPlayer
+                            const SizedBox(height: 32.0),
+                          ],
                         ),
-                      const SizedBox(height: 24.0),
-
-                      // 3. Cohesive Tracks Section: 'TRACKS' header + ordered track tiles
-                      AlbumTracksSection(songs: _songs),
-
-                      // Spacing above bottom MiniPlayer
-                      const SizedBox(height: 32.0),
-                    ],
-                  ),
-                ),
-          ),
+                      ),
+              ),
+            ),
+          ],
         ),
       ),
     );

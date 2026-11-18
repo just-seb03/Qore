@@ -111,9 +111,9 @@ class AlbumTracksSection extends StatelessWidget {
                 Text(
                   context.l10n.album.discHeader(disc),
                   style: AppFonts.segoe(
-                    fontSize: 13.0,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.4,
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w400,
+                    letterSpacing: 1.5,
                     color: AppColors.onSurfaceVariant,
                   ),
                 ),

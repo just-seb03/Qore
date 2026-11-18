@@ -60,7 +60,7 @@ void main() {
       expect(decoration.borderRadius, BorderRadius.zero);
     });
 
-    testWidgets('SearchTopResultCard renders sharp Metro tile with left accent border and flat play button', (tester) async {
+    testWidgets('SearchTopResultCard renders sharp Metro tile without border and with flat play button', (tester) async {
       final song = Song(
         mediaStoreId: 101,
         title: 'Starlight',
@@ -97,7 +97,7 @@ void main() {
       );
       final tileDec = tileContainer.decoration as BoxDecoration;
       expect(tileDec.borderRadius, BorderRadius.zero);
-      expect(tileDec.border, isA<Border>());
+      expect(tileDec.border, isNull);
 
       final playContainer = tester.widget<Container>(
         find.descendant(

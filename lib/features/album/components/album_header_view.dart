@@ -95,25 +95,13 @@ class AlbumHeaderView extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        // 1. Large Sharp Square Album Artwork with Deep Shadow (Not rounded)
+        // 1. Large Sharp Square Album Artwork (Flat Metro elevation, sharp 90° corners)
         Container(
           width: coverSize,
           height: coverSize,
           decoration: BoxDecoration(
             color: AppColors.surface,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.65),
-                blurRadius: 36.0,
-                spreadRadius: 2.0,
-                offset: const Offset(0, 18),
-              ),
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.35),
-                blurRadius: 10.0,
-                offset: const Offset(0, 4),
-              ),
-            ],
+            borderRadius: BorderRadius.zero,
           ),
           child: AnimaArtworkImage(
             mediaStoreId: representativeSongId ?? 0,
@@ -129,7 +117,7 @@ class AlbumHeaderView extends StatelessWidget {
         ),
         const SizedBox(height: 24.0),
 
-        // 2. Album Title
+        // 2. Album Title (Segoe UI Light)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24.0),
           child: Text(
@@ -137,11 +125,10 @@ class AlbumHeaderView extends StatelessWidget {
             textAlign: TextAlign.center,
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-            style: AppFonts.segoe(
-              fontSize: 24.0,
-              fontWeight: FontWeight.w700,
+            style: AppFonts.light(
+              fontSize: 28.0,
               color: AppColors.onBackground,
-              letterSpacing: -0.3,
+              letterSpacing: -0.4,
             ),
           ),
         ),
@@ -159,14 +146,15 @@ class AlbumHeaderView extends StatelessWidget {
                     ', ',
                     style: AppFonts.segoe(
                       fontSize: 16.0,
-                      fontWeight: FontWeight.w500,
+                      fontWeight: FontWeight.w400,
                       color: AppColors.onSurfaceVariant,
                     ),
                   ),
                 Material(
                   color: Colors.transparent,
+                  borderRadius: BorderRadius.zero,
                   child: InkWell(
-                    borderRadius: BorderRadius.circular(8.0),
+                    borderRadius: BorderRadius.zero,
                     onTap: () {
                       Navigator.of(context).push(
                         ArtistDetailScreen.route(splitArtists[i]),
@@ -178,7 +166,7 @@ class AlbumHeaderView extends StatelessWidget {
                         splitArtists[i],
                         style: AppFonts.segoe(
                           fontSize: 16.0,
-                          fontWeight: FontWeight.w500,
+                          fontWeight: FontWeight.w400,
                           color: AppColors.onSurface,
                         ),
                       ),
@@ -191,8 +179,9 @@ class AlbumHeaderView extends StatelessWidget {
         else
           Material(
             color: Colors.transparent,
+            borderRadius: BorderRadius.zero,
             child: InkWell(
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.zero,
               onTap: hasValidArtist
                   ? () {
                       Navigator.of(context).push(
@@ -209,7 +198,7 @@ class AlbumHeaderView extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: AppFonts.segoe(
                     fontSize: 16.0,
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w400,
                     color: AppColors.onSurface,
                   ),
                 ),
@@ -224,7 +213,7 @@ class AlbumHeaderView extends StatelessWidget {
           textAlign: TextAlign.center,
           style: AppFonts.segoe(
             fontSize: 13.0,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w300,
             color: AppColors.onSurfaceVariant,
             letterSpacing: 0.6,
           ),

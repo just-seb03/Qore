@@ -43,29 +43,21 @@ class PlaybackQueueSheet extends StatelessWidget {
     final controller = PlaybackController.instance;
     final screenHeight = MediaQuery.of(context).size.height;
 
-    // Direct solid elevated container without BackdropFilter/blur for maximum performance
+    // Direct solid flat Metro container without drop shadow or rounded corners
     return Container(
       height: screenHeight * 0.82,
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.45),
-            blurRadius: 28.0,
-            offset: const Offset(0, -6),
+        borderRadius: BorderRadius.zero,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.accent,
+            width: 2.5,
           ),
-        ],
+        ),
       ),
       child: Material(
         color: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24.0)),
-          side: BorderSide(
-            color: AppColors.outline.withValues(alpha: 0.20),
-            width: 1.0,
-          ),
-        ),
         child: SafeArea(
           top: false,
           child: ListenableBuilder(
@@ -104,8 +96,8 @@ class PlaybackQueueSheet extends StatelessWidget {
                       child: Text(
                         context.l10n.player.nowPlayingHeader,
                         style: AppFonts.segoe(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w700,
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w400,
                           letterSpacing: 1.5,
                           color: AppColors.onSurfaceVariant,
                         ),
@@ -118,7 +110,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
                         decoration: BoxDecoration(
                           color: AppColors.surfaceContainerHigh,
-                          borderRadius: BorderRadius.circular(16.0),
+                          borderRadius: BorderRadius.zero,
                           border: Border.all(
                             color: AppColors.outline.withValues(alpha: 0.25),
                             width: 1.0,
@@ -133,7 +125,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                               artistName: currentSong.artist,
                               width: 44.0,
                               height: 44.0,
-                              borderRadius: 8.0,
+                              borderRadius: 0.0,
                               isThumbnail: true,
                             ),
                             const SizedBox(width: 12.0),
@@ -147,8 +139,8 @@ class PlaybackQueueSheet extends StatelessWidget {
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
                                     style: AppFonts.segoe(
-                                      fontSize: 15.0,
-                                      fontWeight: FontWeight.w600,
+                                      fontSize: 15.5,
+                                      fontWeight: FontWeight.w400,
                                       color: AppColors.onSurface,
                                     ),
                                   ),
@@ -159,6 +151,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                     overflow: TextOverflow.ellipsis,
                                     style: AppFonts.segoe(
                                       fontSize: 12.5,
+                                      fontWeight: FontWeight.w300,
                                       color: AppColors.onSurfaceVariant,
                                     ),
                                   ),
@@ -191,8 +184,8 @@ class PlaybackQueueSheet extends StatelessWidget {
                         Text(
                           context.l10n.player.upNextHeader(upcomingSongs.length),
                           style: AppFonts.segoe(
-                            fontSize: 12.0,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w400,
                             letterSpacing: 1.5,
                             color: AppColors.onSurfaceVariant,
                           ),
@@ -203,11 +196,16 @@ class PlaybackQueueSheet extends StatelessWidget {
                               controller.clearUpcomingQueue();
                               HapticFeedback.lightImpact();
                             },
+                            style: TextButton.styleFrom(
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.zero,
+                              ),
+                            ),
                             child: Text(
                               context.l10n.player.clearQueue,
                               style: AppFonts.segoe(
                                 fontSize: 13.0,
-                                fontWeight: FontWeight.w600,
+                                fontWeight: FontWeight.w400,
                                 color: AppColors.onSurfaceVariant,
                               ),
                             ),
@@ -247,7 +245,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(vertical: 2.0),
                                 child: Material(
                                   color: Colors.transparent,
-                                  borderRadius: BorderRadius.circular(10.0),
+                                  borderRadius: BorderRadius.zero,
                                   child: ListTile(
                                     contentPadding:
                                         const EdgeInsets.symmetric(horizontal: 10.0, vertical: 0.0),
@@ -262,7 +260,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                             textAlign: TextAlign.center,
                                             style: AppFonts.segoe(
                                               fontSize: 12.0,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w400,
                                               color: AppColors.onSurfaceVariant,
                                             ),
                                           ),
@@ -275,7 +273,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                           artistName: song.artist,
                                           width: 38.0,
                                           height: 38.0,
-                                          borderRadius: 8.0,
+                                          borderRadius: 0.0,
                                           isThumbnail: true,
                                         ),
                                       ],
@@ -285,8 +283,8 @@ class PlaybackQueueSheet extends StatelessWidget {
                                       maxLines: 1,
                                       overflow: TextOverflow.ellipsis,
                                       style: AppFonts.segoe(
-                                        fontSize: 14.5,
-                                        fontWeight: FontWeight.w500,
+                                        fontSize: 15.0,
+                                        fontWeight: FontWeight.w400,
                                         color: AppColors.onSurface,
                                       ),
                                     ),
@@ -296,6 +294,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                       overflow: TextOverflow.ellipsis,
                                       style: AppFonts.segoe(
                                         fontSize: 12.0,
+                                        fontWeight: FontWeight.w300,
                                         color: AppColors.onSurfaceVariant,
                                       ),
                                     ),
