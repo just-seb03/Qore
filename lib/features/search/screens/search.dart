@@ -267,8 +267,10 @@ class _SearchScreenState extends State<SearchScreen>
   Widget build(BuildContext context) {
     super.build(context);
 
+    final isTabVisible = TickerMode.valuesOf(context).enabled;
+
     return PopScope(
-      canPop: !_searchFocusNode.hasFocus && _searchController.text.isEmpty,
+      canPop: !isTabVisible || (!_searchFocusNode.hasFocus && _searchController.text.isEmpty),
       onPopInvokedWithResult: (didPop, result) {
         if (didPop) return;
 

@@ -200,6 +200,82 @@ void main() {
       expect(progress.color, AppColors.accent);
       expect(find.byIcon(Icons.search_off_rounded), findsOneWidget);
     });
+
+    testWidgets('AppSearchBar keeps keyboard focus on tap and unfocuses only when tapping outside bar', (tester) async {
+      final focusNode = FocusNode();
+      final controller = TextEditingController();
+      addTearDown(() {
+        focusNode.dispose();
+        controller.dispose();
+      });
+
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: _testDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('es'),
+          home: Scaffold(
+            body: Column(
+              children: [
+                AppSearchBar(
+                  focusNode: focusNode,
+                  controller: controller,
+                ),
+                const Expanded(
+                  child: SizedBox(
+                    key: ValueKey('outside_area'),
+                    width: double.infinity,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      expect(focusNode.hasFocus, isFalse);
+
+      // Tap the collapsed search bar -> focuses immediately and stays focused
+      await tester.tap(find.byType(AppSearchBar));
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(focusNode.hasFocus, isTrue);
+
+      // Tap on the left edge of AppSearchBar (search icon area, outside TextField bounds)
+      // Must NOT unfocus!
+      final barRect = tester.getRect(find.byType(AppSearchBar));
+      await tester.tapAt(Offset(barRect.left + 20.0, barRect.center.dy));
+      await tester.pump();
+      expect(focusNode.hasFocus, isTrue);
+
+      // Tap outside AppSearchBar -> unfocuses cleanly
+      await tester.tap(find.byKey(const ValueKey('outside_area')));
+      await tester.pump();
+      expect(focusNode.hasFocus, isFalse);
+    });
+
+    testWidgets('SearchScreen PopScope does not block back navigation when TickerMode is disabled (offstage)', (tester) async {
+      await tester.pumpWidget(
+        const MaterialApp(
+          localizationsDelegates: _testDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: Locale('es'),
+          home: TickerMode(
+            enabled: false,
+            child: SearchScreen(showBottomNav: false),
+          ),
+        ),
+      );
+      await tester.pump();
+
+      final popScope = tester.widget<PopScope>(
+        find.descendant(
+          of: find.byType(SearchScreen),
+          matching: find.byWidgetPredicate((w) => w is PopScope),
+        ),
+      );
+      expect(popScope.canPop, isTrue);
+    });
   });
 }
 

@@ -16,7 +16,6 @@ library;
 
 import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -217,27 +216,32 @@ class _AppSearchBarState extends State<AppSearchBar>
     final colorScheme = theme.colorScheme;
     final effectiveController = _effectiveController;
 
-    return Padding(
-      padding: widget.padding,
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () {
-          final isCurrentlyExpanded = widget.isExpanded ??
-              (_focusAnimController.value > 0.5 ||
-                  _effectiveController.text.isNotEmpty);
-          if (!isCurrentlyExpanded) {
-            if (widget.onExpand != null) {
-              widget.onExpand!();
-            } else {
-              _focusAnimController.forward();
+    return TapRegion(
+      onTapOutside: (_) {
+        if (_effectiveFocusNode.hasFocus) {
+          _effectiveFocusNode.unfocus();
+        }
+      },
+      child: Padding(
+        padding: widget.padding,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () {
+            final isCurrentlyExpanded = widget.isExpanded ??
+                (_focusAnimController.value > 0.5 ||
+                    _effectiveController.text.isNotEmpty);
+            if (!isCurrentlyExpanded) {
+              if (widget.onExpand != null) {
+                widget.onExpand!();
+              } else {
+                _focusAnimController.forward();
+              }
             }
-          }
-          if (!_effectiveFocusNode.hasFocus) {
-            _effectiveFocusNode.requestFocus();
-          }
-          SystemChannels.textInput.invokeMethod<void>('TextInput.show');
-        },
-        child: SizedBox(
+            if (!_effectiveFocusNode.hasFocus) {
+              _effectiveFocusNode.requestFocus();
+            }
+          },
+          child: SizedBox(
           height: 44.0,
           child: LayoutBuilder(
             builder: (context, constraints) {
@@ -354,9 +358,7 @@ class _AppSearchBarState extends State<AppSearchBar>
                                   focusNode: _effectiveFocusNode,
                                   autofocus: widget.autoFocus,
                                   onChanged: widget.onChanged,
-                                  onTapOutside: (_) {
-                                    _effectiveFocusNode.unfocus();
-                                  },
+                                  onTapOutside: (_) {},
                                   style: AppSearchBar._baseTextStyle.copyWith(
                                     color: colorScheme.onSurface,
                                   ),
@@ -440,6 +442,7 @@ class _AppSearchBarState extends State<AppSearchBar>
             },
           ),
         ),
+      ),
       ),
     );
   }
