@@ -486,7 +486,7 @@ void main() {
       expect(textField.focusNode?.hasFocus, isTrue);
     });
 
-    testWidgets('SearchAlbumCard and SearchArtistCard render drop shadows', (tester) async {
+    testWidgets('SearchAlbumCard and SearchArtistCard render flat Metro tiles with zero drop shadows', (tester) async {
       const album = AlbumDiscoveryItem(
         name: 'Shadow Album',
         artist: 'Shadow Artist',
@@ -517,7 +517,7 @@ void main() {
         ),
       );
 
-      // Check album cover drop shadow
+      // Check album cover flat Metro elevation (no drop shadow, sharp 90° corners)
       final albumContainer = tester.widget<Container>(
         find.descendant(
           of: find.byType(SearchAlbumCard),
@@ -525,10 +525,10 @@ void main() {
         ).first,
       );
       final albumDecoration = albumContainer.decoration as BoxDecoration;
-      expect(albumDecoration.boxShadow, isNotNull);
-      expect(albumDecoration.boxShadow!.isNotEmpty, isTrue);
+      expect(albumDecoration.boxShadow, isNull);
+      expect(albumDecoration.borderRadius, BorderRadius.zero);
 
-      // Check artist avatar circular drop shadow
+      // Check artist avatar flat Metro People Tile (square, no drop shadow)
       final artistContainer = tester.widget<Container>(
         find.descendant(
           of: find.byType(SearchArtistCard),
@@ -536,9 +536,9 @@ void main() {
         ).first,
       );
       final artistDecoration = artistContainer.decoration as BoxDecoration;
-      expect(artistDecoration.boxShadow, isNotNull);
-      expect(artistDecoration.boxShadow!.isNotEmpty, isTrue);
-      expect(artistDecoration.shape, BoxShape.circle);
+      expect(artistDecoration.boxShadow, isNull);
+      expect(artistDecoration.borderRadius, BorderRadius.zero);
+      expect(artistDecoration.shape, BoxShape.rectangle);
     });
   });
 }

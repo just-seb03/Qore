@@ -59,14 +59,14 @@ class AppSearchBar extends StatefulWidget {
 
   /// Pre-cached base text style for the search input hint.
   static final TextStyle _baseHintTextStyle = AppFonts.segoe(
-    fontSize: 14.5,
-    fontWeight: FontWeight.w400,
+    fontSize: 15.0,
+    fontWeight: FontWeight.w300,
   );
 
   /// Pre-cached base text style for the search input text.
   static final TextStyle _baseTextStyle = AppFonts.segoe(
-    fontSize: 15.0,
-    fontWeight: FontWeight.w500,
+    fontSize: 15.5,
+    fontWeight: FontWeight.w400,
   );
 
   const AppSearchBar({
@@ -274,9 +274,12 @@ class _AppSearchBarState extends State<AppSearchBar>
                       (collapsedWidth - iconSize) / 2 + iconSize + 2.0 + arrowOffset;
 
                   final barBgColor = colorScheme.surfaceContainerHigh
-                      .withValues(alpha: 0.5 * animValue);
-                  final barBorderColor = colorScheme.outlineVariant
-                      .withValues(alpha: 0.4 * animValue);
+                      .withValues(alpha: 0.45 * animValue);
+                  final isFocused = _effectiveFocusNode.hasFocus;
+                  final barBorderColor = (isFocused
+                          ? AppColors.accent.withValues(alpha: 0.85)
+                          : colorScheme.outlineVariant.withValues(alpha: 0.55))
+                      .withValues(alpha: (isFocused ? 0.85 : 0.55) * animValue);
 
                   return Center(
                     child: Container(
@@ -284,10 +287,10 @@ class _AppSearchBarState extends State<AppSearchBar>
                       height: barHeight,
                       decoration: BoxDecoration(
                         color: barBgColor,
-                        borderRadius: BorderRadius.circular(22.0),
+                        borderRadius: BorderRadius.zero,
                         border: Border.all(
                           color: barBorderColor,
-                          width: 1.0,
+                          width: 1.5,
                         ),
                       ),
                       clipBehavior: Clip.antiAlias,

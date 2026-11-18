@@ -20,16 +20,16 @@ class SearchNoResultsView extends StatelessWidget {
     required this.query,
   });
 
-  static final TextStyle _noResultsHeaderStyle = AppFonts.segoe(
-    fontSize: 14.0,
-    fontWeight: FontWeight.w400,
+  static TextStyle get _noResultsHeaderStyle => AppFonts.light(
+    fontSize: 18.0,
     letterSpacing: 1.4,
-    color: AppColors.futuristicWhite.withValues(alpha: 0.4),
+    color: AppColors.onSurfaceVariant,
   );
 
-  static final TextStyle _noResultsSubtitleStyle = AppFonts.segoe(
+  static TextStyle get _noResultsSubtitleStyle => AppFonts.segoe(
     fontSize: 13.5,
-    color: AppColors.futuristicWhite.withValues(alpha: 0.3),
+    fontWeight: FontWeight.w300,
+    color: AppColors.onSurfaceVariant.withValues(alpha: 0.75),
   );
 
   @override
@@ -43,7 +43,7 @@ class SearchNoResultsView extends StatelessWidget {
             Icon(
               Icons.search_off_rounded,
               size: 56.0,
-              color: AppColors.futuristicWhite.withValues(alpha: 0.2),
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.4),
             ),
             const SizedBox(height: 12.0),
             Text(

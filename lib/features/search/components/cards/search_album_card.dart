@@ -30,14 +30,14 @@ class SearchAlbumCard extends StatelessWidget {
   });
 
   static TextStyle get _albumTitleStyle => AppFonts.segoe(
-    fontSize: 14.0,
-    fontWeight: FontWeight.w600,
+    fontSize: 14.5,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
   );
 
   static TextStyle get _artistStyle => AppFonts.segoe(
     fontSize: 12.5,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
   );
 
@@ -47,32 +47,20 @@ class SearchAlbumCard extends StatelessWidget {
       width: width,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.zero,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8.0),
-          splashColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.zero,
+          splashColor: AppColors.accent.withValues(alpha: 0.15),
           highlightColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.2),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
             children: [
-              // 130x130 Square High-Res Artwork with drop shadow
+              // 130x130 Square High-Res Artwork (Flat Metro elevation, sharp 90° corners)
               Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.50),
-                      blurRadius: 14.0,
-                      spreadRadius: 1.0,
-                      offset: const Offset(0, 6),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 4.0,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.zero,
                 ),
                 child: AnimaArtworkImage(
                   mediaStoreId: album.representativeSongId,

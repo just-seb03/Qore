@@ -24,6 +24,7 @@ import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/core/search/music_search_controller.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/player/screens/player_screen.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
@@ -294,64 +295,69 @@ class _SearchScreenState extends State<SearchScreen>
         resizeToAvoidBottomInset: false,
         extendBody: true,
         backgroundColor: AppColors.bottomNavBackground,
-        body: SafeArea(
-          bottom: false,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              AppSearchBar(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                isExpanded: _isSearching,
-                onExpand: () {
-                  if (mounted) {
-                    setState(() {
-                      _isSearching = true;
-                    });
-                  }
-                },
-                onChanged: (text) => _searchEngine.onQueryChanged(text),
-                onClear: () => _searchEngine.clear(),
-              ),
-              const SizedBox(height: 8.0),
-              Expanded(
-                child: ShaderMask(
-                  shaderCallback: (Rect bounds) {
-                    return const LinearGradient(
-                      begin: Alignment.topCenter,
-                      end: Alignment.bottomCenter,
-                      colors: [
-                        Colors.transparent,
-                        Colors.white,
-                        Colors.white,
-                        Colors.transparent,
-                      ],
-                      stops: [
-                        0.0,
-                        0.04,
-                        0.92,
-                        1.0,
-                      ],
-                    ).createShader(bounds);
-                  },
-                  blendMode: BlendMode.dstIn,
-                  child: SearchResultsList(
-                    key: const ValueKey('search_results_list'),
-                    controller: _searchEngine,
-                    scrollController: _scrollController,
-                    onSongTap: _handleSongTap,
-                    onSongPlayTap: _handleSongTap,
-                    onTopSongCardTap: _handleTopSongCardTap,
-                    onAlbumTap: _handleAlbumTap,
-                    onAlbumPlayTap: _handleAlbumPlayTap,
-                    onArtistTap: _handleArtistTap,
-                    onArtistPlayTap: _handleArtistPlayTap,
-                    onRecentItemTap: _handleRecentItemTap,
+        body: Stack(
+          children: [
+            const AmbientParticlesCanvas(),
+            SafeArea(
+              bottom: false,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  AppSearchBar(
+                    controller: _searchController,
+                    focusNode: _searchFocusNode,
+                    isExpanded: _isSearching,
+                    onExpand: () {
+                      if (mounted) {
+                        setState(() {
+                          _isSearching = true;
+                        });
+                      }
+                    },
+                    onChanged: (text) => _searchEngine.onQueryChanged(text),
+                    onClear: () => _searchEngine.clear(),
                   ),
-                ),
+                  const SizedBox(height: 8.0),
+                  Expanded(
+                    child: ShaderMask(
+                      shaderCallback: (Rect bounds) {
+                        return const LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.white,
+                            Colors.white,
+                            Colors.transparent,
+                          ],
+                          stops: [
+                            0.0,
+                            0.04,
+                            0.92,
+                            1.0,
+                          ],
+                        ).createShader(bounds);
+                      },
+                      blendMode: BlendMode.dstIn,
+                      child: SearchResultsList(
+                        key: const ValueKey('search_results_list'),
+                        controller: _searchEngine,
+                        scrollController: _scrollController,
+                        onSongTap: _handleSongTap,
+                        onSongPlayTap: _handleSongTap,
+                        onTopSongCardTap: _handleTopSongCardTap,
+                        onAlbumTap: _handleAlbumTap,
+                        onAlbumPlayTap: _handleAlbumPlayTap,
+                        onArtistTap: _handleArtistTap,
+                        onArtistPlayTap: _handleArtistPlayTap,
+                        onRecentItemTap: _handleRecentItemTap,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-            ],
-          ),
+            ),
+          ],
         ),
         bottomNavigationBar: widget.showBottomNav
             ? const AppBottomNav(

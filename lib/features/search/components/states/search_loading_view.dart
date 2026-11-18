@@ -31,7 +31,7 @@ class SearchLoadingView extends StatelessWidget {
         height: size,
         child: CircularProgressIndicator(
           strokeWidth: strokeWidth,
-          color: AppColors.futuristicWhite,
+          color: AppColors.accent,
         ),
       ),
     );

@@ -48,6 +48,7 @@ class MaterialArtistAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final effectiveBg = backgroundColor ?? AppColors.surfaceContainerHigh;
     final effectiveIconColor = iconColor ?? AppColors.onSurfaceVariant;
+    final size = radius * 2;
 
     return ListenableBuilder(
       listenable: ArtworkService.instance,
@@ -56,31 +57,48 @@ class MaterialArtistAvatar extends StatelessWidget {
             ? customImagePath
             : null;
         final customPath = directPath ??
+            ArtworkService.instance.getCustomArtistSquarePhoto(artistName) ??
             ArtworkService.instance.getCustomArtistAvatar(artistName);
 
         if (customPath != null && File(customPath).existsSync()) {
           final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
-          final int pixelSize = (radius * 2 * dpr).round().clamp(64, 400);
+          final int pixelSize = (size * dpr).round().clamp(64, 400);
 
-          return CircleAvatar(
-            radius: radius,
-            backgroundColor: effectiveBg,
-            backgroundImage: ResizeImage(
-              FileImage(File(customPath)),
-              width: pixelSize,
-              height: pixelSize,
-              policy: ResizeImagePolicy.fit,
+          return Container(
+            width: size,
+            height: size,
+            decoration: BoxDecoration(
+              color: effectiveBg,
+              borderRadius: BorderRadius.zero,
+            ),
+            clipBehavior: Clip.hardEdge,
+            child: Image(
+              image: ResizeImage(
+                FileImage(File(customPath)),
+                width: pixelSize,
+                height: pixelSize,
+                policy: ResizeImagePolicy.fit,
+              ),
+              width: size,
+              height: size,
+              fit: BoxFit.cover,
             ),
           );
         }
 
-        return CircleAvatar(
-          radius: radius,
-          backgroundColor: effectiveBg,
-          child: Icon(
-            icon,
-            size: radius * 1.15,
-            color: effectiveIconColor,
+        return Container(
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            color: effectiveBg,
+            borderRadius: BorderRadius.zero,
+          ),
+          child: Center(
+            child: Icon(
+              icon,
+              size: radius * 1.15,
+              color: effectiveIconColor,
+            ),
           ),
         );
       },

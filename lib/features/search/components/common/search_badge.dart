@@ -43,7 +43,7 @@ class SearchBadge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
       decoration: BoxDecoration(
         color: effectiveBg,
-        borderRadius: BorderRadius.circular(16.0),
+        borderRadius: BorderRadius.zero,
       ),
       child: Text(
         label,

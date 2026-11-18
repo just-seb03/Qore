@@ -32,14 +32,14 @@ class SearchSongTile extends StatelessWidget {
   });
 
   static TextStyle get _titleStyle => AppFonts.segoe(
-    fontSize: 15.0,
-    fontWeight: FontWeight.w600,
+    fontSize: 15.5,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
   );
 
   static TextStyle get _artistAlbumStyle => AppFonts.segoe(
     fontSize: 13.0,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
   );
 
@@ -67,12 +67,14 @@ class SearchSongTile extends StatelessWidget {
 
         return Material(
           color: Colors.transparent,
+          borderRadius: BorderRadius.zero,
           child: InkWell(
+            borderRadius: BorderRadius.zero,
             onTap: () {
               SongOptionsPillCoordinator.instance.close();
               onTap?.call();
             },
-            splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+            splashColor: AppColors.accent.withValues(alpha: 0.15),
             highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

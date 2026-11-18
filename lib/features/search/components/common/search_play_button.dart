@@ -46,14 +46,7 @@ class SearchPlayButton extends StatelessWidget {
       height: size,
       decoration: BoxDecoration(
         color: effectiveBg,
-        shape: BoxShape.circle,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.4),
-            blurRadius: 10.0,
-            offset: const Offset(0, 4),
-          ),
-        ],
+        borderRadius: BorderRadius.zero,
       ),
       child: Center(
         child: Icon(

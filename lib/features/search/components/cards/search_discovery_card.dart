@@ -41,14 +41,14 @@ class SearchDiscoveryCard extends StatelessWidget {
 
   static TextStyle get _titleStyle => AppFonts.segoe(
     fontSize: 14.5,
-    fontWeight: FontWeight.w600,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
     letterSpacing: 0.1,
   );
 
   static TextStyle get _subtitleStyle => AppFonts.segoe(
     fontSize: 12.5,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );
@@ -57,27 +57,22 @@ class SearchDiscoveryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.zero,
       child: InkWell(
         onTap: onTap,
-        splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.zero,
+        splashColor: AppColors.accent.withValues(alpha: 0.15),
         highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            // 1. Square Artwork with Shadow (sharp 90-degree corners)
+            // 1. Square Artwork (Flat Metro elevation, sharp 90-degree corners)
             AspectRatio(
               aspectRatio: 1.0,
               child: Container(
-                decoration: BoxDecoration(
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.55),
-                      blurRadius: 10.0,
-                      spreadRadius: 1.0,
-                      offset: const Offset(0, 5),
-                    ),
-                  ],
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.zero,
                 ),
                 child: _buildCover(context),
               ),

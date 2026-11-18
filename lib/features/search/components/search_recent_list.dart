@@ -77,6 +77,9 @@ class SearchRecentList extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        shape: const RoundedRectangleBorder(
+                          borderRadius: BorderRadius.zero,
+                        ),
                       ),
                       child: Text(
                         context.l10n.search.clearAllRecentAction,
@@ -117,14 +120,14 @@ class _RecentSearchTile extends StatelessWidget {
   });
 
   static TextStyle get _titleStyle => AppFonts.segoe(
-    fontSize: 15.0,
-    fontWeight: FontWeight.w600,
+    fontSize: 15.5,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
   );
 
   static TextStyle get _subtitleStyle => AppFonts.segoe(
     fontSize: 13.0,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
   );
 
@@ -132,9 +135,11 @@ class _RecentSearchTile extends StatelessWidget {
   Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
+      borderRadius: BorderRadius.zero,
       child: InkWell(
+        borderRadius: BorderRadius.zero,
         onTap: onTap,
-        splashColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.3),
+        splashColor: AppColors.accent.withValues(alpha: 0.15),
         highlightColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.15),
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

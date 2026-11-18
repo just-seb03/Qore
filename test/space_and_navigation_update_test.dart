@@ -116,7 +116,7 @@ void main() {
       expect(find.text('PINNED FAVORITES'), findsNothing);
     });
 
-    testWidgets('SearchScreen does not contain AmbientParticlesCanvas and LibraryScreen integrates AmbientParticlesCanvas',
+    testWidgets('SearchScreen and LibraryScreen both integrate AmbientParticlesCanvas',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -134,7 +134,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
 
-      expect(find.byType(AmbientParticlesCanvas), findsNothing);
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
 
       await tester.pumpWidget(
         const MaterialApp(

@@ -31,14 +31,14 @@ class SearchArtistCard extends StatelessWidget {
   });
 
   static TextStyle get _artistNameStyle => AppFonts.segoe(
-    fontSize: 14.0,
-    fontWeight: FontWeight.w600,
+    fontSize: 14.5,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurface,
   );
 
   static TextStyle get _subtitleStyle => AppFonts.segoe(
     fontSize: 12.5,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
   );
 
@@ -48,32 +48,19 @@ class SearchArtistCard extends StatelessWidget {
       width: width,
       child: Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.zero,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(8.0),
-          splashColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.4),
+          borderRadius: BorderRadius.zero,
+          splashColor: AppColors.accent.withValues(alpha: 0.15),
           highlightColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.2),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Circular Material Design Avatar with drop shadow
+              // Sharp Square Metro People Tile (zero drop shadow, never circular)
               Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.50),
-                      blurRadius: 14.0,
-                      spreadRadius: 1.0,
-                      offset: const Offset(0, 6),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 4.0,
-                      offset: const Offset(0, 2),
-                    ),
-                  ],
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.zero,
                 ),
                 child: MaterialArtistAvatar(
                   radius: 48.0,

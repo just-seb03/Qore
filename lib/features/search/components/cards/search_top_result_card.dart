@@ -160,11 +160,10 @@ class SearchTopResultCard extends StatelessWidget {
     );
   }
 
-  static TextStyle get _titleStyle => AppFonts.segoe(
-    fontSize: 20.0,
-    fontWeight: FontWeight.w400,
+  static TextStyle get _titleStyle => AppFonts.light(
+    fontSize: 22.0,
     color: AppColors.onSurface,
-    letterSpacing: -0.2,
+    letterSpacing: -0.3,
   );
 
   static TextStyle get _subtitleStyle => AppFonts.segoe(
@@ -175,7 +174,7 @@ class SearchTopResultCard extends StatelessWidget {
 
   static TextStyle get _secondarySubtitleStyle => AppFonts.segoe(
     fontSize: 12.5,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w300,
     color: AppColors.onSurfaceVariant,
   );
 
@@ -200,13 +199,24 @@ class SearchTopResultCard extends StatelessWidget {
         ],
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12.0),
+          child: Container(
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainer.withValues(alpha: 0.85),
+              borderRadius: BorderRadius.zero,
+              border: Border(
+                left: BorderSide(
+                  color: AppColors.accent,
+                  width: 3.0,
+                ),
+              ),
+            ),
             child: Material(
-              color: AppColors.surfaceContainer,
+              color: Colors.transparent,
+              borderRadius: BorderRadius.zero,
               child: InkWell(
                 onTap: onTap,
-                splashColor: AppColors.surfaceContainerHighest.withValues(alpha: 0.5),
+                borderRadius: BorderRadius.zero,
+                splashColor: AppColors.accent.withValues(alpha: 0.15),
                 highlightColor: AppColors.surfaceContainerHigh,
                 child: Padding(
                   padding: const EdgeInsets.all(16.0),
