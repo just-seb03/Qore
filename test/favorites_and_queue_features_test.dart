@@ -203,6 +203,49 @@ void main() {
       expect(controller.queue.first.mediaStoreId, 101);
       expect(controller.currentIndex, 0);
     });
+
+    test('toggleShuffle follows Spotify rules: keeps current song at index 0 and restores natural order on disable', () async {
+      final controller = PlaybackController.instance;
+      controller.setQueueForTesting([testSong1, testSong2, testSong3], currentIndex: 1);
+      expect(controller.currentSong?.mediaStoreId, 102);
+
+      // Enable shuffle: current song (102) moves to index 0, remaining (101, 103) stay in Up Next
+      await controller.toggleShuffle();
+      expect(controller.isShuffleEnabled, isTrue);
+      expect(controller.currentIndex, 0);
+      expect(controller.currentSong?.mediaStoreId, 102);
+      expect(controller.queue.length, 3);
+      expect(controller.queue.map((s) => s.mediaStoreId).toSet(), {101, 102, 103});
+
+      // Disable shuffle: natural order [101, 102, 103] restored, currentIndex back to 1
+      await controller.toggleShuffle();
+      expect(controller.isShuffleEnabled, isFalse);
+      expect(controller.queue.map((s) => s.mediaStoreId).toList(), [101, 102, 103]);
+      expect(controller.currentIndex, 1);
+      expect(controller.currentSong?.mediaStoreId, 102);
+    });
+
+    test('prepareQueueForSong with null DB ids and shuffle enabled populates full queue with tapped track first', () async {
+      final controller = PlaybackController.instance;
+      controller.setQueueForTesting([testSong1], currentIndex: 0, shuffleEnabled: true);
+
+      final disc1 = Song(mediaStoreId: 501, title: 'D1T1', artist: 'A', album: 'Alb', duration: 1000, path: '/a.mp3', dateModified: 1);
+      final disc2 = Song(mediaStoreId: 502, title: 'D2T1', artist: 'A', album: 'Alb', duration: 1000, path: '/b.mp3', dateModified: 2);
+      final disc2b = Song(mediaStoreId: 503, title: 'D2T2', artist: 'A', album: 'Alb', duration: 1000, path: '/c.mp3', dateModified: 3);
+
+      controller.prepareQueueForSong(disc2, queue: [disc1, disc2, disc2b]);
+      expect(controller.currentIndex, 0);
+      expect(controller.currentSong?.mediaStoreId, 502);
+      expect(controller.queue.length, 3);
+      expect(controller.queue.map((s) => s.mediaStoreId).toSet(), {501, 502, 503});
+
+      // With shuffle disabled, playing disc2 keeps natural order [501, 502, 503] with currentIndex == 1
+      await controller.toggleShuffle();
+      controller.prepareQueueForSong(disc2, queue: [disc1, disc2, disc2b]);
+      expect(controller.currentIndex, 1);
+      expect(controller.currentSong?.mediaStoreId, 502);
+      expect(controller.queue.map((s) => s.mediaStoreId).toList(), [501, 502, 503]);
+    });
   });
 
   group('HomeFavoritesHeroCard Widget Tests', () {

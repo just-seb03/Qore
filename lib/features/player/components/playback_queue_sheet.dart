@@ -9,6 +9,7 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -61,10 +62,20 @@ class PlaybackQueueSheet extends StatelessWidget {
               final currentSong = controller.currentSong;
               final currentIndex = controller.currentIndex;
 
-              // Display only upcoming tracks (excluding past songs and active current song)
-              final upcomingSongs = (currentIndex >= 0 && currentIndex + 1 < queue.length)
-                  ? queue.sublist(currentIndex + 1)
-                  : (currentIndex < 0 && queue.isNotEmpty ? queue : const []);
+              // Display upcoming tracks after current song (wrapping around when LoopMode.all is active)
+              final bool loopAll = controller.loopMode == LoopMode.all;
+              final List<dynamic> upcomingSongs;
+              if (currentIndex >= 0 && queue.isNotEmpty) {
+                final tail = currentIndex + 1 < queue.length
+                    ? queue.sublist(currentIndex + 1)
+                    : const [];
+                final head = (loopAll && currentIndex > 0)
+                    ? queue.sublist(0, currentIndex)
+                    : const [];
+                upcomingSongs = [...tail, ...head];
+              } else {
+                upcomingSongs = queue.isNotEmpty ? queue : const [];
+              }
 
               final int upcomingStartIndex = currentIndex >= 0 ? currentIndex + 1 : 0;
 
@@ -225,14 +236,14 @@ class PlaybackQueueSheet extends StatelessWidget {
                             padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 4.0),
                             itemCount: upcomingSongs.length,
                             onReorderItem: (oldIndex, newIndex) {
-                              controller.reorderQueue(
-                                upcomingStartIndex + oldIndex,
-                                upcomingStartIndex + newIndex,
-                              );
+                              if (queue.isEmpty) return;
+                              final realOld = (upcomingStartIndex + oldIndex) % queue.length;
+                              final realNew = (upcomingStartIndex + newIndex) % queue.length;
+                              controller.reorderQueue(realOld, realNew);
                             },
                             itemBuilder: (context, index) {
                               final song = upcomingSongs[index];
-                              final realIndex = upcomingStartIndex + index;
+                              final realIndex = (upcomingStartIndex + index) % queue.length;
 
                               return Padding(
                                 key: ValueKey('queue_song_${song.mediaStoreId}_$index'),

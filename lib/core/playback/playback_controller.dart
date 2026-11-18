@@ -35,10 +35,12 @@ class PlaybackController extends ChangeNotifier {
 
   Song? _currentSong;
   List<Song> _queue = [];
+  List<Song> _originalQueue = [];
   int _currentIndex = -1;
   int? _activePlaylistId;
   bool _isBuffering = false;
   bool _isInitialized = false;
+  bool _isShuffleEnabled = false;
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<ProcessingState>? _processingStateSubscription;
@@ -112,7 +114,7 @@ class PlaybackController extends ChangeNotifier {
   Duration get duration => _player.duration ?? Duration.zero;
 
   /// Whether shuffle is enabled.
-  bool get isShuffleEnabled => _player.shuffleModeEnabled;
+  bool get isShuffleEnabled => _isShuffleEnabled;
 
   /// Current repeat mode.
   LoopMode get loopMode => _player.loopMode;
@@ -218,6 +220,7 @@ class PlaybackController extends ChangeNotifier {
       _currentSong = null;
       _activePlaylistId = null;
       _queue.clear();
+      _originalQueue.clear();
       _currentIndex = -1;
       notifyListeners();
     } catch (e) {
@@ -233,7 +236,7 @@ class PlaybackController extends ChangeNotifier {
       getQueue: () => _queue,
       getCurrentIndex: () => _currentIndex,
       getPosition: () => _player.position,
-      isShuffleEnabled: () => _player.shuffleModeEnabled,
+      isShuffleEnabled: () => _isShuffleEnabled,
       getLoopMode: () => _player.loopMode,
     );
   }
@@ -251,7 +254,7 @@ class PlaybackController extends ChangeNotifier {
       queue: _queue,
       currentIndex: _currentIndex,
       position: overridePosition ?? _player.position,
-      shuffleEnabled: _player.shuffleModeEnabled,
+      shuffleEnabled: _isShuffleEnabled,
       loopMode: _player.loopMode,
     ));
   }
@@ -264,7 +267,7 @@ class PlaybackController extends ChangeNotifier {
       queue: _queue,
       currentIndex: _currentIndex,
       position: _player.position,
-      shuffleEnabled: _player.shuffleModeEnabled,
+      shuffleEnabled: _isShuffleEnabled,
       loopMode: _player.loopMode,
     );
   }
@@ -276,11 +279,13 @@ class PlaybackController extends ChangeNotifier {
     if (data == null) return false;
 
     _queue = data.queue;
+    _originalQueue = List<Song>.from(data.queue);
     _currentIndex = data.currentIndex;
     _currentSong = data.song;
+    _isShuffleEnabled = data.shuffleEnabled;
 
     try {
-      await _player.setShuffleModeEnabled(data.shuffleEnabled);
+      await _player.setShuffleModeEnabled(false);
       await _player.setLoopMode(data.loopMode);
       if (_queue.isNotEmpty) {
         await _audioBuffer.loadQueue(
@@ -448,6 +453,21 @@ class PlaybackController extends ChangeNotifier {
     } catch (_) {}
   }
 
+  /// Null-safe identity check for matching two [Song] instances.
+  bool _matchesSong(Song a, Song b) {
+    if (a.id != null && b.id != null) {
+      return a.id == b.id;
+    }
+    return a.mediaStoreId == b.mediaStoreId;
+  }
+
+  /// Builds a shuffled queue keeping [current] at index 0 followed by all remaining tracks shuffled.
+  List<Song> _buildShuffledQueue(Song current, List<Song> sourceQueue) {
+    final remaining = sourceQueue.where((s) => !_matchesSong(s, current)).toList();
+    remaining.shuffle();
+    return [current, ...remaining];
+  }
+
   /// Checks whether a new queue matches the currently active queue in memory and buffer.
   bool _isSameQueue(List<Song>? newQueue) {
     if (newQueue == null || newQueue.isEmpty) return false;
@@ -462,17 +482,52 @@ class PlaybackController extends ChangeNotifier {
     return true;
   }
 
+  /// Resolves and applies standard Spotify queue rules for [song] and [queue]
+  /// without invoking the native audio player backend.
+  @visibleForTesting
+  void prepareQueueForSong(Song song, {List<Song>? queue, int? playlistId}) {
+    _activePlaylistId = playlistId;
+
+    final List<Song> resolvedContext;
+    if (queue != null && queue.isNotEmpty) {
+      resolvedContext = List<Song>.from(queue);
+      if (!resolvedContext.any((s) => _matchesSong(s, song))) {
+        resolvedContext.insert(0, song);
+      }
+    } else {
+      resolvedContext = [song];
+    }
+    _originalQueue = resolvedContext;
+
+    if (_isShuffleEnabled && resolvedContext.length > 1) {
+      _queue = _buildShuffledQueue(song, resolvedContext);
+      _currentIndex = 0;
+    } else {
+      _queue = List<Song>.from(resolvedContext);
+      _currentIndex = _queue.indexWhere((s) => _matchesSong(s, song));
+      if (_currentIndex == -1) {
+        _queue.insert(0, song);
+        _currentIndex = 0;
+      }
+    }
+
+    _currentSong = song;
+    notifyListeners();
+  }
+
   /// Plays a specific [Song] and optionally initializes or replaces the active [queue].
-  /// Utilizes the gapless [AudioPlaybackBuffer] with lookahead pre-buffering for 0ms transitions.
-  /// If the track belongs to the already active queue, seeks instantly without rebuilding the buffer.
+  /// Follows standard Spotify / conventional player queue rules:
+  /// - Preserves full album/playlist/disc context in `_originalQueue`.
+  /// - When shuffle is enabled, keeps the selected [song] at index 0 and shuffles all remaining context tracks into Up Next.
+  /// - When shuffle is disabled, plays the context in natural order starting at [song]'s index.
   Future<void> playSong(Song song, {List<Song>? queue, int? playlistId}) async {
     unawaited(_checkNotificationPermission());
 
     _activePlaylistId = playlistId;
 
-    // Fast-path: If the queue is identical to what's already buffered, seek instantly in 0ms!
-    if (_isSameQueue(queue)) {
-      final targetIndex = _queue.indexWhere((s) => s.id == song.id || s.mediaStoreId == song.mediaStoreId);
+    // 1. Fast-path: If shuffle is off and queue matches what's already buffered, seek instantly in 0ms!
+    if (!_isShuffleEnabled && _isSameQueue(queue)) {
+      final targetIndex = _queue.indexWhere((s) => _matchesSong(s, song));
       if (targetIndex != -1) {
         _currentIndex = targetIndex;
         _currentSong = _queue[targetIndex];
@@ -492,24 +547,12 @@ class PlaybackController extends ChangeNotifier {
       }
     }
 
-    // 1. Update queue in memory
-    if (queue != null && queue.isNotEmpty) {
-      _queue = List<Song>.from(queue);
-      _currentIndex = _queue.indexWhere((s) => s.id == song.id || s.mediaStoreId == song.mediaStoreId);
-      if (_currentIndex == -1) {
-        _queue.insert(0, song);
-        _currentIndex = 0;
-      }
-    } else {
-      _queue = [song];
-      _currentIndex = 0;
-    }
+    // 2. Build active playback queue according to Spotify/conventional rules
+    prepareQueueForSong(song, queue: queue, playlistId: playlistId);
 
-    _currentSong = song;
-    notifyListeners();
-
-    // 2. Load queue into the 0ms pre-buffering engine and start playback
+    // 3. Load queue into the 0ms pre-buffering engine and start playback
     try {
+      await _player.setShuffleModeEnabled(false);
       await _audioBuffer.loadQueue(
         _queue,
         initialIndex: _currentIndex,
@@ -623,13 +666,47 @@ class PlaybackController extends ChangeNotifier {
     }
   }
 
-  /// Toggles shuffle mode.
+  /// Toggles shuffle mode following standard Spotify queue rules:
+  /// - Turning ON keeps the current song playing at index 0 and shuffles all remaining tracks.
+  /// - Turning OFF restores the natural context order starting from the current song.
   Future<void> toggleShuffle() async {
-    final nextShuffle = !_player.shuffleModeEnabled;
-    if (nextShuffle) {
-      await _player.shuffle();
+    _isShuffleEnabled = !_isShuffleEnabled;
+    final activeSong = _currentSong;
+
+    if (activeSong != null && _queue.length > 1) {
+      if (_isShuffleEnabled) {
+        if (_originalQueue.isEmpty) {
+          _originalQueue = List<Song>.from(_queue);
+        }
+        _queue = _buildShuffledQueue(activeSong, _queue);
+        _currentIndex = 0;
+      } else {
+        if (_originalQueue.isNotEmpty) {
+          _queue = List<Song>.from(_originalQueue);
+          final idx = _queue.indexWhere((s) => _matchesSong(s, activeSong));
+          _currentIndex = idx != -1 ? idx : 0;
+        }
+      }
+
+      if (_audioBuffer.hasSource) {
+        try {
+          final currentPos = _player.position;
+          final wasPlaying = _player.playing;
+          await _player.setShuffleModeEnabled(false);
+          await _audioBuffer.loadQueue(
+            _queue,
+            initialIndex: _currentIndex,
+            initialPosition: currentPos,
+          );
+          if (wasPlaying) {
+            await _player.play();
+          }
+        } catch (e) {
+          debugPrint('PlaybackController Error syncing shuffled queue: $e');
+        }
+      }
     }
-    await _player.setShuffleModeEnabled(nextShuffle);
+
     _persistCurrentSessionImmediate();
     notifyListeners();
   }
@@ -661,14 +738,25 @@ class PlaybackController extends ChangeNotifier {
   void addToQueueFirst(Song song) {
     if (_queue.isEmpty || _currentIndex < 0) {
       _queue.insert(0, song);
+      _originalQueue.insert(0, song);
       _currentIndex = 0;
       _currentSong = song;
-      unawaited(_audioBuffer.insert(0, song));
+      if (_audioBuffer.hasSource) {
+        unawaited(_audioBuffer.insert(0, song));
+      } else {
+        unawaited(_audioBuffer.loadQueue(_queue, initialIndex: 0));
+      }
     } else {
       final insertIndex = (_currentIndex + 1).clamp(0, _queue.length);
       _queue.insert(insertIndex, song);
-      unawaited(_audioBuffer.insert(insertIndex, song));
+      if (!_originalQueue.any((s) => _matchesSong(s, song))) {
+        _originalQueue.add(song);
+      }
+      if (_audioBuffer.hasSource) {
+        unawaited(_audioBuffer.insert(insertIndex, song));
+      }
     }
+    _persistCurrentSessionImmediate();
     notifyListeners();
   }
 
@@ -676,13 +764,24 @@ class PlaybackController extends ChangeNotifier {
   void addToQueueEnd(Song song) {
     if (_queue.isEmpty || _currentIndex < 0) {
       _queue.add(song);
+      _originalQueue.add(song);
       _currentIndex = 0;
       _currentSong = song;
-      unawaited(_audioBuffer.add(song));
+      if (_audioBuffer.hasSource) {
+        unawaited(_audioBuffer.add(song));
+      } else {
+        unawaited(_audioBuffer.loadQueue(_queue, initialIndex: 0));
+      }
     } else {
       _queue.add(song);
-      unawaited(_audioBuffer.add(song));
+      if (!_originalQueue.any((s) => _matchesSong(s, song))) {
+        _originalQueue.add(song);
+      }
+      if (_audioBuffer.hasSource) {
+        unawaited(_audioBuffer.add(song));
+      }
     }
+    _persistCurrentSessionImmediate();
     notifyListeners();
   }
 
@@ -723,20 +822,25 @@ class PlaybackController extends ChangeNotifier {
   void clearUpcomingQueue() {
     if (_currentSong != null) {
       _queue = [_currentSong!];
+      _originalQueue = [_currentSong!];
       _currentIndex = 0;
       unawaited(_audioBuffer.clearUpcoming(0));
     } else {
       _queue.clear();
+      _originalQueue.clear();
       _currentIndex = -1;
       unawaited(_audioBuffer.clear());
     }
+    _persistCurrentSessionImmediate();
     notifyListeners();
   }
 
   /// Injects a testing queue and current index without triggering audio player.
   @visibleForTesting
-  void setQueueForTesting(List<Song> testQueue, {int currentIndex = 0}) {
+  void setQueueForTesting(List<Song> testQueue, {int currentIndex = 0, bool shuffleEnabled = false}) {
     _queue = List<Song>.from(testQueue);
+    _originalQueue = List<Song>.from(testQueue);
+    _isShuffleEnabled = shuffleEnabled;
     _currentIndex = currentIndex;
     if (currentIndex >= 0 && currentIndex < testQueue.length) {
       _currentSong = testQueue[currentIndex];
