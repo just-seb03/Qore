@@ -226,20 +226,16 @@ class _AppSearchBarState extends State<AppSearchBar>
               (_focusAnimController.value > 0.5 ||
                   _effectiveController.text.isNotEmpty);
           if (!isCurrentlyExpanded) {
-            // Expand the bar WITHOUT requesting keyboard focus
             if (widget.onExpand != null) {
               widget.onExpand!();
             } else {
               _focusAnimController.forward();
             }
-          } else {
-            // If already expanded, tapping the bar requests focus on the text field to show keyboard
-            if (!_effectiveFocusNode.hasFocus) {
-              _effectiveFocusNode.requestFocus();
-            } else {
-              SystemChannels.textInput.invokeMethod<void>('TextInput.show');
-            }
           }
+          if (!_effectiveFocusNode.hasFocus) {
+            _effectiveFocusNode.requestFocus();
+          }
+          SystemChannels.textInput.invokeMethod<void>('TextInput.show');
         },
         child: SizedBox(
           height: 44.0,

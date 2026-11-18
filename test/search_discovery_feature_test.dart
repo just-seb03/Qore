@@ -471,18 +471,13 @@ void main() {
       expect(find.byKey(const ValueKey('search_results_list')), findsOneWidget);
       expect(find.byKey(const ValueKey('explore_discovery_view')), findsNothing);
 
-      // Tap on search bar to expand
+      // Tap on search bar to expand and immediately request keyboard focus
       await tester.tap(find.byType(AppSearchBar));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      // Verify TextField does NOT have focus automatically (no auto-opening keyboard)
+      // Verify TextField immediately receives focus to open the keyboard
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.focusNode?.hasFocus, isFalse);
-
-      // Tapping the expanded TextField explicitly requests focus (opens keyboard)
-      await tester.tap(find.byType(TextField));
-      await tester.pump();
       expect(textField.focusNode?.hasFocus, isTrue);
     });
 
