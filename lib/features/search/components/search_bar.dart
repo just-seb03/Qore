@@ -1,20 +1,13 @@
 /// File: search_bar.dart
-/// Description: Material Design 3 Expressive SearchBar component with animated focus transition.
-/// In unfocused state, displays the search magnifying glass icon flanked by breathing `<` and `>`
-/// chevrons oscillating gently on horizontal axis with no placeholder text.
-/// Upon tap/focus, smoothly animates the bar expanding: chevrons fade out, the magnifying glass travels
-/// to the left margin, and the localized search placeholder ('¿Qué quieres escuchar?') and text field fade in.
-/// Supports reliable keyboard focus and smooth reverse transition when exiting.
+/// Description: Windows Phone Metro SearchBar component with sharp 90-degree corners,
+/// crisp accent focus border, direct TextField input, and clear/loading trailing actions.
 ///
 /// Components / Classes / Functions:
-/// - AppSearchBar: Primary search bar widget with `< 🔍 >` breathing animation and focus expansion.
-///   - _baseHintTextStyle: Static cached TextStyle for hint text.
-///   - _baseTextStyle: Static cached TextStyle for input text.
-/// - _AppSearchBarState: State class managing focus transition, chevron oscillation, and clear actions.
+/// - AppSearchBar: Primary Metro search bar widget.
+/// - _AppSearchBarState: State class managing focus border styling and clear actions.
 /// - ExpressiveSearchBar: Type alias pointing to AppSearchBar.
 library;
 
-import 'dart:ui' show lerpDouble;
 import 'package:flutter/material.dart';
 import 'package:material_3_expressive/material_3_expressive.dart';
 import 'package:material_symbols_icons/symbols.dart';
@@ -24,7 +17,7 @@ import 'package:project_anima/core/theme/theme.dart';
 /// Type alias for flexible naming conventions.
 typedef ExpressiveSearchBar = AppSearchBar;
 
-/// Native Material 3 Expressive SearchBar with `< 🔍 >` breathing animation and focus expansion.
+/// Clean Windows Phone Metro SearchBar with direct TextField focus and zero animation interference.
 class AppSearchBar extends StatefulWidget {
   /// Controller managing the text input state.
   final TextEditingController? controller;
@@ -35,16 +28,16 @@ class AppSearchBar extends StatefulWidget {
   /// Callback executed when the clear button is pressed.
   final VoidCallback? onClear;
 
-  /// Whether the search bar is currently expanded into full-width input mode.
+  /// Kept for backward compatibility with callers.
   final bool? isExpanded;
 
-  /// Callback executed when the collapsed `< 🔍 >` pill button is tapped to expand.
+  /// Kept for backward compatibility with callers.
   final VoidCallback? onExpand;
 
   /// Controls visibility of the morphing M3ELoadingIndicator.
   final bool isLoading;
 
-  /// Placeholder hint text displayed when the input is focused and empty.
+  /// Placeholder hint text displayed when the input is empty.
   final String? hintText;
 
   /// Optional focus node for managing keyboard focus.
@@ -91,16 +84,9 @@ class AppSearchBar extends StatefulWidget {
   State<AppSearchBar> createState() => _AppSearchBarState();
 }
 
-class _AppSearchBarState extends State<AppSearchBar>
-    with TickerProviderStateMixin {
+class _AppSearchBarState extends State<AppSearchBar> {
   TextEditingController? _internalController;
   FocusNode? _internalFocusNode;
-
-  late final AnimationController _focusAnimController;
-  late final Animation<double> _focusCurvedAnimation;
-
-  late final AnimationController _arrowAnimController;
-  late final Animation<double> _arrowOffsetAnimation;
 
   TextEditingController get _effectiveController =>
       widget.controller ?? (_internalController ??= TextEditingController());
@@ -109,104 +95,30 @@ class _AppSearchBarState extends State<AppSearchBar>
       widget.focusNode ?? (_internalFocusNode ??= FocusNode());
 
   @override
-  void initState() {
-    super.initState();
-    // 1. Focus expansion transition controller
-    _focusAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 260),
-      reverseDuration: const Duration(milliseconds: 240),
-    );
-    _focusCurvedAnimation = CurvedAnimation(
-      parent: _focusAnimController,
-      curve: Curves.easeOutCubic,
-      reverseCurve: Curves.easeInOutCubic,
-    );
-
-    // 2. Subtle breathing animation for '<' and '>' chevrons
-    _arrowAnimController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1400),
-    )..repeat(reverse: true);
-
-    _arrowOffsetAnimation = Tween<double>(begin: 0.0, end: 3.5).animate(
-      CurvedAnimation(
-        parent: _arrowAnimController,
-        curve: Curves.easeInOutSine,
-      ),
-    );
-
-    _effectiveFocusNode.addListener(_handleFocusOrTextChanged);
-    _effectiveController.addListener(_handleFocusOrTextChanged);
-
-    final shouldBeActive = widget.isExpanded ??
-        (_effectiveFocusNode.hasFocus || _effectiveController.text.isNotEmpty);
-    _focusAnimController.value = shouldBeActive ? 1.0 : 0.0;
-  }
-
-  void _handleFocusOrTextChanged() {
-    if (!mounted) return;
-    final shouldBeActive = widget.isExpanded ??
-        (_effectiveFocusNode.hasFocus || _effectiveController.text.isNotEmpty);
-    if (shouldBeActive) {
-      if (_focusAnimController.value < 1.0 &&
-          _focusAnimController.status != AnimationStatus.forward) {
-        _focusAnimController.forward();
-      }
-    } else {
-      if (_focusAnimController.value > 0.0 &&
-          _focusAnimController.status != AnimationStatus.reverse) {
-        _focusAnimController.reverse();
-      }
-    }
-  }
-
-  @override
   void didUpdateWidget(AppSearchBar oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.isExpanded != oldWidget.isExpanded && widget.isExpanded != null) {
-      if (widget.isExpanded!) {
-        if (_focusAnimController.value < 1.0) {
-          _focusAnimController.forward();
-        }
-      } else {
-        if (_focusAnimController.value > 0.0) {
-          _focusAnimController.reverse();
-        }
-      }
-    }
     if (widget.controller != oldWidget.controller) {
-      (oldWidget.controller ?? _internalController)
-          ?.removeListener(_handleFocusOrTextChanged);
       if (widget.controller == null && oldWidget.controller != null) {
         _internalController = TextEditingController();
       } else if (widget.controller != null && oldWidget.controller == null) {
         _internalController?.dispose();
         _internalController = null;
       }
-      _effectiveController.addListener(_handleFocusOrTextChanged);
     }
     if (widget.focusNode != oldWidget.focusNode) {
-      (oldWidget.focusNode ?? _internalFocusNode)
-          ?.removeListener(_handleFocusOrTextChanged);
       if (widget.focusNode == null && oldWidget.focusNode != null) {
         _internalFocusNode = FocusNode();
       } else if (widget.focusNode != null && oldWidget.focusNode == null) {
         _internalFocusNode?.dispose();
         _internalFocusNode = null;
       }
-      _effectiveFocusNode.addListener(_handleFocusOrTextChanged);
     }
   }
 
   @override
   void dispose() {
-    _effectiveFocusNode.removeListener(_handleFocusOrTextChanged);
-    _effectiveController.removeListener(_handleFocusOrTextChanged);
     _internalFocusNode?.dispose();
     _internalController?.dispose();
-    _focusAnimController.dispose();
-    _arrowAnimController.dispose();
     super.dispose();
   }
 
@@ -215,234 +127,117 @@ class _AppSearchBarState extends State<AppSearchBar>
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final effectiveController = _effectiveController;
+    final effectiveFocusNode = _effectiveFocusNode;
 
     return TapRegion(
       onTapOutside: (_) {
-        if (_effectiveFocusNode.hasFocus) {
-          _effectiveFocusNode.unfocus();
+        if (effectiveFocusNode.hasFocus) {
+          effectiveFocusNode.unfocus();
         }
       },
       child: Padding(
         padding: widget.padding,
-        child: GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () {
-            final isCurrentlyExpanded = widget.isExpanded ??
-                (_focusAnimController.value > 0.5 ||
-                    _effectiveController.text.isNotEmpty);
-            if (!isCurrentlyExpanded) {
-              if (widget.onExpand != null) {
-                widget.onExpand!();
-              } else {
-                _focusAnimController.forward();
-              }
-            }
-            if (!_effectiveFocusNode.hasFocus) {
-              _effectiveFocusNode.requestFocus();
-            }
+        child: ListenableBuilder(
+          listenable: effectiveFocusNode,
+          builder: (context, child) {
+            final isFocused = effectiveFocusNode.hasFocus;
+            final barBgColor = colorScheme.surfaceContainerHigh.withValues(alpha: 0.45);
+            final barBorderColor = isFocused
+                ? AppColors.accent.withValues(alpha: 0.85)
+                : colorScheme.outlineVariant.withValues(alpha: 0.55);
+
+            return GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: () {
+                widget.onExpand?.call();
+                if (!effectiveFocusNode.hasFocus) {
+                  effectiveFocusNode.requestFocus();
+                }
+              },
+              child: Container(
+                height: 44.0,
+                decoration: BoxDecoration(
+                  color: barBgColor,
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(
+                    color: barBorderColor,
+                    width: 1.5,
+                  ),
+                ),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: child,
+              ),
+            );
           },
-          child: SizedBox(
-          height: 44.0,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final maxWidth = constraints.maxWidth;
-              const collapsedWidth = 104.0;
-              const barHeight = 44.0;
-              const iconSize = 26.0;
-              const chevronSize = 26.0;
-
-              return AnimatedBuilder(
-                animation: Listenable.merge([
-                  _focusCurvedAnimation,
-                  _arrowOffsetAnimation,
-                ]),
-                builder: (context, _) {
-                  final animValue = _focusCurvedAnimation.value;
-                  final arrowOffset = _arrowOffsetAnimation.value;
-
-                  final currentWidth =
-                      lerpDouble(collapsedWidth, maxWidth, animValue)!;
-                  final iconLeft =
-                      lerpDouble((collapsedWidth - iconSize) / 2, 14.0, animValue)!;
-                  final chevronOpacity =
-                      (1.0 - animValue * 2.5).clamp(0.0, 1.0);
-
-                  // Chevrons symmetrically positioned inside collapsed width
-                  final leftChevronX =
-                      (collapsedWidth - iconSize) / 2 - chevronSize - 2.0 - arrowOffset;
-                  final rightChevronX =
-                      (collapsedWidth - iconSize) / 2 + iconSize + 2.0 + arrowOffset;
-
-                  final barBgColor = colorScheme.surfaceContainerHigh
-                      .withValues(alpha: 0.45 * animValue);
-                  final isFocused = _effectiveFocusNode.hasFocus;
-                  final barBorderColor = (isFocused
-                          ? AppColors.accent.withValues(alpha: 0.85)
-                          : colorScheme.outlineVariant.withValues(alpha: 0.55))
-                      .withValues(alpha: (isFocused ? 0.85 : 0.55) * animValue);
-
-                  return Center(
-                    child: Container(
-                      width: currentWidth,
-                      height: barHeight,
-                      decoration: BoxDecoration(
-                        color: barBgColor,
-                        borderRadius: BorderRadius.zero,
-                        border: Border.all(
-                          color: barBorderColor,
-                          width: 1.5,
-                        ),
-                      ),
-                      clipBehavior: Clip.antiAlias,
-                      child: Stack(
-                        alignment: Alignment.centerLeft,
-                        children: [
-                          // A. Left Chevron '<' (breathing outward to left)
-                          if (chevronOpacity > 0.0)
-                            Positioned(
-                              left: leftChevronX,
-                              top: (barHeight - chevronSize) / 2,
-                              child: Opacity(
-                                opacity: chevronOpacity,
-                                child: Icon(
-                                  Icons.chevron_left_rounded,
-                                  size: chevronSize,
-                                  color: colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.65),
-                                ),
-                              ),
-                            ),
-
-                          // B. Animated Search Icon (travels from center to left margin: 16.0)
-                          Positioned(
-                            left: iconLeft,
-                            top: (barHeight - iconSize) / 2,
-                            child: Icon(
-                              Symbols.search_rounded,
-                              color: Color.lerp(
-                                colorScheme.onSurfaceVariant
-                                    .withValues(alpha: 0.8),
-                                colorScheme.onSurfaceVariant,
-                                animValue,
-                              ),
-                              size: iconSize,
-                            ),
-                          ),
-
-                          // C. Right Chevron '>' (breathing outward to right)
-                          if (chevronOpacity > 0.0)
-                            Positioned(
-                              left: rightChevronX,
-                              top: (barHeight - chevronSize) / 2,
-                              child: Opacity(
-                                opacity: chevronOpacity,
-                                child: Icon(
-                                  Icons.chevron_right_rounded,
-                                  size: chevronSize,
-                                  color: colorScheme.onSurfaceVariant
-                                      .withValues(alpha: 0.65),
-                                ),
-                              ),
-                            ),
-
-                          // D. Expanded Search Input Field & Placeholder
-                          Positioned(
-                            left: 48.0,
-                            width: (maxWidth - 96.0).clamp(100.0, double.infinity),
-                            child: Opacity(
-                              opacity: animValue.clamp(0.0, 1.0),
-                              child: IgnorePointer(
-                                ignoring: animValue < 0.2,
-                                child: TextField(
-                                  controller: effectiveController,
-                                  focusNode: _effectiveFocusNode,
-                                  autofocus: widget.autoFocus,
-                                  onChanged: widget.onChanged,
-                                  onTapOutside: (_) {},
-                                  style: AppSearchBar._baseTextStyle.copyWith(
-                                    color: colorScheme.onSurface,
-                                  ),
-                                  cursorColor: AppColors.accent,
-                                  decoration: InputDecoration(
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: EdgeInsets.zero,
-                                    hintText: widget.hintText ??
-                                        context.l10n.search.searchPlaceholder,
-                                    hintStyle:
-                                        AppSearchBar._baseHintTextStyle.copyWith(
-                                      color: colorScheme.onSurfaceVariant
-                                          .withValues(alpha: 0.7),
-                                    ),
-                                  ),
-                                  contextMenuBuilder:
-                                      (context, editableTextState) {
-                                    return AdaptiveTextSelectionToolbar
-                                        .editableText(
-                                      editableTextState: editableTextState,
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                          ),
-
-                          // E. Trailing Action: Loading Indicator or Clear Button
-                          if (animValue > 0.01)
-                            Positioned(
-                              right: 12.0,
-                              child: Opacity(
-                                opacity: animValue,
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    if (widget.isLoading)
-                                      Padding(
-                                        padding: const EdgeInsets.symmetric(
-                                            horizontal: 4.0),
-                                        child: M3ELoadingIndicator(
-                                          size: 20,
-                                          color: AppColors.accent,
-                                        ),
-                                      )
-                                    else
-                                      ValueListenableBuilder<TextEditingValue>(
-                                        valueListenable: effectiveController,
-                                        builder: (context, value, _) {
-                                          if (value.text.isEmpty) {
-                                            return const SizedBox.shrink();
-                                          }
-                                          return M3EIconButton(
-                                            icon: Icon(
-                                              Symbols.close_rounded,
-                                              color:
-                                                  colorScheme.onSurfaceVariant,
-                                              size: 20.0,
-                                            ),
-                                            variant:
-                                                M3EIconButtonVariant.standard,
-                                            size: M3EIconButtonSize.xs,
-                                            onPressed: () {
-                                              effectiveController.clear();
-                                              widget.onClear?.call();
-                                            },
-                                          );
-                                        },
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
+          child: Row(
+            children: [
+              Icon(
+                Symbols.search_rounded,
+                color: colorScheme.onSurfaceVariant,
+                size: 22.0,
+              ),
+              const SizedBox(width: 12.0),
+              Expanded(
+                child: TextField(
+                  controller: effectiveController,
+                  focusNode: effectiveFocusNode,
+                  autofocus: widget.autoFocus,
+                  onChanged: widget.onChanged,
+                  onTapOutside: (_) {},
+                  style: AppSearchBar._baseTextStyle.copyWith(
+                    color: colorScheme.onSurface,
+                  ),
+                  cursorColor: AppColors.accent,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    hintText: widget.hintText ??
+                        context.l10n.search.searchPlaceholder,
+                    hintStyle: AppSearchBar._baseHintTextStyle.copyWith(
+                      color: colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
                     ),
-                  );
-                },
-              );
-            },
+                  ),
+                  contextMenuBuilder: (context, editableTextState) {
+                    return AdaptiveTextSelectionToolbar.editableText(
+                      editableTextState: editableTextState,
+                    );
+                  },
+                ),
+              ),
+              if (widget.isLoading)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
+                  child: M3ELoadingIndicator(
+                    size: 20,
+                    color: AppColors.accent,
+                  ),
+                )
+              else
+                ValueListenableBuilder<TextEditingValue>(
+                  valueListenable: effectiveController,
+                  builder: (context, value, _) {
+                    if (value.text.isEmpty) {
+                      return const SizedBox.shrink();
+                    }
+                    return M3EIconButton(
+                      icon: Icon(
+                        Symbols.close_rounded,
+                        color: colorScheme.onSurfaceVariant,
+                        size: 20.0,
+                      ),
+                      variant: M3EIconButtonVariant.standard,
+                      size: M3EIconButtonSize.xs,
+                      onPressed: () {
+                        effectiveController.clear();
+                        widget.onClear?.call();
+                      },
+                    );
+                  },
+                ),
+            ],
           ),
         ),
-      ),
       ),
     );
   }

@@ -53,7 +53,6 @@ class _SearchScreenState extends State<SearchScreen>
   final MusicSearchController _searchEngine = MusicSearchController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocusNode = FocusNode();
-  bool _isSearching = false;
 
   @override
   bool get wantKeepAlive => true;
@@ -64,19 +63,6 @@ class _SearchScreenState extends State<SearchScreen>
     RecentSearchController.instance.init();
     NavigationController.instance.searchResetNotifier.addListener(_onSearchReset);
     NavigationController.instance.searchScrollToTopNotifier.addListener(_onScrollToTop);
-    _searchFocusNode.addListener(_onSearchFocusChanged);
-    _searchController.addListener(_onSearchFocusChanged);
-  }
-
-  void _onSearchFocusChanged() {
-    if (!mounted) return;
-    final isSearching =
-        _searchFocusNode.hasFocus || _searchController.text.isNotEmpty;
-    if (isSearching != _isSearching) {
-      setState(() {
-        _isSearching = isSearching;
-      });
-    }
   }
 
   Future<void> _handleRecentItemTap(RecentSearchItem item) async {
@@ -230,9 +216,6 @@ class _SearchScreenState extends State<SearchScreen>
     _searchController.clear();
     _searchEngine.clear();
     _searchFocusNode.unfocus();
-    setState(() {
-      _isSearching = false;
-    });
     if (_scrollController.hasClients) {
       _scrollController.jumpTo(0.0);
     }
@@ -254,8 +237,6 @@ class _SearchScreenState extends State<SearchScreen>
   void dispose() {
     NavigationController.instance.searchResetNotifier.removeListener(_onSearchReset);
     NavigationController.instance.searchScrollToTopNotifier.removeListener(_onScrollToTop);
-    _searchFocusNode.removeListener(_onSearchFocusChanged);
-    _searchController.removeListener(_onSearchFocusChanged);
     _searchFocusNode.dispose();
     _searchController.dispose();
     _searchEngine.dispose();
@@ -285,11 +266,6 @@ class _SearchScreenState extends State<SearchScreen>
           _searchController.clear();
           _searchEngine.clear();
           _searchFocusNode.unfocus();
-          if (mounted) {
-            setState(() {
-              _isSearching = false;
-            });
-          }
           return;
         }
       },
@@ -308,14 +284,6 @@ class _SearchScreenState extends State<SearchScreen>
                   AppSearchBar(
                     controller: _searchController,
                     focusNode: _searchFocusNode,
-                    isExpanded: _isSearching,
-                    onExpand: () {
-                      if (mounted) {
-                        setState(() {
-                          _isSearching = true;
-                        });
-                      }
-                    },
                     onChanged: (text) => _searchEngine.onQueryChanged(text),
                     onClear: () => _searchEngine.clear(),
                   ),
