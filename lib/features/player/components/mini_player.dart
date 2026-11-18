@@ -56,60 +56,48 @@ class MiniPlayer extends StatelessWidget {
                     height: 64.0,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(20.0),
+                      borderRadius: BorderRadius.zero,
                       border: Border.all(
-                        color: AppColors.outline.withValues(alpha: 0.55),
+                        color: AppColors.outline.withValues(alpha: 0.45),
                         width: 1.0,
                       ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.60),
-                          blurRadius: 22.0,
-                          spreadRadius: 1.0,
-                          offset: const Offset(0, 8),
-                        ),
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.30),
-                          blurRadius: 8.0,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
                     ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20.0),
-                      child: Stack(
-                        children: [
-                          // 1. Animated Subtle Liquid Water Fill Layer (Rises from base as song plays)
-                          Positioned.fill(
-                            child: _MiniPlayerLiquidProgress(
-                              controller: activeController,
-                            ),
+                    clipBehavior: Clip.hardEdge,
+                    child: Stack(
+                      children: [
+                        // 1. Animated Subtle Liquid Water Fill Layer (Rises from base as song plays)
+                        Positioned.fill(
+                          child: _MiniPlayerLiquidProgress(
+                            controller: activeController,
                           ),
+                        ),
 
-                          // 2. Tappable & Draggable M3 Expressive Card Surface
-                          Material(
-                            color: Colors.transparent,
-                            child: GestureDetector(
-                              behavior: HitTestBehavior.translucent,
-                              onVerticalDragEnd: (details) {
-                                if (details.primaryVelocity != null && details.primaryVelocity! < -120) {
-                                  PlaybackQueueSheet.show(context);
-                                }
-                              },
-                              onLongPress: () {
+                        // 2. Tappable & Draggable Metro Card Surface
+                        Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.zero,
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.translucent,
+                            onVerticalDragEnd: (details) {
+                              if (details.primaryVelocity != null && details.primaryVelocity! < -120) {
                                 PlaybackQueueSheet.show(context);
-                              },
-                              child: InkWell(
-                                borderRadius: BorderRadius.circular(20.0),
-                                onTap: onTap ??
-                                    () {
-                                      Navigator.of(context).push(PlayerScreen.route());
-                                    },
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10.0),
-                                  child: Row(
-                                    children: [
-                                    // 1. Album Artwork Thumbnail (Dual-Tier fast cache) with rounded corners
+                              }
+                            },
+                            onLongPress: () {
+                              PlaybackQueueSheet.show(context);
+                            },
+                            child: InkWell(
+                              borderRadius: BorderRadius.zero,
+                              splashColor: AppColors.accent.withValues(alpha: 0.15),
+                              onTap: onTap ??
+                                  () {
+                                    Navigator.of(context).push(PlayerScreen.route());
+                                  },
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 10.0),
+                                child: Row(
+                                  children: [
+                                    // 1. Album Artwork Thumbnail (sharp 90° Metro square)
                                     AnimaArtworkImage(
                                       mediaStoreId: currentSong.mediaStoreId,
                                       albumId: currentSong.albumId,
@@ -117,14 +105,14 @@ class MiniPlayer extends StatelessWidget {
                                       artistName: currentSong.albumArtist ?? currentSong.artist,
                                       width: 46.0,
                                       height: 46.0,
-                                      borderRadius: 10.0,
+                                      borderRadius: 0.0,
                                       isThumbnail: true,
                                       fit: BoxFit.cover,
                                       fallbackIcon: Icons.music_note_rounded,
                                     ),
                                     const SizedBox(width: 12.0),
 
-                                    // 2. Song Metadata (Title + Artist)
+                                    // 2. Song Metadata (Title + Artist in Segoe UI)
                                     Expanded(
                                       child: Column(
                                         mainAxisAlignment: MainAxisAlignment.center,
@@ -134,12 +122,10 @@ class MiniPlayer extends StatelessWidget {
                                             currentSong.title,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontFamily: 'Inconsolata',
-                                              fontSize: 13.5,
-                                              fontWeight: FontWeight.w700,
-                                              color: AppColors.futuristicWhite,
-                                              letterSpacing: -0.2,
+                                            style: AppFonts.segoe(
+                                              fontSize: 14.5,
+                                              fontWeight: FontWeight.w400,
+                                              color: AppColors.onSurface,
                                             ),
                                           ),
                                           const SizedBox(height: 2.0),
@@ -147,9 +133,9 @@ class MiniPlayer extends StatelessWidget {
                                             currentSong.artist ?? context.l10n.common.unknownArtist,
                                             maxLines: 1,
                                             overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              fontFamily: 'Inconsolata',
-                                              fontSize: 11.5,
+                                            style: AppFonts.segoe(
+                                              fontSize: 12.0,
+                                              fontWeight: FontWeight.w300,
                                               color: AppColors.onSurfaceVariant,
                                             ),
                                           ),
@@ -157,7 +143,7 @@ class MiniPlayer extends StatelessWidget {
                                       ),
                                     ),
 
-                                    // 3. Playback Controls Row (Prev, Filled M3 Play/Pause, Next)
+                                    // 3. Playback Controls Row (Prev, Metro Square Play/Pause, Next)
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -166,7 +152,7 @@ class MiniPlayer extends StatelessWidget {
                                           icon: Icon(
                                             Icons.skip_previous_rounded,
                                             size: 24.0,
-                                            color: AppColors.futuristicWhite,
+                                            color: AppColors.onSurface,
                                           ),
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(
@@ -178,7 +164,7 @@ class MiniPlayer extends StatelessWidget {
                                           onPressed: () => activeController.skipToPrevious(),
                                         ),
 
-                                        // Material 3 Expressive Filled Circular Play / Pause Button
+                                        // Metro Sharp Square Play / Pause Tile
                                         Padding(
                                           padding: const EdgeInsets.symmetric(horizontal: 4.0),
                                           child: Tooltip(
@@ -187,15 +173,15 @@ class MiniPlayer extends StatelessWidget {
                                                 : context.l10n.player.playTooltip,
                                             child: Material(
                                               color: Colors.transparent,
-                                              shape: const CircleBorder(),
+                                              borderRadius: BorderRadius.zero,
                                               child: InkWell(
-                                                customBorder: const CircleBorder(),
+                                                borderRadius: BorderRadius.zero,
                                                 onTap: () => activeController.togglePlayPause(),
                                                 child: Container(
                                                   width: 38.0,
                                                   height: 38.0,
                                                   decoration: BoxDecoration(
-                                                    shape: BoxShape.circle,
+                                                    borderRadius: BorderRadius.zero,
                                                     color: AppColors.accent,
                                                   ),
                                                   child: Center(
@@ -218,7 +204,7 @@ class MiniPlayer extends StatelessWidget {
                                           icon: Icon(
                                             Icons.skip_next_rounded,
                                             size: 24.0,
-                                            color: AppColors.futuristicWhite,
+                                            color: AppColors.onSurface,
                                           ),
                                           padding: EdgeInsets.zero,
                                           constraints: const BoxConstraints(
@@ -238,7 +224,6 @@ class MiniPlayer extends StatelessWidget {
                           ),
                         ),
                       ],
-                      ),
                     ),
                   ),
                 ),

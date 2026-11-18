@@ -56,7 +56,7 @@ class PlayerControls extends StatelessWidget {
                       width: 4.0,
                       height: 4.0,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.zero,
                         color: isShuffle
                             ? AppColors.accent
                             : Colors.transparent,
@@ -68,22 +68,22 @@ class PlayerControls extends StatelessWidget {
                 onPressed: () => controller.toggleShuffle(),
               ),
 
-              // 2. Previous Track (Circular Bordered Button)
-              _CircularBorderButton(
+              // 2. Previous Track (Metro Square Bordered Button)
+              _MetroBorderButton(
                 icon: Icons.skip_previous_rounded,
                 onTap: () => controller.skipToPrevious(),
                 tooltip: l10n.previousTooltip,
               ),
 
-              // 3. Play / Pause (Prominent Center Button)
+              // 3. Play / Pause (Prominent Metro Square Accent Tile)
               _PlayPauseCenterButton(
                 isPlaying: isPlaying,
                 tooltip: isPlaying ? l10n.pauseTooltip : l10n.playTooltip,
                 onTap: () => controller.togglePlayPause(),
               ),
 
-              // 4. Next Track (Circular Bordered Button)
-              _CircularBorderButton(
+              // 4. Next Track (Metro Square Bordered Button)
+              _MetroBorderButton(
                 icon: Icons.skip_next_rounded,
                 onTap: () => controller.skipToNext(),
                 tooltip: l10n.nextTooltip,
@@ -108,7 +108,7 @@ class PlayerControls extends StatelessWidget {
                       width: 4.0,
                       height: 4.0,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.zero,
                         color: isLoopActive
                             ? AppColors.accent
                             : Colors.transparent,
@@ -127,15 +127,15 @@ class PlayerControls extends StatelessWidget {
   }
 }
 
-/// Circular outlined button with subtle border for Previous / Next actions.
-class _CircularBorderButton extends StatelessWidget {
-  static const double _size = 54.0;
+/// Sharp square Metro outlined button for Previous / Next actions.
+class _MetroBorderButton extends StatelessWidget {
+  static const double _size = 52.0;
 
   final IconData icon;
   final VoidCallback onTap;
   final String tooltip;
 
-  const _CircularBorderButton({
+  const _MetroBorderButton({
     required this.icon,
     required this.onTap,
     required this.tooltip,
@@ -149,7 +149,7 @@ class _CircularBorderButton extends StatelessWidget {
         width: _size,
         height: _size,
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.zero,
           border: Border.all(
             color: AppColors.outline,
             width: 1.5,
@@ -157,16 +157,17 @@ class _CircularBorderButton extends StatelessWidget {
         ),
         child: Material(
           color: Colors.transparent,
+          borderRadius: BorderRadius.zero,
           child: InkWell(
-            borderRadius: BorderRadius.circular(_size / 2),
+            borderRadius: BorderRadius.zero,
             onTap: onTap,
-            splashColor: Colors.white.withValues(alpha: 0.15),
-            highlightColor: Colors.white.withValues(alpha: 0.08),
+            splashColor: AppColors.accent.withValues(alpha: 0.15),
+            highlightColor: AppColors.surfaceContainerHigh.withValues(alpha: 0.25),
             child: Center(
               child: Icon(
                 icon,
                 size: 30.0,
-                color: AppColors.futuristicWhite,
+                color: AppColors.onBackground,
               ),
             ),
           ),
@@ -176,9 +177,9 @@ class _CircularBorderButton extends StatelessWidget {
   }
 }
 
-/// Center prominent circular button for Play / Pause.
+/// Center prominent sharp square Metro tile for Play / Pause.
 class _PlayPauseCenterButton extends StatelessWidget {
-  static const double _size = 68.0;
+  static const double _size = 66.0;
 
   final bool isPlaying;
   final String tooltip;
@@ -198,20 +199,14 @@ class _PlayPauseCenterButton extends StatelessWidget {
         width: _size,
         height: _size,
         decoration: BoxDecoration(
-          shape: BoxShape.circle,
+          borderRadius: BorderRadius.zero,
           color: AppColors.accent,
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.accent.withValues(alpha: 0.28),
-              blurRadius: 14.0,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Material(
           color: Colors.transparent,
+          borderRadius: BorderRadius.zero,
           child: InkWell(
-            borderRadius: BorderRadius.circular(_size / 2),
+            borderRadius: BorderRadius.zero,
             onTap: onTap,
             splashColor: Colors.black.withValues(alpha: 0.2),
             highlightColor: Colors.black.withValues(alpha: 0.1),

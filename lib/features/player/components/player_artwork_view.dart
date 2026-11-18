@@ -10,6 +10,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/theme/theme.dart';
 
 /// Full-width edge-to-edge square artwork view occupying the upper screen.
 class PlayerArtworkView extends StatelessWidget {
@@ -66,12 +67,12 @@ class PlayerArtworkView extends StatelessWidget {
                 fallbackIcon: Icons.music_note_rounded,
               )
             : Container(
-                color: const Color(0xFF141417),
-                child: const Center(
+                color: AppColors.surfaceContainer,
+                child: Center(
                   child: Icon(
                     Icons.music_note_rounded,
                     size: 96.0,
-                    color: Color(0xFF4A4A52),
+                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.35),
                   ),
                 ),
               ),
