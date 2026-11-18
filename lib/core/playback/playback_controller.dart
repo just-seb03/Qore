@@ -41,6 +41,7 @@ class PlaybackController extends ChangeNotifier {
   bool _isBuffering = false;
   bool _isInitialized = false;
   bool _isShuffleEnabled = false;
+  bool _isSyncingBuffer = false;
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<ProcessingState>? _processingStateSubscription;
@@ -327,6 +328,7 @@ class PlaybackController extends ChangeNotifier {
     });
 
     _currentIndexSubscription = _player.currentIndexStream.listen((index) {
+      if (_isSyncingBuffer) return;
       if (index != null && index >= 0 && index < _queue.length) {
         _onTrackTransition(index);
       }
@@ -455,10 +457,13 @@ class PlaybackController extends ChangeNotifier {
 
   /// Null-safe identity check for matching two [Song] instances.
   bool _matchesSong(Song a, Song b) {
+    if (a.mediaStoreId > 0 && b.mediaStoreId > 0) {
+      return a.mediaStoreId == b.mediaStoreId;
+    }
     if (a.id != null && b.id != null) {
       return a.id == b.id;
     }
-    return a.mediaStoreId == b.mediaStoreId;
+    return a.path == b.path;
   }
 
   /// Builds a shuffled queue keeping [current] at index 0 followed by all remaining tracks shuffled.
@@ -533,6 +538,7 @@ class PlaybackController extends ChangeNotifier {
         _currentSong = _queue[targetIndex];
         notifyListeners();
 
+        _isSyncingBuffer = true;
         try {
           await _audioBuffer.seekToIndex(targetIndex);
           await _player.play();
@@ -542,6 +548,8 @@ class PlaybackController extends ChangeNotifier {
           _recordPlaybackHistory(_currentSong!);
         } catch (e) {
           debugPrint('PlaybackController Error seeking to track in active buffer: $e');
+        } finally {
+          _isSyncingBuffer = false;
         }
         return;
       }
@@ -551,13 +559,19 @@ class PlaybackController extends ChangeNotifier {
     prepareQueueForSong(song, queue: queue, playlistId: playlistId);
 
     // 3. Load queue into the 0ms pre-buffering engine and start playback
+    _isSyncingBuffer = true;
     try {
-      await _player.setShuffleModeEnabled(false);
+      if (_player.shuffleModeEnabled) {
+        await _player.setShuffleModeEnabled(false);
+      }
       await _audioBuffer.loadQueue(
         _queue,
         initialIndex: _currentIndex,
         initialPosition: Duration.zero,
       );
+      if (_player.currentIndex != _currentIndex) {
+        await _audioBuffer.seekToIndex(_currentIndex);
+      }
       await _player.play();
 
       _persistCurrentSessionImmediate();
@@ -565,6 +579,8 @@ class PlaybackController extends ChangeNotifier {
       _recordPlaybackHistory(song);
     } catch (e) {
       debugPrint('PlaybackController Error loading audio queue: $e');
+    } finally {
+      _isSyncingBuffer = false;
     }
   }
 
@@ -689,10 +705,13 @@ class PlaybackController extends ChangeNotifier {
       }
 
       if (_audioBuffer.hasSource) {
+        _isSyncingBuffer = true;
         try {
           final currentPos = _player.position;
           final wasPlaying = _player.playing;
-          await _player.setShuffleModeEnabled(false);
+          if (_player.shuffleModeEnabled) {
+            await _player.setShuffleModeEnabled(false);
+          }
           await _audioBuffer.loadQueue(
             _queue,
             initialIndex: _currentIndex,
@@ -703,6 +722,8 @@ class PlaybackController extends ChangeNotifier {
           }
         } catch (e) {
           debugPrint('PlaybackController Error syncing shuffled queue: $e');
+        } finally {
+          _isSyncingBuffer = false;
         }
       }
     }

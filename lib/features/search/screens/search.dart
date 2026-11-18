@@ -181,15 +181,53 @@ class _SearchScreenState extends State<SearchScreen>
     }
   }
 
-  void _handleSongTap(Song song) {
+  Future<void> _handleSongTap(Song song) async {
     _searchFocusNode.unfocus();
+    List<Song> relatedQueue = const [];
+
+    try {
+      final hasAlbum = song.album != null &&
+          song.album!.trim().isNotEmpty &&
+          song.album != '<Desconocido>' &&
+          song.album != 'Unknown Album';
+      if (hasAlbum) {
+        final albumSongs = await _songDao.getSongsByAlbum(
+          song.album!.trim(),
+          artist: song.albumArtist ?? song.artist,
+          albumId: song.albumId,
+        );
+        if (albumSongs.length > 1) {
+          relatedQueue = albumSongs;
+        }
+      }
+
+      if (relatedQueue.isEmpty) {
+        final hasArtist = song.artist != null &&
+            song.artist!.trim().isNotEmpty &&
+            song.artist != '<Desconocido>' &&
+            song.artist != 'Unknown Artist';
+        if (hasArtist) {
+          final artistSongs = await _songDao.getSongsByArtist(song.artist!.trim());
+          if (artistSongs.length > 1) {
+            relatedQueue = artistSongs;
+          }
+        }
+      }
+    } catch (_) {}
+
+    if (relatedQueue.isEmpty) {
+      relatedQueue = _searchEngine.resultsGroup.matchedSongs.isNotEmpty
+          ? _searchEngine.resultsGroup.matchedSongs
+          : [song];
+    }
+
     PlaybackController.instance.playSong(
       song,
-      queue: _searchEngine.resultsGroup.matchedSongs.isNotEmpty
-          ? _searchEngine.resultsGroup.matchedSongs
-          : [song],
+      queue: relatedQueue,
     );
-    Navigator.of(context).push(PlayerScreen.route());
+    if (mounted) {
+      Navigator.of(context).push(PlayerScreen.route());
+    }
   }
 
   void _handleTopSongCardTap(Song song) {
