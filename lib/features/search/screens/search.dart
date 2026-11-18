@@ -125,9 +125,6 @@ class _SearchScreenState extends State<SearchScreen>
           shuffled.first,
           queue: shuffled,
         );
-        if (!PlaybackController.instance.isShuffleEnabled) {
-          await PlaybackController.instance.toggleShuffle();
-        }
         if (mounted) {
           Navigator.of(context).push(PlayerScreen.route());
         }

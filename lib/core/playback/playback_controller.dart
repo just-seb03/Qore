@@ -525,8 +525,17 @@ class PlaybackController extends ChangeNotifier {
   /// - Preserves full album/playlist/disc context in `_originalQueue`.
   /// - When shuffle is enabled, keeps the selected [song] at index 0 and shuffles all remaining context tracks into Up Next.
   /// - When shuffle is disabled, plays the context in natural order starting at [song]'s index.
-  Future<void> playSong(Song song, {List<Song>? queue, int? playlistId}) async {
+  Future<void> playSong(
+    Song song, {
+    List<Song>? queue,
+    int? playlistId,
+    bool forceSequential = false,
+  }) async {
     unawaited(_checkNotificationPermission());
+
+    if (forceSequential && _isShuffleEnabled) {
+      _isShuffleEnabled = false;
+    }
 
     _activePlaylistId = playlistId;
 

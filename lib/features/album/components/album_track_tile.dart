@@ -64,7 +64,11 @@ class AlbumTrackTile extends StatelessWidget {
           if (isCurrentTrack) {
             activeController.togglePlayPause();
           } else {
-            activeController.playSong(song, queue: allAlbumSongs);
+            activeController.playSong(
+              song,
+              queue: allAlbumSongs,
+              forceSequential: true,
+            );
           }
         }
 
