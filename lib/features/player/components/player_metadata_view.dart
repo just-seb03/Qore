@@ -28,22 +28,23 @@ class PlayerMetadataView extends StatelessWidget {
     this.onAlbumTap,
   });
 
-  static TextStyle get _titleStyle => AppFonts.light(
-    fontSize: 25.0,
-    color: AppColors.onBackground,
-    letterSpacing: -0.3,
+  static TextStyle get _titleStyle => AppFonts.segoe(
+    fontSize: 22.0,
+    fontWeight: FontWeight.w700,
+    color: AppColors.futuristicWhite,
+    letterSpacing: -0.2,
   );
 
   static TextStyle get _artistStyle => AppFonts.segoe(
     fontSize: 16.0,
-    fontWeight: FontWeight.w400,
+    fontWeight: FontWeight.w500,
     color: AppColors.onSurfaceVariant,
     letterSpacing: 0.1,
   );
 
   static TextStyle get _albumStyle => AppFonts.segoe(
     fontSize: 13.5,
-    fontWeight: FontWeight.w300,
+    fontWeight: FontWeight.w400,
     color: AppColors.onSurfaceDisabled,
   );
 
@@ -87,10 +88,9 @@ class PlayerMetadataView extends StatelessWidget {
         children: [
           Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.zero,
             child: InkWell(
               key: const ValueKey('player_metadata_title_button'),
-              borderRadius: BorderRadius.zero,
+              borderRadius: BorderRadius.circular(8.0),
               onTap: onTitleTap,
               splashColor: Colors.white.withValues(alpha: 0.12),
               highlightColor: Colors.white.withValues(alpha: 0.06),
@@ -117,9 +117,8 @@ class PlayerMetadataView extends StatelessWidget {
           const SizedBox(height: 4.0),
           Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.zero,
             child: InkWell(
-              borderRadius: BorderRadius.zero,
+              borderRadius: BorderRadius.circular(8.0),
               onTap: hasAlbum
                   ? () {
                       if (onAlbumTap != null) {
@@ -177,9 +176,8 @@ class PlayerMetadataView extends StatelessWidget {
       final singleArtist = individualArtists.first;
       return Material(
         color: Colors.transparent,
-        borderRadius: BorderRadius.zero,
         child: InkWell(
-          borderRadius: BorderRadius.zero,
+          borderRadius: BorderRadius.circular(8.0),
           onTap: () {
             if (onArtistTap != null) {
               onArtistTap!();
@@ -215,9 +213,8 @@ class PlayerMetadataView extends StatelessWidget {
             ),
           Material(
             color: Colors.transparent,
-            borderRadius: BorderRadius.zero,
             child: InkWell(
-              borderRadius: BorderRadius.zero,
+              borderRadius: BorderRadius.circular(6.0),
               onTap: () {
                 Navigator.of(context).push(
                   ArtistDetailScreen.route(individualArtists[i]),
