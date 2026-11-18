@@ -57,7 +57,7 @@ class AmbientParticlesController extends ChangeNotifier {
   List<AmbientParticle> get particles => _particlesView;
 
   /// Whether the simulation is actively advancing physics.
-  bool get isSimulating => _isEnabled && !_isExpandedPlayerVisible && !_isAppPaused;
+  bool get isSimulating => _isEnabled && !_isAppPaused;
 
   /// Initializes or adjusts the particle population to fit the target screen [size].
   void initializeParticles(Size size) {

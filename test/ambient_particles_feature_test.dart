@@ -129,7 +129,7 @@ void main() {
       expect(controller.isSimulating, isTrue);
 
       controller.setExpandedPlayerVisible(true);
-      expect(controller.isSimulating, isFalse);
+      expect(controller.isSimulating, isTrue);
 
       controller.setExpandedPlayerVisible(false);
       expect(controller.isSimulating, isTrue);
@@ -162,7 +162,7 @@ void main() {
 
     test('step does not advance physics when isSimulating is false', () {
       controller.initializeParticles(const Size(400, 800));
-      controller.setExpandedPlayerVisible(true);
+      controller.setAppPaused(true);
       final initialToken = controller.repaintToken;
       final initialY = controller.particles.first.y;
 
@@ -170,6 +170,7 @@ void main() {
 
       expect(controller.repaintToken, equals(initialToken));
       expect(controller.particles.first.y, equals(initialY));
+      controller.setAppPaused(false);
     });
   });
 
@@ -292,9 +293,10 @@ void main() {
       );
       await tester.pump(); // Allow postFrameCallback to complete
 
-      // Mounted PlayerScreen sets expanded player visible
+      // Mounted PlayerScreen sets expanded player visible and keeps particles simulating
       expect(controller.isExpandedPlayerVisible, isTrue);
-      expect(controller.isSimulating, isFalse);
+      expect(controller.isSimulating, isTrue);
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
 
       // Unmount
       await tester.pumpWidget(

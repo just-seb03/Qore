@@ -49,12 +49,6 @@ class PlaybackQueueSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.zero,
-        border: Border(
-          top: BorderSide(
-            color: AppColors.accent,
-            width: 2.5,
-          ),
-        ),
       ),
       child: Material(
         color: Colors.transparent,

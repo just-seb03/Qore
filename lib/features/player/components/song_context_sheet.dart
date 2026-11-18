@@ -199,12 +199,6 @@ class SongContextSheet extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerHigh.withValues(alpha: 0.96),
           borderRadius: BorderRadius.zero,
-          border: Border(
-            top: BorderSide(
-              color: AppColors.accent,
-              width: 2.5,
-            ),
-          ),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
