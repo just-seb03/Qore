@@ -28,6 +28,7 @@ import 'package:project_anima/features/ambient_particles/ambient_particles.dart'
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/player/screens/player_screen.dart';
 import 'package:project_anima/features/search/components/search_bar.dart';
+import 'package:project_anima/features/search/components/search_header.dart';
 import 'package:project_anima/features/search/components/search_results_list.dart';
 
 /// Type alias allowing both `Search` and `SearchScreen` across the codebase.
@@ -281,6 +282,7 @@ class _SearchScreenState extends State<SearchScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const SearchHeader(isMetro: true),
                   AppSearchBar(
                     controller: _searchController,
                     focusNode: _searchFocusNode,

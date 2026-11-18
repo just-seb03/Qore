@@ -24,7 +24,7 @@ const _testDelegates = [
 
 void main() {
   group('Metro Search Design Tests', () {
-    testWidgets('SearchScreen mounts AmbientParticlesCanvas backdrop', (tester) async {
+    testWidgets('SearchScreen mounts AmbientParticlesCanvas backdrop and Metro SearchHeader', (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
           localizationsDelegates: _testDelegates,
@@ -35,6 +35,7 @@ void main() {
       );
       await tester.pump();
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+      expect(find.text('Buscar'), findsOneWidget);
     });
 
     testWidgets('AppSearchBar renders with sharp 90-degree corners (BorderRadius.zero)', (tester) async {
