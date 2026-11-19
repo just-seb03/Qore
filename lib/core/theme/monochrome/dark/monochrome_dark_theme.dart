@@ -32,7 +32,7 @@ class MonochromeDarkTheme extends AppThemePalette {
         Color(0xFF1A1A1E), // 2. Elevated Surface Container
         Color(0xFF242429), // 3. Surface Container High
         Color(0xFF8E8E96), // 4. Outline / Mid-tone Variant
-        Color(0xFFF2F2F2), // 5. Pure White / High-Impact Foreground
+        Color(0xFF5BABCE), // 5. Brand Accent (#5BABCE)
       ];
 
   @override
@@ -69,25 +69,25 @@ class MonochromeDarkTheme extends AppThemePalette {
   Color get onSurfaceDisabled => const Color(0xFF4A4A52);
 
   @override
-  Color get accent => const Color(0xFFF2F2F2);
+  Color get accent => const Color(0xFF5BABCE);
 
   @override
   Color get onAccent => const Color(0xFF0E0E10);
 
   @override
-  Color get futuristicWhite => const Color(0xFFE6E8EC);
+  Color get futuristicWhite => const Color(0xFF5BABCE);
 
   @override
   Color get navIndicator => const Color(0xFF28282E);
 
   @override
-  Color get navActiveIcon => const Color(0xFFFFFFFF);
+  Color get navActiveIcon => const Color(0xFF5BABCE);
 
   @override
   Color get navInactiveIcon => const Color(0xFF7E7E88);
 
   @override
-  Color get navActiveLabel => const Color(0xFFFFFFFF);
+  Color get navActiveLabel => const Color(0xFF5BABCE);
 
   @override
   Color get navInactiveLabel => const Color(0xFF7E7E88);

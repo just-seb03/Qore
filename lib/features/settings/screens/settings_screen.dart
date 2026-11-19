@@ -275,11 +275,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
                     ),
-                    Container(
-                      height: 1.0,
-                      margin: const EdgeInsets.symmetric(horizontal: 20.0),
-                      color: AppColors.outline.withValues(alpha: 0.22),
-                    ),
 
                     // 2. Metro Settings List
                     Expanded(
@@ -405,24 +400,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSectionHeader(String title) {
-    return Row(
-      children: [
-        Container(
-          width: 3.0,
-          height: 13.0,
-          color: AppColors.accent,
-        ),
-        const SizedBox(width: 8.0),
-        Text(
-          title,
-          style: AppFonts.segoe(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            letterSpacing: 1.4,
-            color: AppColors.onSurfaceVariant,
-          ),
-        ),
-      ],
+    return Text(
+      title,
+      style: AppFonts.segoe(
+        fontSize: 12.5,
+        fontWeight: FontWeight.w600,
+        letterSpacing: 1.4,
+        color: AppColors.onSurfaceVariant,
+      ),
     );
   }
 
