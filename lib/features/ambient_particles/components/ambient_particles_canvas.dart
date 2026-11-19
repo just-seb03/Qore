@@ -150,6 +150,7 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
                 accentColor: const Color(0xFF5BABCE),
                 isDark: ThemeController.instance.isDarkMode,
                 repaintToken: _controller.repaintToken,
+                waveTime: _controller.waveTime,
               ),
             ),
           ),

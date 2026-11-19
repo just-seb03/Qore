@@ -149,14 +149,16 @@ void main() {
       expect(controller.particles.length, equals(32));
     });
 
-    test('step updates repaintToken and particle coordinates when simulating', () {
+    test('step updates repaintToken, waveTime, and particle coordinates when simulating', () {
       controller.initializeParticles(const Size(400, 800));
       final initialToken = controller.repaintToken;
+      final initialWaveTime = controller.waveTime;
       final initialY = controller.particles.first.y;
 
       controller.step(0.03, const Size(400, 800));
 
       expect(controller.repaintToken, equals(initialToken + 1));
+      expect(controller.waveTime, greaterThan(initialWaveTime));
       expect(controller.particles.first.y, isNot(equals(initialY)));
     });
 
@@ -205,28 +207,39 @@ void main() {
       expect(picture, isNotNull);
     });
 
-    test('shouldRepaint detects repaintToken and color alterations', () {
+    test('shouldRepaint detects repaintToken, waveTime, and color alterations', () {
       final p1 = AmbientParticlesPainter(
         particles: [],
-        accentColor: Colors.blue,
+        accentColor: const Color(0xFF5BABCE),
         isDark: true,
         repaintToken: 1,
+        waveTime: 0.0,
       );
       final p2 = AmbientParticlesPainter(
         particles: [],
-        accentColor: Colors.blue,
+        accentColor: const Color(0xFF5BABCE),
         isDark: true,
         repaintToken: 2,
+        waveTime: 0.0,
       );
       final p3 = AmbientParticlesPainter(
         particles: [],
         accentColor: Colors.red,
         isDark: true,
         repaintToken: 1,
+        waveTime: 0.0,
+      );
+      final p4 = AmbientParticlesPainter(
+        particles: [],
+        accentColor: const Color(0xFF5BABCE),
+        isDark: true,
+        repaintToken: 1,
+        waveTime: 0.5,
       );
 
       expect(p2.shouldRepaint(p1), isTrue);
       expect(p3.shouldRepaint(p1), isTrue);
+      expect(p4.shouldRepaint(p1), isTrue);
       expect(p1.shouldRepaint(p1), isFalse);
     });
   });

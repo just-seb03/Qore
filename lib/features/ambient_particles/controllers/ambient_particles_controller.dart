@@ -32,6 +32,7 @@ class AmbientParticlesController extends ChangeNotifier {
   double _speedMultiplier = 1.0;
   int _particleCount = 32;
   int _repaintToken = 0;
+  double _waveTime = 0.0;
   Size _lastSize = Size.zero;
 
   /// Whether the ambient background particles feature is enabled.
@@ -52,6 +53,9 @@ class AmbientParticlesController extends ChangeNotifier {
 
   /// Monotonically increasing repaint counter for custom painter caching.
   int get repaintToken => _repaintToken;
+
+  /// Continuous phase timer (radians) driving the PS3 XMB background silk wave motion.
+  double get waveTime => _waveTime;
 
   /// Active list of simulated particles (cached unmodifiable view).
   List<AmbientParticle> get particles => _particlesView;
@@ -101,6 +105,7 @@ class AmbientParticlesController extends ChangeNotifier {
       );
     }
 
+    _waveTime += safeDt * 0.42 * _speedMultiplier;
     _repaintToken++;
     notifyListeners();
   }
