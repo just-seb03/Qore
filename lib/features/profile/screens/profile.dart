@@ -188,22 +188,14 @@ class _ProfileScreenState extends State<ProfileScreen>
                           blendMode: BlendMode.dstIn,
                           child: SingleChildScrollView(
                             physics: const BouncingScrollPhysics(),
-                            padding: const EdgeInsets.only(top: 8.0, bottom: 160.0),
+                            padding: EdgeInsets.only(
+                              top: 8.0,
+                              bottom: 196.0 + MediaQuery.paddingOf(context).bottom,
+                            ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // 1. Top Canciones Generales (sin contador)
-                                if (_topSongs.isNotEmpty) ...[
-                                  _buildSectionHeader(
-                                    isSpanish ? 'TOP CANCIONES' : 'TOP SONGS',
-                                  ),
-                                  const SizedBox(height: 4.0),
-                                  for (final song in _topSongs)
-                                    _buildTopSongTile(context, song),
-                                  const SizedBox(height: 24.0),
-                                ],
-
-                                // 2. Artista Más Escuchado
+                                // 1. Artista Más Escuchado
                                 if (_topArtist != null) ...[
                                   _buildSectionHeader(
                                     isSpanish
@@ -215,7 +207,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   const SizedBox(height: 24.0),
                                 ],
 
-                                // 3. Álbum Más Escuchado
+                                // 2. Álbum Más Escuchado
                                 if (_topAlbum != null) ...[
                                   _buildSectionHeader(
                                     isSpanish
@@ -224,6 +216,17 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   ),
                                   const SizedBox(height: 6.0),
                                   _buildTopAlbumTile(context, _topAlbum!, isSpanish),
+                                  const SizedBox(height: 24.0),
+                                ],
+
+                                // 3. Top Canciones Generales (sin contador)
+                                if (_topSongs.isNotEmpty) ...[
+                                  _buildSectionHeader(
+                                    isSpanish ? 'TOP CANCIONES' : 'TOP SONGS',
+                                  ),
+                                  const SizedBox(height: 4.0),
+                                  for (final song in _topSongs)
+                                    _buildTopSongTile(context, song),
                                   const SizedBox(height: 28.0),
                                 ],
 
