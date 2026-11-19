@@ -15,6 +15,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 
 /// Highly optimized track tile rendering artwork thumbnail, title, album, duration, and favorite toggle.
 class ArtistTrackTile extends StatelessWidget {
@@ -35,10 +36,7 @@ class ArtistTrackTile extends StatelessWidget {
 
   String _formatDuration(int? ms) {
     if (ms == null || ms <= 0) return '';
-    final totalSeconds = ms ~/ 1000;
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    return formatDurationMs(ms);
   }
 
   @override

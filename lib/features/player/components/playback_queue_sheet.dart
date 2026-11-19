@@ -16,6 +16,7 @@ import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 
 /// Highly optimized modal bottom sheet presenting the audio playback queue.
 class PlaybackQueueSheet extends StatelessWidget {
@@ -46,12 +47,7 @@ class PlaybackQueueSheet extends StatelessWidget {
     );
   }
 
-  String _formatDuration(int ms) {
-    final totalSeconds = ms ~/ 1000;
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
+  String _formatDuration(int ms) => formatDurationMs(ms);
 
   @override
   Widget build(BuildContext context) {

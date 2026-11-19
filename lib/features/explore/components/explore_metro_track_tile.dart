@@ -12,6 +12,7 @@ import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 
 /// Authentic Windows Phone Metro track tile for recently played songs list.
 class ExploreMetroTrackTile extends StatelessWidget {
@@ -27,12 +28,7 @@ class ExploreMetroTrackTile extends StatelessWidget {
     this.onTap,
   });
 
-  String _formatDuration(int ms) {
-    final int totalSeconds = ms ~/ 1000;
-    final int minutes = totalSeconds ~/ 60;
-    final int seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
+  String _formatDuration(int ms) => formatDurationMs(ms);
 
   @override
   Widget build(BuildContext context) {

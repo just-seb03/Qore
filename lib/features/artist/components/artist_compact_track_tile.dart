@@ -11,6 +11,7 @@ import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 
 /// Compact track tile without covers, clean typography for the up to 5 assorted tracks list.
 class ArtistCompactTrackTile extends StatelessWidget {
@@ -28,10 +29,7 @@ class ArtistCompactTrackTile extends StatelessWidget {
 
   String _formatDuration(int? ms) {
     if (ms == null || ms <= 0) return '';
-    final totalSeconds = ms ~/ 1000;
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    return formatDurationMs(ms);
   }
 
   @override

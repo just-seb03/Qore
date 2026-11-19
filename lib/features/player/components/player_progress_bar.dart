@@ -11,6 +11,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 
 /// Material 3 Expressive wavy/squiggly progress bar for the maximized player.
 class PlayerProgressBar extends StatefulWidget {
@@ -73,12 +74,7 @@ class _PlayerProgressBarState extends State<PlayerProgressBar>
     super.dispose();
   }
 
-  String _formatDuration(Duration duration) {
-    final int totalSeconds = duration.inSeconds;
-    final int minutes = totalSeconds ~/ 60;
-    final int seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
+  String _formatDuration(Duration duration) => formatDuration(duration);
 
   void _handleSeek(double progress, Duration totalDuration) {
     final int targetMs = (progress * totalDuration.inMilliseconds).round();

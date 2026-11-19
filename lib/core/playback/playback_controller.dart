@@ -596,6 +596,7 @@ class PlaybackController extends ChangeNotifier {
   /// Internal helper to play a track by queue index using the buffer.
   Future<void> _playIndex(int index) async {
     if (index < 0 || index >= _queue.length) return;
+    _isSyncingBuffer = true;
     try {
       _currentIndex = index;
       _currentSong = _queue[index];
@@ -606,13 +607,15 @@ class PlaybackController extends ChangeNotifier {
       } else {
         await _audioBuffer.loadQueue(_queue, initialIndex: index);
       }
-      await _player.play();
+      unawaited(_player.play());
 
       _persistCurrentSessionImmediate();
       _updateSystemNotification(_currentSong!);
       _recordPlaybackHistory(_currentSong!);
     } catch (e) {
       debugPrint('PlaybackController Error loading audio buffer at index $index: $e');
+    } finally {
+      _isSyncingBuffer = false;
     }
   }
 
@@ -645,20 +648,16 @@ class PlaybackController extends ChangeNotifier {
     _persistCurrentSessionImmediate(overridePosition: position);
   }
 
-  /// Skips to the next track in the queue with instantaneous 0ms transition.
+  /// Skips to the next track in the queue immediately, regardless of current playback position or state.
   Future<void> skipToNext() async {
     if (_queue.isEmpty) return;
 
-    if (_audioBuffer.hasSource && _player.hasNext) {
-      await _audioBuffer.seekToNext();
+    if (_currentIndex < 0) {
+      await _playIndex(0);
     } else if (_currentIndex < _queue.length - 1) {
       await _playIndex(_currentIndex + 1);
-    } else if (_player.loopMode == LoopMode.all && _queue.isNotEmpty) {
-      if (_audioBuffer.hasSource) {
-        await _audioBuffer.seekToIndex(0);
-      } else {
-        await _playIndex(0);
-      }
+    } else if (_player.loopMode == LoopMode.all) {
+      await _playIndex(0);
     } else {
       await _player.seek(Duration.zero);
       _persistCurrentSessionImmediate(overridePosition: Duration.zero);
@@ -675,16 +674,10 @@ class PlaybackController extends ChangeNotifier {
       return;
     }
 
-    if (_audioBuffer.hasSource && _player.hasPrevious) {
-      await _audioBuffer.seekToPrevious();
-    } else if (_currentIndex > 0) {
+    if (_currentIndex > 0) {
       await _playIndex(_currentIndex - 1);
-    } else if (_player.loopMode == LoopMode.all && _queue.isNotEmpty) {
-      if (_audioBuffer.hasSource) {
-        await _audioBuffer.seekToIndex(_queue.length - 1);
-      } else {
-        await _playIndex(_queue.length - 1);
-      }
+    } else if (_player.loopMode == LoopMode.all) {
+      await _playIndex(_queue.length - 1);
     } else {
       await _player.seek(Duration.zero);
       _persistCurrentSessionImmediate(overridePosition: Duration.zero);
