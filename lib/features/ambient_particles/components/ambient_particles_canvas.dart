@@ -9,7 +9,6 @@ library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
-import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/controllers/ambient_particles_controller.dart';
 import 'package:project_anima/features/ambient_particles/painters/ambient_particles_painter.dart';
 
@@ -148,7 +147,7 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
               painter: AmbientParticlesPainter(
                 repaint: _controller,
                 particles: _controller.particles,
-                accentColor: AppColors.accent,
+                accentColor: const Color(0xFF5BABCE),
                 isDark: ThemeController.instance.isDarkMode,
                 repaintToken: _controller.repaintToken,
               ),
