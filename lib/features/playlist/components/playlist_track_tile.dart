@@ -13,6 +13,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 
 /// Clean track tile for playlist songs showing margin track index, title, artist, duration.
 class PlaylistTrackTile extends StatelessWidget {
@@ -38,10 +39,7 @@ class PlaylistTrackTile extends StatelessWidget {
 
   String _formatDuration(int? ms) {
     if (ms == null || ms <= 0) return '';
-    final totalSeconds = ms ~/ 1000;
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    return formatDurationMs(ms);
   }
 
   String get _displayTrackNumber {

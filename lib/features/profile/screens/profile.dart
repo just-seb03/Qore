@@ -20,6 +20,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
@@ -139,12 +140,7 @@ class _ProfileScreenState extends State<ProfileScreen>
     }
   }
 
-  String _formatDuration(int ms) {
-    final totalSeconds = ms ~/ 1000;
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
-  }
+  String _formatDuration(int ms) => formatDurationMs(ms);
 
   @override
   Widget build(BuildContext context) {

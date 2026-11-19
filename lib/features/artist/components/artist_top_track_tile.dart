@@ -13,6 +13,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 
 /// Track tile for Top 3 most listened songs (cover thumbnail, title, album, duration, no margin rank numbers).
 class ArtistTopTrackTile extends StatelessWidget {
@@ -30,10 +31,7 @@ class ArtistTopTrackTile extends StatelessWidget {
 
   String _formatDuration(int? ms) {
     if (ms == null || ms <= 0) return '';
-    final totalSeconds = ms ~/ 1000;
-    final minutes = totalSeconds ~/ 60;
-    final seconds = totalSeconds % 60;
-    return '$minutes:${seconds.toString().padLeft(2, '0')}';
+    return formatDurationMs(ms);
   }
 
   @override
