@@ -261,12 +261,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 ],
 
                                 // 4. Metro Settings Button
-                                Container(
-                                  height: 1.0,
-                                  margin: const EdgeInsets.symmetric(horizontal: 20.0),
-                                  color: AppColors.outline.withValues(alpha: 0.18),
-                                ),
-                                const SizedBox(height: 18.0),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                                   child: Container(
@@ -347,24 +341,14 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget _buildSectionHeader(String title) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
-      child: Row(
-        children: [
-          Container(
-            width: 3.0,
-            height: 13.0,
-            color: AppColors.accent,
-          ),
-          const SizedBox(width: 8.0),
-          Text(
-            title,
-            style: AppFonts.segoe(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              letterSpacing: 1.4,
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
-        ],
+      child: Text(
+        title,
+        style: AppFonts.segoe(
+          fontSize: 12.5,
+          fontWeight: FontWeight.w600,
+          letterSpacing: 1.4,
+          color: AppColors.onSurfaceVariant,
+        ),
       ),
     );
   }
