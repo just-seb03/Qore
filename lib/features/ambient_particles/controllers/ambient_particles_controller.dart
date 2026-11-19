@@ -105,7 +105,7 @@ class AmbientParticlesController extends ChangeNotifier {
       );
     }
 
-    _waveTime += safeDt * 0.42 * _speedMultiplier;
+    _waveTime += safeDt * 0.95 * _speedMultiplier;
     _repaintToken++;
     notifyListeners();
   }

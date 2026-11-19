@@ -177,34 +177,33 @@ void main() {
   });
 
   group('AmbientParticlesPainter Tests', () {
-    test('paints halo, core, and glint on canvas without throwing', () {
-      final particle = AmbientParticle(
-        x: 150.0,
-        y: 250.0,
-        baseX: 150.0,
-        vy: 20.0,
-        radius: 4.0,
-        waveAmplitude: 15.0,
-        waveFrequency: 1.0,
-        wavePhase: 0.0,
-        pulseFrequency: 1.0,
-        pulsePhase: 0.0,
-        baseAlpha: 0.20,
-        layer: 2,
-      );
-
+    test('paints PS3 XMB silk waves without particle dots and animates via waveTimeProvider', () async {
+      double liveTime = 0.0;
       final painter = AmbientParticlesPainter(
-        particles: [particle],
-        accentColor: const Color(0xFF586E75),
+        particles: const [],
+        accentColor: const Color(0xFF5BABCE),
         isDark: true,
         repaintToken: 1,
+        waveTimeProvider: () => liveTime,
       );
 
-      final recorder = ui.PictureRecorder();
-      final canvas = Canvas(recorder);
-      painter.paint(canvas, const Size(400, 800));
-      final picture = recorder.endRecording();
-      expect(picture, isNotNull);
+      Future<List<int>> renderBytes() async {
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        painter.paint(canvas, const Size(200, 400));
+        final pic = recorder.endRecording();
+        final img = await pic.toImage(200, 400);
+        final bytes = await img.toByteData(format: ui.ImageByteFormat.rawRgba);
+        return bytes!.buffer.asUint8List();
+      }
+
+      final frame0 = await renderBytes();
+      liveTime = 2.5;
+      final frame1 = await renderBytes();
+
+      expect(frame0, isNotEmpty);
+      // Same painter instance must produce visibly different pixels as waveTime advances
+      expect(frame1, isNot(equals(frame0)));
     });
 
     test('shouldRepaint detects repaintToken, waveTime, and color alterations', () {

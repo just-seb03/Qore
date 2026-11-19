@@ -151,6 +151,7 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
                 isDark: ThemeController.instance.isDarkMode,
                 repaintToken: _controller.repaintToken,
                 waveTime: _controller.waveTime,
+                waveTimeProvider: () => _controller.waveTime,
               ),
             ),
           ),

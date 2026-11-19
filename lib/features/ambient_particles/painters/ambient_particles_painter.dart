@@ -1,12 +1,12 @@
 /// File: ambient_particles_painter.dart
 /// Description: GPU-accelerated CustomPainter rendering PS3 XMB-inspired translucent silk
-/// ribbon waves paired with floating celestial motes in the #5BABCE accent palette.
-/// Uses pre-allocated vertex buffers and multi-band triangle-mesh gradients (via ui.Vertices)
-/// for smooth 3D-twisted satin folds and soft glowing creases without blur layers.
+/// ribbon waves in the #5BABCE accent palette (replacing floating particle dots).
+/// Uses pre-allocated vertex buffers, multi-band triangle-mesh gradients (via ui.Vertices),
+/// and a live [waveTimeProvider] so animation ticks advance smoothly without widget rebuilds.
 ///
 /// Components / Classes / Functions:
 /// - _XmbRibbonSpec: Immutable geometric & optical definition for a silk wave sheet.
-/// - AmbientParticlesPainter: CustomPainter rendering the XMB waves and ambient particles.
+/// - AmbientParticlesPainter: CustomPainter rendering the animated PS3 XMB waves.
 library;
 
 import 'dart:math' as math;
@@ -69,12 +69,12 @@ class _XmbRibbonSpec {
   });
 }
 
-/// Renders PS3 XMB-style translucent folded silk waves and [AmbientParticle] motes.
+/// Renders animated PS3 XMB-style translucent folded silk waves in `#5BABCE`.
 class AmbientParticlesPainter extends CustomPainter {
-  /// Unmodifiable view of active particles.
+  /// Kept for backward API compatibility; floating particle circles are no longer drawn.
   final List<AmbientParticle> particles;
 
-  /// Dynamic accent color (#5BABCE in canvas).
+  /// Dynamic accent color (`#5BABCE` in canvas).
   final Color accentColor;
 
   /// Whether active palette is dark mode (adapts opacity bounds & blend mode).
@@ -83,12 +83,12 @@ class AmbientParticlesPainter extends CustomPainter {
   /// Animation tick sequence ensuring deterministic repaints.
   final int repaintToken;
 
-  /// Continuous wave phase (radians) driving smooth ribbon motion.
+  /// Fallback static phase (radians) when [waveTimeProvider] is omitted.
   final double waveTime;
 
-  final Paint _haloPaint = Paint()..isAntiAlias = true;
-  final Paint _corePaint = Paint()..isAntiAlias = true;
-  final Paint _glintPaint = Paint()..isAntiAlias = true;
+  /// Live time reader evaluated on every `paint()` tick triggered by [super.repaint].
+  final double Function()? waveTimeProvider;
+
   final Paint _veilMeshPaint = Paint()..isAntiAlias = true;
   final Paint _crestBloomPaint = Paint()
     ..isAntiAlias = true
@@ -127,20 +127,20 @@ class AmbientParticlesPainter extends CustomPainter {
       endNorm: Offset(1.24, 0.78),
       spineAmp1: 0.095,
       spineFreq1: 1.65 * math.pi,
-      spineSpeed1: 0.36,
+      spineSpeed1: 0.55,
       spinePhase1: 0.2,
       spineAmp2: 0.045,
       spineFreq2: 2.8 * math.pi,
-      spineSpeed2: -0.24,
+      spineSpeed2: -0.38,
       spinePhase2: 1.4,
       crestAmp: 0.055,
       crestFreq: 1.45 * math.pi,
-      crestSpeed: 0.40,
+      crestSpeed: 0.62,
       crestPhase: 0.6,
       tailBaseNorm: 0.30,
       tailTwistAmp: 0.36,
       tailTwistFreq: 1.55 * math.pi,
-      tailTwistSpeed: 0.32,
+      tailTwistSpeed: 0.48,
       tailTwistPhase: 0.25,
       tailTangentAmp: 0.12,
       veilAlphaDark: 0.26,
@@ -154,20 +154,20 @@ class AmbientParticlesPainter extends CustomPainter {
       endNorm: Offset(1.25, 1.04),
       spineAmp1: 0.115,
       spineFreq1: 1.95 * math.pi,
-      spineSpeed1: 0.46,
+      spineSpeed1: 0.72,
       spinePhase1: 1.1,
       spineAmp2: 0.055,
       spineFreq2: 3.1 * math.pi,
-      spineSpeed2: -0.32,
+      spineSpeed2: -0.50,
       spinePhase2: 2.3,
       crestAmp: 0.085,
       crestFreq: 1.85 * math.pi,
-      crestSpeed: 0.52,
+      crestSpeed: 0.80,
       crestPhase: 1.8,
       tailBaseNorm: 0.20,
       tailTwistAmp: 0.42,
       tailTwistFreq: 1.95 * math.pi,
-      tailTwistSpeed: 0.42,
+      tailTwistSpeed: 0.65,
       tailTwistPhase: 1.15,
       tailTangentAmp: 0.15,
       veilAlphaDark: 0.38,
@@ -181,20 +181,20 @@ class AmbientParticlesPainter extends CustomPainter {
       endNorm: Offset(1.26, 0.56),
       spineAmp1: 0.105,
       spineFreq1: 2.1 * math.pi,
-      spineSpeed1: -0.40,
+      spineSpeed1: -0.64,
       spinePhase1: 2.1,
       spineAmp2: 0.048,
       spineFreq2: 3.4 * math.pi,
-      spineSpeed2: 0.30,
+      spineSpeed2: 0.46,
       spinePhase2: 0.7,
       crestAmp: 0.075,
       crestFreq: 2.0 * math.pi,
-      crestSpeed: -0.46,
+      crestSpeed: -0.74,
       crestPhase: 2.8,
       tailBaseNorm: 0.16,
       tailTwistAmp: 0.34,
       tailTwistFreq: 2.1 * math.pi,
-      tailTwistSpeed: -0.38,
+      tailTwistSpeed: -0.58,
       tailTwistPhase: 2.35,
       tailTangentAmp: 0.13,
       veilAlphaDark: 0.32,
@@ -206,59 +206,31 @@ class AmbientParticlesPainter extends CustomPainter {
 
   AmbientParticlesPainter({
     super.repaint,
-    required this.particles,
+    this.particles = const [],
     required this.accentColor,
     required this.isDark,
     required this.repaintToken,
     this.waveTime = 0.0,
+    this.waveTimeProvider,
   });
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
 
-    // 1. Render PS3 XMB-style translucent overlapping satin waves
+    final double activeTime = waveTimeProvider?.call() ?? waveTime;
+
     for (int i = 0; i < _ribbons.length; i++) {
-      _paintRibbon(canvas, size, _ribbons[i]);
-    }
-
-    // 2. Render subtle floating celestial particles drifting through the wave
-    if (particles.isEmpty) return;
-
-    final Color glintColor = Color.lerp(
-      accentColor,
-      Colors.white,
-      isDark ? 0.65 : 0.25,
-    )!;
-
-    for (int i = 0; i < particles.length; i++) {
-      final particle = particles[i];
-
-      if (particle.y < -30.0 || particle.y > size.height + 30.0) continue;
-      if (particle.x < -30.0 || particle.x > size.width + 30.0) continue;
-
-      final double alpha = particle.computeAlpha(isDark: isDark);
-      if (alpha <= 0.005) continue;
-
-      final center = Offset(particle.x, particle.y);
-
-      final double haloAlpha = (alpha * 0.36).clamp(0.0, 1.0);
-      _haloPaint.color = accentColor.withValues(alpha: haloAlpha);
-      canvas.drawCircle(center, particle.radius * 2.2, _haloPaint);
-
-      _corePaint.color =
-          accentColor.withValues(alpha: (alpha * 1.15).clamp(0.0, 1.0));
-      canvas.drawCircle(center, particle.radius, _corePaint);
-
-      if (particle.layer >= 1) {
-        final double glintAlpha = (alpha * 0.65).clamp(0.0, 1.0);
-        _glintPaint.color = glintColor.withValues(alpha: glintAlpha);
-        canvas.drawCircle(center, particle.radius * 0.42, _glintPaint);
-      }
+      _paintRibbon(canvas, size, _ribbons[i], activeTime);
     }
   }
 
-  void _paintRibbon(Canvas canvas, Size size, _XmbRibbonSpec spec) {
+  void _paintRibbon(
+    Canvas canvas,
+    Size size,
+    _XmbRibbonSpec spec,
+    double t,
+  ) {
     final double w = size.width;
     final double h = size.height;
     final double scaleDim = math.min(w, h) * 0.72 + math.max(w, h) * 0.28;
@@ -292,19 +264,19 @@ class AmbientParticlesPainter extends CustomPainter {
       final Offset spineBase = Offset.lerp(start, end, u)!;
 
       final double spineWave = (spec.spineAmp1 *
-                  math.sin(spec.spineFreq1 * u + waveTime * spec.spineSpeed1 + spec.spinePhase1) +
+                  math.sin(spec.spineFreq1 * u + t * spec.spineSpeed1 + spec.spinePhase1) +
               spec.spineAmp2 *
-                  math.cos(spec.spineFreq2 * u + waveTime * spec.spineSpeed2 + spec.spinePhase2)) *
+                  math.cos(spec.spineFreq2 * u + t * spec.spineSpeed2 + spec.spinePhase2)) *
           scaleDim;
 
       final Offset spine = spineBase + normal * spineWave;
 
       final double crestOff = spec.crestAmp *
-          math.sin(spec.crestFreq * u + waveTime * spec.crestSpeed + spec.crestPhase) *
+          math.sin(spec.crestFreq * u + t * spec.crestSpeed + spec.crestPhase) *
           scaleDim;
 
       final double twistAngle =
-          spec.tailTwistFreq * u + waveTime * spec.tailTwistSpeed + spec.tailTwistPhase;
+          spec.tailTwistFreq * u + t * spec.tailTwistSpeed + spec.tailTwistPhase;
       final double tailSpread =
           (spec.tailBaseNorm + spec.tailTwistAmp * math.sin(twistAngle)) * scaleDim;
       // Tangential 3D twist offset produces curved XMB silk folds instead of sharp cusps
@@ -439,6 +411,7 @@ class AmbientParticlesPainter extends CustomPainter {
   bool shouldRepaint(covariant AmbientParticlesPainter oldDelegate) {
     return oldDelegate.repaintToken != repaintToken ||
         oldDelegate.waveTime != waveTime ||
+        oldDelegate.waveTimeProvider != waveTimeProvider ||
         oldDelegate.accentColor != accentColor ||
         oldDelegate.isDark != isDark ||
         oldDelegate.particles != particles;
