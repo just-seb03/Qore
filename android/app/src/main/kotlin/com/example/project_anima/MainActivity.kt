@@ -3,6 +3,10 @@ package com.example.project_anima
 import android.content.ContentResolver
 import android.database.ContentObserver
 import android.database.Cursor
+import android.media.AudioFormat
+import android.media.MediaCodec
+import android.media.MediaExtractor
+import android.media.MediaFormat
 import android.net.Uri
 import android.os.Build
 import android.os.Bundle
@@ -16,6 +20,15 @@ import android.view.WindowManager
 import com.ryanheise.audioservice.AudioServiceActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
+import java.nio.ByteOrder
+import kotlin.math.ceil
+import kotlin.math.exp
+import kotlin.math.floor
+import kotlin.math.ln
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
+import kotlin.math.sqrt
 
 class MainActivity : AudioServiceActivity() {
     private val CHANNEL = "project_anima/media_store"
@@ -199,21 +212,40 @@ class MainActivity : AudioServiceActivity() {
         super.configureFlutterEngine(flutterEngine)
 
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "queryAudio") {
-                Thread {
-                    try {
-                        val audioList = queryMediaStoreAudio()
-                        runOnUiThread {
-                            result.success(audioList)
+            when (call.method) {
+                "queryAudio" -> {
+                    Thread {
+                        try {
+                            val audioList = queryMediaStoreAudio()
+                            runOnUiThread {
+                                result.success(audioList)
+                            }
+                        } catch (e: Exception) {
+                            runOnUiThread {
+                                result.error("QUERY_ERROR", e.message, null)
+                            }
                         }
-                    } catch (e: Exception) {
-                        runOnUiThread {
-                            result.error("QUERY_ERROR", e.message, null)
-                        }
+                    }.start()
+                }
+                "analyzeBpm" -> {
+                    val path = call.argument<String>("path")
+                    val durationMs = call.argument<Number>("durationMs")?.toLong() ?: 0L
+                    if (path.isNullOrBlank()) {
+                        result.success(null)
+                        return@setMethodCallHandler
                     }
-                }.start()
-            } else {
-                result.notImplemented()
+                    Thread {
+                        val bpm = try {
+                            analyzeAudioBpmNative(path, durationMs)
+                        } catch (_: Exception) {
+                            null
+                        }
+                        runOnUiThread {
+                            result.success(bpm)
+                        }
+                    }.start()
+                }
+                else -> result.notImplemented()
             }
         }
 
@@ -340,5 +372,298 @@ class MainActivity : AudioServiceActivity() {
         }
 
         return songs
+    }
+
+    /**
+     * Decodes a ~20s representative audio segment via MediaExtractor + MediaCodec into ~10ms RMS energy
+     * buckets and computes the track BPM using half-wave onset flux + weighted autocorrelation.
+     */
+    private fun analyzeAudioBpmNative(path: String, durationMs: Long): Double? {
+        val extractor = MediaExtractor()
+        var codec: MediaCodec? = null
+        try {
+            extractor.setDataSource(path)
+            var audioTrackIndex = -1
+            var format: MediaFormat? = null
+            for (i in 0 until extractor.trackCount) {
+                val trackFormat = extractor.getTrackFormat(i)
+                val mime = trackFormat.getString(MediaFormat.KEY_MIME) ?: ""
+                if (mime.startsWith("audio/")) {
+                    audioTrackIndex = i
+                    format = trackFormat
+                    break
+                }
+            }
+            if (audioTrackIndex == -1 || format == null) return null
+
+            val mime = format.getString(MediaFormat.KEY_MIME) ?: return null
+            extractor.selectTrack(audioTrackIndex)
+
+            val formatDurationUs = if (format.containsKey(MediaFormat.KEY_DURATION)) {
+                format.getLong(MediaFormat.KEY_DURATION)
+            } else {
+                durationMs * 1000L
+            }
+
+            // Start ~25% into tracks >= 28s so quiet intros don't dominate tempo detection
+            val windowDurationUs = 20_000_000L
+            val startUs = if (formatDurationUs > windowDurationUs * 2L) {
+                (formatDurationUs * 0.25).toLong()
+            } else {
+                0L
+            }
+            if (startUs > 0L) {
+                extractor.seekTo(startUs, MediaExtractor.SEEK_TO_CLOSEST_SYNC)
+            }
+
+            codec = MediaCodec.createDecoderByType(mime)
+            codec.configure(format, null, null, 0)
+            codec.start()
+
+            var sampleRate = if (format.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+            } else 44100
+            var channels = if (format.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+            } else 2
+            var pcmEncoding = AudioFormat.ENCODING_PCM_16BIT
+
+            val frameRateHz = 100.0
+            var samplesPerHop = max(1, (sampleRate / frameRateHz).roundToInt())
+            val maxEnergies = 2200
+            val energies = DoubleArray(maxEnergies)
+            var energyCount = 0
+
+            var accSq = 0.0
+            var hopCount = 0
+            var inputDone = false
+            var outputDone = false
+            val bufferInfo = MediaCodec.BufferInfo()
+            var iterations = 0
+
+            while (!outputDone && energyCount < maxEnergies && iterations < 4000) {
+                iterations++
+                if (!inputDone) {
+                    val inIdx = codec.dequeueInputBuffer(2500L)
+                    if (inIdx >= 0) {
+                        val inBuf = codec.getInputBuffer(inIdx)
+                        if (inBuf != null) {
+                            val sampleSize = extractor.readSampleData(inBuf, 0)
+                            if (sampleSize < 0) {
+                                codec.queueInputBuffer(inIdx, 0, 0, 0L, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+                                inputDone = true
+                            } else {
+                                val pts = extractor.sampleTime
+                                codec.queueInputBuffer(inIdx, 0, sampleSize, pts, 0)
+                                extractor.advance()
+                            }
+                        }
+                    }
+                }
+
+                val outIdx = codec.dequeueOutputBuffer(bufferInfo, 2500L)
+                if (outIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                    val outFmt = codec.outputFormat
+                    if (outFmt.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                        sampleRate = outFmt.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                        samplesPerHop = max(1, (sampleRate / frameRateHz).roundToInt())
+                    }
+                    if (outFmt.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                        channels = max(1, outFmt.getInteger(MediaFormat.KEY_CHANNEL_COUNT))
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
+                        outFmt.containsKey(MediaFormat.KEY_PCM_ENCODING)
+                    ) {
+                        pcmEncoding = outFmt.getInteger(MediaFormat.KEY_PCM_ENCODING)
+                    }
+                } else if (outIdx >= 0) {
+                    val outBuf = codec.getOutputBuffer(outIdx)
+                    if (outBuf != null && bufferInfo.size > 0) {
+                        outBuf.position(bufferInfo.offset)
+                        outBuf.limit(bufferInfo.offset + bufferInfo.size)
+
+                        when (pcmEncoding) {
+                            AudioFormat.ENCODING_PCM_FLOAT -> {
+                                val floatBuf = outBuf.order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
+                                while (floatBuf.remaining() >= channels && energyCount < maxEnergies) {
+                                    var mono = 0.0
+                                    for (c in 0 until channels) {
+                                        mono += floatBuf.get().toDouble()
+                                    }
+                                    mono /= channels
+                                    accSq += mono * mono
+                                    hopCount++
+                                    if (hopCount >= samplesPerHop) {
+                                        energies[energyCount++] = sqrt(accSq / hopCount)
+                                        accSq = 0.0
+                                        hopCount = 0
+                                    }
+                                }
+                            }
+                            AudioFormat.ENCODING_PCM_8BIT -> {
+                                while (outBuf.remaining() >= channels && energyCount < maxEnergies) {
+                                    var mono = 0.0
+                                    for (c in 0 until channels) {
+                                        mono += ((outBuf.get().toInt() and 0xFF) - 128) / 128.0
+                                    }
+                                    mono /= channels
+                                    accSq += mono * mono
+                                    hopCount++
+                                    if (hopCount >= samplesPerHop) {
+                                        energies[energyCount++] = sqrt(accSq / hopCount)
+                                        accSq = 0.0
+                                        hopCount = 0
+                                    }
+                                }
+                            }
+                            else -> {
+                                val shortBuf = outBuf.order(ByteOrder.LITTLE_ENDIAN).asShortBuffer()
+                                while (shortBuf.remaining() >= channels && energyCount < maxEnergies) {
+                                    var mono = 0.0
+                                    for (c in 0 until channels) {
+                                        mono += shortBuf.get().toDouble() / 32768.0
+                                    }
+                                    mono /= channels
+                                    accSq += mono * mono
+                                    hopCount++
+                                    if (hopCount >= samplesPerHop) {
+                                        energies[energyCount++] = sqrt(accSq / hopCount)
+                                        accSq = 0.0
+                                        hopCount = 0
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    codec.releaseOutputBuffer(outIdx, false)
+                    if ((bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0) {
+                        outputDone = true
+                    }
+                }
+            }
+
+            return estimateBpmFromEnergy(energies, energyCount, frameRateHz)
+        } finally {
+            try {
+                codec?.stop()
+            } catch (_: Exception) {}
+            try {
+                codec?.release()
+            } catch (_: Exception) {}
+            try {
+                extractor.release()
+            } catch (_: Exception) {}
+        }
+    }
+
+    private fun estimateBpmFromEnergy(
+        energies: DoubleArray,
+        n: Int,
+        frameRateHz: Double
+    ): Double? {
+        if (n < (frameRateHz * 3).roundToInt()) return null
+
+        val logEnergy = DoubleArray(n)
+        var maxLog = 0.0
+        for (i in 0 until n) {
+            val v = ln(1.0 + 16.0 * kotlin.math.abs(energies[i]))
+            logEnergy[i] = v
+            if (v > maxLog) maxLog = v
+        }
+        if (maxLog < 1e-4) return null
+
+        val flux = DoubleArray(n)
+        for (i in 1 until n) {
+            val diff = logEnergy[i] - logEnergy[i - 1]
+            flux[i] = if (diff > 0.0) diff else 0.0
+        }
+
+        val halfWin = max(4, (frameRateHz * 0.09).roundToInt())
+        val onsets = DoubleArray(n)
+        var onsetSum = 0.0
+        for (i in 0 until n) {
+            val start = max(0, i - halfWin)
+            val end = min(n - 1, i + halfWin)
+            var localMean = 0.0
+            for (k in start..end) {
+                localMean += flux[k]
+            }
+            localMean /= (end - start + 1)
+            val v = flux[i] - localMean * 0.9
+            if (v > 0.0) {
+                onsets[i] = v
+                onsetSum += v
+            }
+        }
+        if (onsetSum <= 1e-5) return null
+
+        val mean = onsetSum / n
+        for (i in 0 until n) {
+            onsets[i] -= mean
+        }
+
+        val lagMin = max(2, floor(60.0 * frameRateHz / 205.0).toInt())
+        val lagMax = min(n / 2 - 1, ceil(60.0 * frameRateHz / 52.0).toInt())
+        if (lagMax <= lagMin + 2) return null
+
+        val acf = DoubleArray(lagMax + 1)
+        for (lag in lagMin..lagMax) {
+            var corr = 0.0
+            var energyA = 0.0
+            var energyB = 0.0
+            val limit = n - lag
+            for (i in 0 until limit) {
+                val a = onsets[i]
+                val b = onsets[i + lag]
+                corr += a * b
+                energyA += a * a
+                energyB += b * b
+            }
+            val denom = sqrt(energyA * energyB)
+            acf[lag] = if (denom > 1e-9) max(0.0, corr / denom) else 0.0
+        }
+
+        val priorBpm = 118.0
+        val sigmaOctaves = 0.72
+        val ln2 = ln(2.0)
+        var bestLag = lagMin
+        var bestScore = -1.0
+
+        for (lag in lagMin..lagMax) {
+            val candBpm = 60.0 * frameRateHz / lag
+            var combined = acf[lag]
+            val doubleLag = lag * 2
+            if (doubleLag <= lagMax) combined += 0.45 * acf[doubleLag]
+            val halfLag = (lag / 2.0).roundToInt()
+            if (halfLag >= lagMin) combined += 0.25 * acf[halfLag]
+
+            val logDist = ln(candBpm / priorBpm) / ln2
+            val priorWeight = exp(-(logDist * logDist) / (2.0 * sigmaOctaves * sigmaOctaves))
+            val score = combined * priorWeight
+            if (score > bestScore) {
+                bestScore = score
+                bestLag = lag
+            }
+        }
+
+        if (bestScore <= 0.02) return null
+
+        var refinedLag = bestLag.toDouble()
+        if (bestLag > lagMin && bestLag < lagMax) {
+            val y0 = acf[bestLag - 1]
+            val y1 = acf[bestLag]
+            val y2 = acf[bestLag + 1]
+            val denom = 2.0 * (y0 - 2.0 * y1 + y2)
+            if (kotlin.math.abs(denom) > 1e-6) {
+                val delta = ((y0 - y2) / denom).coerceIn(-0.5, 0.5)
+                refinedLag += delta
+            }
+        }
+
+        val rawBpm = 60.0 * frameRateHz / refinedLag
+        if (rawBpm < 35.0 || rawBpm > 350.0 || rawBpm.isNaN() || rawBpm.isInfinite()) {
+            return null
+        }
+        return (rawBpm * 10.0).roundToInt() / 10.0
     }
 }

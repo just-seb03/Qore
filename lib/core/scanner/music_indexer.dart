@@ -8,6 +8,7 @@
 /// - MusicIndexer: Singleton coordinator executing the 4-phase delta synchronization workflow.
 library;
 
+import 'dart:async';
 import 'dart:io';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/foundation.dart';
@@ -15,6 +16,7 @@ import 'package:flutter/services.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/scanner/bpm_analyzer.dart';
 import 'package:project_anima/core/scanner/models/indexing_result.dart';
 import 'package:project_anima/core/scanner/models/lightweight_audio_item.dart';
 
@@ -51,10 +53,12 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
     int duration = item.duration;
     int? trackNumber = item.trackNumber;
     int? discNumber = item.discNumber;
+    double? bpm;
 
     try {
       final file = File(item.path);
       if (file.existsSync()) {
+        bpm = BpmAnalyzer.extractEmbeddedBpmTag(file);
         final metadata = readMetadata(file, getImage: false);
         if (metadata.title != null && metadata.title!.trim().isNotEmpty) {
           title = metadata.title!.trim();
@@ -178,6 +182,7 @@ List<Song> parseMetadataInIsolate(List<LightweightAudioItem> items) {
       path: item.path,
       trackNumber: trackNumber,
       discNumber: discNumber,
+      bpm: bpm,
       dateModified: item.dateModified,
       dateAdded: item.dateAdded,
       size: item.size,
@@ -206,12 +211,20 @@ class MusicIndexer {
   final SongDao _songDao;
 
   bool _isIndexing = false;
+  bool _isAnalyzingBpm = false;
 
   /// Global revision notifier to signal database sync changes across all features.
   static final ValueNotifier<int> revision = ValueNotifier<int>(0);
 
+  /// Emits `(mediaStoreId, bpm)` whenever background analysis resolves a song's tempo.
+  static final ValueNotifier<({int mediaStoreId, double bpm})?> latestResolvedBpm =
+      ValueNotifier<({int mediaStoreId, double bpm})?>(null);
+
   /// Whether a synchronization job is currently in progress.
   bool get isIndexing => _isIndexing;
+
+  /// Whether background BPM waveform analysis is currently running.
+  bool get isAnalyzingBpm => _isAnalyzingBpm;
 
   /// Checks if a filesystem path belongs to voice notes, ringtones, or messaging directories.
   static bool isExcludedPath(String path) {
@@ -335,6 +348,9 @@ class MusicIndexer {
         await _songDao.markPhysicalAlbumArtistBackfilled();
       }
 
+      // Check if BPM analysis backfill is needed for cached songs
+      final bool needsBpmAnalysis = !await _songDao.isBpmBackfilled();
+
       // Si delta == 0: Finalizar sincronización de inmediato sin tocar el disco
       if (deltaCount == 0) {
         stopwatch.stop();
@@ -342,6 +358,9 @@ class MusicIndexer {
         debugPrint(
           '🎵 [MusicIndexer] Sincronización completada: $totalSongs canciones en ${stopwatch.elapsedMilliseconds} ms. (Sin cambios / 0 deltas)',
         );
+        if (mockDeviceItems == null && needsBpmAnalysis && totalSongs > 0) {
+          unawaited(analyzeMissingBpms());
+        }
 
         return IndexingResult(
           totalSongs: totalSongs,
@@ -388,6 +407,11 @@ class MusicIndexer {
       // Auto-enqueue newly indexed tracks into ArtworkService background throttled queue
       if (parsedSongs.isNotEmpty) {
         ArtworkService.instance.enqueueSongs(parsedSongs);
+      }
+
+      if (mockDeviceItems == null &&
+          (needsBpmAnalysis || parsedSongs.any((s) => s.bpm == null))) {
+        unawaited(analyzeMissingBpms());
       }
 
       onProgress?.call('done', totalSongs, totalSongs);
@@ -562,5 +586,70 @@ class MusicIndexer {
     }
 
     return songs;
+  }
+
+  /// Analyzes BPM in the background for tracks missing tempo data (or all tracks if [forceAll]),
+  /// persisting resolved BPM values cleanly into SQLite without blocking playback or UI.
+  Future<int> analyzeMissingBpms({
+    bool forceAll = false,
+    void Function(int processed, int total)? onProgress,
+    Future<double?> Function(String path, int durationMs)? analyzerOverride,
+  }) async {
+    if (_isAnalyzingBpm) return 0;
+    _isAnalyzingBpm = true;
+    int analyzedCount = 0;
+
+    try {
+      final rows = await _songDao.getSongsWithoutBpm(includeExisting: forceAll);
+      final int total = rows.length;
+      if (total == 0) {
+        await _songDao.markBpmBackfilled();
+        return 0;
+      }
+
+      final Map<int, double> pendingBatch = {};
+      for (int i = 0; i < total; i++) {
+        final row = rows[i];
+        final int? msId = (row['id'] as num?)?.toInt();
+        final String path = (row['path'] as String?) ?? '';
+        final int durationMs = (row['duration'] as num?)?.toInt() ?? 0;
+
+        if (msId != null && path.isNotEmpty) {
+          try {
+            final double? bpm = analyzerOverride != null
+                ? await analyzerOverride(path, durationMs)
+                : await BpmAnalyzer.analyzeAudioFile(path, durationMs: durationMs);
+            if (bpm != null && bpm > 0) {
+              pendingBatch[msId] = bpm;
+              analyzedCount++;
+              latestResolvedBpm.value = (mediaStoreId: msId, bpm: bpm);
+            }
+          } catch (_) {}
+        }
+
+        if (pendingBatch.length >= 12) {
+          await _songDao.backfillBpms(Map<int, double>.from(pendingBatch));
+          pendingBatch.clear();
+          revision.value++;
+        }
+
+        onProgress?.call(i + 1, total);
+
+        // Gentle yield between tracks when using real audio decoding so UI stays 60fps
+        if (analyzerOverride == null) {
+          await Future<void>.delayed(const Duration(milliseconds: 20));
+        }
+      }
+
+      if (pendingBatch.isNotEmpty) {
+        await _songDao.backfillBpms(pendingBatch);
+        revision.value++;
+      }
+
+      await _songDao.markBpmBackfilled();
+      return analyzedCount;
+    } finally {
+      _isAnalyzingBpm = false;
+    }
   }
 }

@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 14;
+  static const int databaseVersion = 15;
 
   Database? _db;
 
@@ -315,6 +315,12 @@ class AppDatabase {
         await db.execute("ALTER TABLE pinned_favorites ADD COLUMN text_effect TEXT DEFAULT 'none'");
       } catch (_) {}
     }
+
+    if (oldVersion < 15) {
+      try {
+        await db.execute('ALTER TABLE songs ADD COLUMN bpm REAL');
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
@@ -342,6 +348,10 @@ class AppDatabase {
         await db.execute(
           'CREATE INDEX IF NOT EXISTS idx_songs_album_disc_track ON songs (album COLLATE NOCASE, disc_number ASC, track_number ASC)',
         );
+      }
+      final hasBpm = columns.any((col) => col['name'] == 'bpm');
+      if (!hasBpm) {
+        await db.execute('ALTER TABLE songs ADD COLUMN bpm REAL');
       }
 
       // Backfill disc_number and track_number for tracks encoded as disc * 1000 + track (e.g. 1001 -> disc 1, track 1)
@@ -543,6 +553,7 @@ class AppDatabase {
         path TEXT NOT NULL,
         track_number INTEGER,
         disc_number INTEGER,
+        bpm REAL,
         date_modified INTEGER,
         date_added INTEGER,
         size INTEGER

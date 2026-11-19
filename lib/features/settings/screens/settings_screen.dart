@@ -8,6 +8,7 @@
 /// - SettingsScreen: Main Metro Settings coordinator screen.
 library;
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
@@ -104,6 +105,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
       final result = widget.onQuickRescan != null
           ? await widget.onQuickRescan!()
           : await MusicIndexer.instance.syncWithDevice();
+
+      if (widget.onQuickRescan == null) {
+        unawaited(MusicIndexer.instance.analyzeMissingBpms());
+      }
 
       if (!mounted) return;
       setState(() => _isScanning = false);
@@ -359,8 +364,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   ? 'Reescaneo rápido'
                                   : 'Quick rescan',
                               subtitle: isSpanish
-                                  ? 'Busca nuevas canciones sin detener la música'
-                                  : 'Scan for new tracks without stopping playback',
+                                  ? 'Busca nuevas canciones y analiza BPM sin detener la música'
+                                  : 'Scan new tracks and analyze BPM without stopping playback',
                               isLoading: _isScanning,
                               onTap: _handleQuickRescan,
                             ),

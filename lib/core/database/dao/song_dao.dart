@@ -1558,6 +1558,99 @@ class SongDao {
     }
   }
 
+  /// Checks whether audio BPM analysis backfill has completed for cached songs.
+  Future<bool> isBpmBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      final res = await db.query(
+        'app_metadata',
+        where: 'key = ?',
+        whereArgs: ['bpm_backfilled'],
+      );
+      return res.isNotEmpty && res.first['value'] == 'true';
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Marks audio BPM analysis backfill as complete in app_metadata.
+  Future<void> markBpmBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      await db.insert(
+        'app_metadata',
+        {'key': 'bpm_backfilled', 'value': 'true'},
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (_) {}
+  }
+
+  /// Clears the BPM backfill completion marker so all missing/unanalyzed songs are re-queued.
+  Future<void> resetBpmBackfilled() async {
+    final db = await _appDatabase.database;
+    try {
+      await db.delete(
+        'app_metadata',
+        where: 'key = ?',
+        whereArgs: ['bpm_backfilled'],
+      );
+    } catch (_) {}
+  }
+
+  /// Retrieves cached song metadata rows requiring BPM analysis.
+  Future<List<Map<String, dynamic>>> getSongsWithoutBpm({bool includeExisting = false}) async {
+    final db = await _appDatabase.database;
+    if (includeExisting) {
+      return await db.rawQuery(
+        'SELECT media_store_id AS id, path, duration FROM songs',
+      );
+    }
+    return await db.rawQuery(
+      'SELECT media_store_id AS id, path, duration FROM songs WHERE bpm IS NULL OR bpm <= 0',
+    );
+  }
+
+  /// Batch updates BPM values for cached songs using a mapping of {mediaStoreId: bpm}.
+  Future<void> backfillBpms(Map<int, double> bpmByMediaStoreId) async {
+    if (bpmByMediaStoreId.isEmpty) return;
+    final db = await _appDatabase.database;
+
+    await db.transaction((txn) async {
+      final batch = txn.batch();
+      for (final entry in bpmByMediaStoreId.entries) {
+        if (entry.value <= 0) continue;
+        batch.update(
+          'songs',
+          {'bpm': entry.value},
+          where: 'media_store_id = ?',
+          whereArgs: [entry.key],
+        );
+      }
+      await batch.commit(noResult: true);
+    });
+  }
+
+  /// Updates BPM for a single song by its database ID or MediaStore ID.
+  Future<void> updateSongBpm({int? songId, int? mediaStoreId, required double bpm}) async {
+    if (bpm <= 0) return;
+    final db = await _appDatabase.database;
+    if (songId != null) {
+      await db.update(
+        'songs',
+        {'bpm': bpm},
+        where: 'id = ?',
+        whereArgs: [songId],
+      );
+    } else if (mediaStoreId != null) {
+      await db.update(
+        'songs',
+        {'bpm': bpm},
+        where: 'media_store_id = ?',
+        whereArgs: [mediaStoreId],
+      );
+    }
+  }
+
   /// Retrieves unique artists for search dictionary indexing.
   Future<List<ArtistDiscoveryItem>> getAllUniqueArtists({int limit = 1000}) =>
       getDiscoveryArtists(limit: limit);

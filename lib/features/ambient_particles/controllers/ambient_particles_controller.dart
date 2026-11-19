@@ -10,6 +10,7 @@ library;
 import 'dart:collection';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:project_anima/core/scanner/bpm_analyzer.dart';
 import 'package:project_anima/features/ambient_particles/models/ambient_particle.dart';
 
 /// State and physics coordinator for the PS3-style background particles.
@@ -33,6 +34,12 @@ class AmbientParticlesController extends ChangeNotifier {
   int _particleCount = 32;
   int _repaintToken = 0;
   double _waveTime = 0.0;
+  double? _currentBpm;
+  bool _isAudioPlaying = false;
+  double _targetBpmSpeed = 1.0;
+  double _smoothedBpmSpeed = 1.0;
+  double _effectiveVisualBpm = BpmAnalyzer.baselineVisualBpm;
+  double _beatPulsePhase = 0.0;
   Size _lastSize = Size.zero;
 
   /// Whether the ambient background particles feature is enabled.
@@ -56,6 +63,21 @@ class AmbientParticlesController extends ChangeNotifier {
 
   /// Continuous phase timer (radians) driving the PS3 XMB background silk wave motion.
   double get waveTime => _waveTime;
+
+  /// Active track BPM currently driving wave velocity, if known.
+  double? get currentBpm => _currentBpm;
+
+  /// Whether audio is currently playing.
+  bool get isAudioPlaying => _isAudioPlaying;
+
+  /// Equivalent normalized BPM (folded from extreme values like 300 -> 150).
+  double get effectiveVisualBpm => _effectiveVisualBpm;
+
+  /// Current smoothed speed multiplier derived from [currentBpm].
+  double get smoothedBpmSpeed => _smoothedBpmSpeed;
+
+  /// Beat-synchronized oscillation phase (radians).
+  double get beatPulsePhase => _beatPulsePhase;
 
   /// Active list of simulated particles (cached unmodifiable view).
   List<AmbientParticle> get particles => _particlesView;
@@ -96,17 +118,37 @@ class AmbientParticlesController extends ChangeNotifier {
     final double width = size.width > 0 ? size.width : 400.0;
     final double height = size.height > 0 ? size.height : 800.0;
 
+    // Smoothly interpolate toward the target BPM-derived speed to avoid abrupt tempo jumps
+    final double blendFactor = math.min(1.0, safeDt * 3.5);
+    _smoothedBpmSpeed += (_targetBpmSpeed - _smoothedBpmSpeed) * blendFactor;
+    final double effectiveSpeed = _speedMultiplier * _smoothedBpmSpeed;
+
     for (int i = 0; i < _particles.length; i++) {
       _particles[i].update(
         dt: safeDt,
         width: width,
         height: height,
-        speedMultiplier: _speedMultiplier,
+        speedMultiplier: effectiveSpeed,
       );
     }
 
-    _waveTime += safeDt * 0.95 * _speedMultiplier;
+    _waveTime += safeDt * 0.95 * effectiveSpeed;
+    final double beatRate = _isAudioPlaying ? (_effectiveVisualBpm / 60.0) : 0.45;
+    _beatPulsePhase =
+        (_beatPulsePhase + safeDt * beatRate * 2.0 * math.pi) % (2.0 * math.pi * 100.0);
     _repaintToken++;
+    notifyListeners();
+  }
+
+  /// Synchronizes wave velocity and rhythmic beat phase with the currently playing track's BPM.
+  void syncWithPlayback({
+    double? bpm,
+    required bool isPlaying,
+  }) {
+    _currentBpm = bpm;
+    _isAudioPlaying = isPlaying;
+    _effectiveVisualBpm = BpmAnalyzer.effectiveVisualBpm(bpm);
+    _targetBpmSpeed = isPlaying ? BpmAnalyzer.mapBpmToWaveSpeed(bpm) : 0.60;
     notifyListeners();
   }
 

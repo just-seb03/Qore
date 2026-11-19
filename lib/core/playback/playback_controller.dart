@@ -22,6 +22,8 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/audio_handler.dart';
 import 'package:project_anima/core/playback/audio_playback_buffer.dart';
 import 'package:project_anima/core/playback/playback_persistence_coordinator.dart';
+import 'package:project_anima/core/scanner/bpm_analyzer.dart';
+import 'package:project_anima/features/ambient_particles/controllers/ambient_particles_controller.dart';
 
 /// Centralized audio playback coordinator.
 class PlaybackController extends ChangeNotifier {
@@ -42,6 +44,7 @@ class PlaybackController extends ChangeNotifier {
   bool _isInitialized = false;
   bool _isShuffleEnabled = false;
   bool _isSyncingBuffer = false;
+  int? _resolvingBpmMediaStoreId;
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<ProcessingState>? _processingStateSubscription;
@@ -223,6 +226,7 @@ class PlaybackController extends ChangeNotifier {
       _queue.clear();
       _originalQueue.clear();
       _currentIndex = -1;
+      AmbientParticlesController.instance.syncWithPlayback(bpm: null, isPlaying: false);
       notifyListeners();
     } catch (e) {
       debugPrint('PlaybackController Error stopping playback: $e');
@@ -303,8 +307,73 @@ class PlaybackController extends ChangeNotifier {
     }
 
     _updateSystemNotification(data.song);
+    _syncAmbientBackdropBpm(resolveIfMissing: true);
     notifyListeners();
     return true;
+  }
+
+  /// Synchronizes ambient wave velocity & rhythmic beat phase with the active song's BPM.
+  void _syncAmbientBackdropBpm({bool resolveIfMissing = false}) {
+    final active = _currentSong;
+    AmbientParticlesController.instance.syncWithPlayback(
+      bpm: active?.bpm,
+      isPlaying: _player.playing,
+    );
+
+    if (resolveIfMissing &&
+        active != null &&
+        (active.bpm == null || active.bpm! <= 0) &&
+        _resolvingBpmMediaStoreId != active.mediaStoreId) {
+      unawaited(_resolvePlayingSongBpm(active));
+    }
+  }
+
+  /// Lazily resolves a missing BPM for the currently playing track without blocking playback.
+  Future<void> _resolvePlayingSongBpm(Song song) async {
+    _resolvingBpmMediaStoreId = song.mediaStoreId;
+    try {
+      double? resolvedBpm;
+      try {
+        final dbSong = await _songDao.getSongByMediaStoreId(song.mediaStoreId);
+        if (dbSong?.bpm != null && dbSong!.bpm! > 0) {
+          resolvedBpm = dbSong.bpm;
+        }
+      } catch (_) {}
+
+      if (resolvedBpm == null && song.path.isNotEmpty && File(song.path).existsSync()) {
+        resolvedBpm = await BpmAnalyzer.analyzeAudioFile(
+          song.path,
+          durationMs: song.duration,
+        );
+        if (resolvedBpm != null && resolvedBpm > 0) {
+          try {
+            await _songDao.updateSongBpm(
+              mediaStoreId: song.mediaStoreId,
+              bpm: resolvedBpm,
+            );
+          } catch (_) {}
+        }
+      }
+
+      if (resolvedBpm != null && resolvedBpm > 0) {
+        final qIdx = _queue.indexWhere((s) => s.mediaStoreId == song.mediaStoreId);
+        if (qIdx != -1) {
+          _queue[qIdx] = _queue[qIdx].copyWith(bpm: resolvedBpm);
+        }
+        if (_currentSong?.mediaStoreId == song.mediaStoreId) {
+          _currentSong = _currentSong!.copyWith(bpm: resolvedBpm);
+          AmbientParticlesController.instance.syncWithPlayback(
+            bpm: resolvedBpm,
+            isPlaying: _player.playing,
+          );
+          notifyListeners();
+        }
+      }
+    } finally {
+      if (_resolvingBpmMediaStoreId == song.mediaStoreId) {
+        _resolvingBpmMediaStoreId = null;
+      }
+    }
   }
 
   /// Binds listeners to internal audio player streams.
@@ -317,6 +386,7 @@ class PlaybackController extends ChangeNotifier {
       } else {
         _stopPersistencePersister();
       }
+      _syncAmbientBackdropBpm();
       notifyListeners();
     });
 
@@ -348,6 +418,7 @@ class PlaybackController extends ChangeNotifier {
     _updateSystemNotification(_currentSong!);
     _persistCurrentSessionImmediate();
     _recordPlaybackHistory(_currentSong!);
+    _syncAmbientBackdropBpm(resolveIfMissing: true);
     notifyListeners();
   }
 
@@ -555,6 +626,7 @@ class PlaybackController extends ChangeNotifier {
           _persistCurrentSessionImmediate();
           _updateSystemNotification(_currentSong!);
           _recordPlaybackHistory(_currentSong!);
+          _syncAmbientBackdropBpm(resolveIfMissing: true);
         } catch (e) {
           debugPrint('PlaybackController Error seeking to track in active buffer: $e');
         } finally {
@@ -586,6 +658,7 @@ class PlaybackController extends ChangeNotifier {
       _persistCurrentSessionImmediate();
       _updateSystemNotification(song);
       _recordPlaybackHistory(song);
+      _syncAmbientBackdropBpm(resolveIfMissing: true);
     } catch (e) {
       debugPrint('PlaybackController Error loading audio queue: $e');
     } finally {
@@ -612,6 +685,7 @@ class PlaybackController extends ChangeNotifier {
       _persistCurrentSessionImmediate();
       _updateSystemNotification(_currentSong!);
       _recordPlaybackHistory(_currentSong!);
+      _syncAmbientBackdropBpm(resolveIfMissing: true);
     } catch (e) {
       debugPrint('PlaybackController Error loading audio buffer at index $index: $e');
     } finally {
@@ -630,6 +704,10 @@ class PlaybackController extends ChangeNotifier {
 
   /// Resumes playback.
   Future<void> play() async {
+    AmbientParticlesController.instance.syncWithPlayback(
+      bpm: _currentSong?.bpm,
+      isPlaying: true,
+    );
     await _player.play();
     _persistCurrentSessionImmediate();
     notifyListeners();
@@ -638,6 +716,7 @@ class PlaybackController extends ChangeNotifier {
   /// Pauses playback.
   Future<void> pause() async {
     await _player.pause();
+    _syncAmbientBackdropBpm();
     _persistCurrentSessionImmediate();
     notifyListeners();
   }

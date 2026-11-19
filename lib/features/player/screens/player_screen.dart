@@ -117,7 +117,9 @@ class _PlayerScreenState extends State<PlayerScreen>
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          const AmbientParticlesCanvas(),
+          const AmbientParticlesCanvas(
+            mode: AmbientBackdropMode.silkWave,
+          ),
           Transform.translate(
             offset: Offset(0.0, _dragOffset),
             child: ListenableBuilder(

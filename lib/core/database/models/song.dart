@@ -43,6 +43,9 @@ class Song {
   /// Physical disc or volume number within a multi-disc album (e.g. 1, 2).
   final int? discNumber;
 
+  /// Analyzed or embedded musical tempo in beats per minute (BPM).
+  final double? bpm;
+
   /// Last modification timestamp in seconds.
   final int dateModified;
 
@@ -64,6 +67,7 @@ class Song {
     required this.path,
     this.trackNumber,
     this.discNumber,
+    this.bpm,
     required this.dateModified,
     this.dateAdded,
     this.size,
@@ -89,6 +93,7 @@ class Song {
       'path': path,
       'track_number': trackNumber,
       'disc_number': discNumber,
+      'bpm': bpm,
       'date_modified': dateModified,
       'date_added': dateAdded,
       'size': size,
@@ -109,6 +114,7 @@ class Song {
       path: map['path'] as String,
       trackNumber: (map['track_number'] as num?)?.toInt(),
       discNumber: (map['disc_number'] as num?)?.toInt(),
+      bpm: (map['bpm'] as num?)?.toDouble(),
       dateModified: (map['date_modified'] as int?) ?? 0,
       dateAdded: map['date_added'] as int?,
       size: map['size'] as int?,
@@ -128,6 +134,7 @@ class Song {
     String? path,
     int? trackNumber,
     int? discNumber,
+    double? bpm,
     int? dateModified,
     int? dateAdded,
     int? size,
@@ -144,6 +151,7 @@ class Song {
       path: path ?? this.path,
       trackNumber: trackNumber ?? this.trackNumber,
       discNumber: discNumber ?? this.discNumber,
+      bpm: bpm ?? this.bpm,
       dateModified: dateModified ?? this.dateModified,
       dateAdded: dateAdded ?? this.dateAdded,
       size: size ?? this.size,

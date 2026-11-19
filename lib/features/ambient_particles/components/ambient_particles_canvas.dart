@@ -17,9 +17,13 @@ class AmbientParticlesCanvas extends StatefulWidget {
   /// Custom controller override (for testing / DI).
   final AmbientParticlesController? controller;
 
+  /// Visual style mode: dotted wave trajectories across app vs PS3 silk waves in expanded player.
+  final AmbientBackdropMode mode;
+
   const AmbientParticlesCanvas({
     super.key,
     this.controller,
+    this.mode = AmbientBackdropMode.dottedWave,
   });
 
   @override
@@ -150,8 +154,11 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
                 accentColor: const Color(0xFF5BABCE),
                 isDark: ThemeController.instance.isDarkMode,
                 repaintToken: _controller.repaintToken,
+                mode: widget.mode,
                 waveTime: _controller.waveTime,
                 waveTimeProvider: () => _controller.waveTime,
+                beatPhaseProvider: () => _controller.beatPulsePhase,
+                isPlayingProvider: () => _controller.isAudioPlaying,
               ),
             ),
           ),
