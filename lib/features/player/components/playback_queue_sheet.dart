@@ -11,6 +11,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
@@ -23,6 +24,19 @@ class PlaybackQueueSheet extends StatelessWidget {
   /// Displays the modal playback queue sheet globally over the active view.
   static Future<void> show(BuildContext context) {
     HapticFeedback.mediumImpact();
+    final queue = PlaybackController.instance.queue;
+    final missingSongs = queue
+        .where((s) => !ArtworkService.instance.hasArtwork(s.mediaStoreId, albumId: s.albumId))
+        .take(25)
+        .toList();
+    if (missingSongs.isNotEmpty) {
+      ArtworkService.instance.enqueueSongs(missingSongs);
+    }
+    final queueIds = queue
+        .take(25)
+        .map((s) => s.mediaStoreId)
+        .toList();
+    ArtworkService.instance.prioritizeSongIds(queueIds);
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -127,7 +141,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                               mediaStoreId: currentSong.mediaStoreId,
                               albumId: currentSong.albumId,
                               albumName: currentSong.album,
-                              artistName: currentSong.artist,
+                              artistName: currentSong.albumArtist ?? currentSong.artist,
                               width: 44.0,
                               height: 44.0,
                               borderRadius: 0.0,
@@ -275,7 +289,7 @@ class PlaybackQueueSheet extends StatelessWidget {
                                           mediaStoreId: song.mediaStoreId,
                                           albumId: song.albumId,
                                           albumName: song.album,
-                                          artistName: song.artist,
+                                          artistName: song.albumArtist ?? song.artist,
                                           width: 38.0,
                                           height: 38.0,
                                           borderRadius: 0.0,
