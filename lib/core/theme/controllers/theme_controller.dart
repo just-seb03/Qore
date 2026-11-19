@@ -164,6 +164,7 @@ class ThemeController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Updates the brightness mode between Dark and Light.
   void setDarkMode(bool isDark) {
+    _updateSystemUIOverlay(isDark);
     if (_isDarkMode != isDark) {
       _isDarkMode = isDark;
       AppMetadataDao.instance.setIsDarkMode(isDark);

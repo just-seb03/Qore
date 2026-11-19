@@ -160,10 +160,11 @@ void main() {
       final settingsInkWell = tester.widget<InkWell>(settingsFinder);
       expect(settingsInkWell.borderRadius, BorderRadius.zero);
 
-      // Tapping Settings does not crash or navigate (non-functional for now)
+      // Tapping Settings opens SettingsScreen
       await tester.tap(settingsFinder);
       await tester.pump();
-      expect(find.byType(ProfileScreen), findsOneWidget);
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.byKey(const ValueKey('settings_back_button')), findsOneWidget);
     });
 
     testWidgets('tapping top artist navigates to ArtistDetailScreen and tapping top album navigates to AlbumDetailScreen', (tester) async {

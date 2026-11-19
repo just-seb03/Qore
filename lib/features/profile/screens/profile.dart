@@ -25,6 +25,7 @@ import 'package:project_anima/features/ambient_particles/ambient_particles.dart'
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/profile/components/profile_header.dart';
 import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
+import 'package:project_anima/features/settings/screens/settings_screen.dart';
 
 /// Type alias allowing both `Profile` and `ProfileScreen` across the codebase.
 typedef Profile = ProfileScreen;
@@ -267,7 +268,11 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         key: const ValueKey('profile_settings_button'),
                                         borderRadius: BorderRadius.zero,
                                         splashColor: AppColors.accent.withValues(alpha: 0.15),
-                                        onTap: () {},
+                                        onTap: () {
+                                          Navigator.of(context).push(
+                                            SettingsScreen.route(),
+                                          );
+                                        },
                                         child: Padding(
                                           padding: const EdgeInsets.symmetric(
                                             horizontal: 16.0,
