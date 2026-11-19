@@ -8,6 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 import 'package:project_anima/features/ambient_particles/controllers/ambient_particles_controller.dart';
 import 'package:project_anima/features/ambient_particles/painters/ambient_particles_painter.dart';
@@ -17,13 +18,13 @@ class AmbientParticlesCanvas extends StatefulWidget {
   /// Custom controller override (for testing / DI).
   final AmbientParticlesController? controller;
 
-  /// Visual style mode: dotted wave trajectories across app vs PS3 silk waves in expanded player.
+  /// Visual style mode: floating particles across app vs PS3 silk waves in expanded player.
   final AmbientBackdropMode mode;
 
   const AmbientParticlesCanvas({
     super.key,
     this.controller,
-    this.mode = AmbientBackdropMode.dottedWave,
+    this.mode = AmbientBackdropMode.particles,
   });
 
   @override
@@ -119,7 +120,11 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
     _lastTickTime = now;
 
     if (_lastKnownSize.width > 0 && _lastKnownSize.height > 0) {
-      _controller.step(dt, _lastKnownSize);
+      _controller.stepFrame(
+        dt,
+        _lastKnownSize,
+        SchedulerBinding.instance.currentFrameTimeStamp,
+      );
     }
   }
 

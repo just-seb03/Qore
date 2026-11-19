@@ -1,15 +1,15 @@
 /// File: ambient_particles_painter.dart
-/// Description: GPU-accelerated CustomPainter supporting two cohesive PS3-inspired backdrop modes
-/// in the #5BABCE accent palette, driven by the active track's BPM:
-/// - [AmbientBackdropMode.dottedWave]: Used across the app — undulating dotted wave streams
-///   arranged along overlapping PS3-style curved ribbon paths.
-/// - [AmbientBackdropMode.silkWave]: Used inside the expanded PlayerScreen — subtle translucent
-///   PS3 XMB silk ribbon waves synchronized to track BPM.
+/// Description: GPU-accelerated CustomPainter supporting two visual backdrop modes in `#5BABCE`:
+/// - [AmbientBackdropMode.particles]: Used across the app — classic floating celestial bokeh motes
+///   with soft outer halo, focused core, and subtle white glint.
+/// - [AmbientBackdropMode.silkWave]: Used inside the expanded PlayerScreen — smooth, continuous
+///   PS3 XMB translucent silk ribbon waves whose glide velocity scales cleanly to song BPM
+///   without jarring beat jumps.
 ///
 /// Components / Classes / Functions:
 /// - AmbientBackdropMode: Visual backdrop rendering style selector.
-/// - _XmbRibbonSpec: Immutable geometric & optical definition for a wave ribbon.
-/// - AmbientParticlesPainter: CustomPainter rendering dotted wave streams or XMB silk waves.
+/// - _XmbRibbonSpec: Immutable geometric & optical definition for a silk wave sheet.
+/// - AmbientParticlesPainter: CustomPainter rendering floating particles or XMB silk waves.
 library;
 
 import 'dart:math' as math;
@@ -19,14 +19,14 @@ import 'package:project_anima/features/ambient_particles/models/ambient_particle
 
 /// Visual mode for [AmbientParticlesPainter] and [AmbientParticlesCanvas].
 enum AmbientBackdropMode {
-  /// Flowing wave contours formed out of softly glowing `#5BABCE` points (used across app screens).
-  dottedWave,
+  /// Classic floating glowing celestial motes (used across standard app screens).
+  particles,
 
   /// Softly translucent PS3 XMB silk wave ribbons (used exclusively inside maximized PlayerScreen).
   silkWave,
 }
 
-/// Immutable geometric and optical parameters for a single XMB wave ribbon.
+/// Immutable geometric and optical parameters for a single XMB silk ribbon fold.
 class _XmbRibbonSpec {
   final Offset startNorm;
   final Offset endNorm;
@@ -52,8 +52,6 @@ class _XmbRibbonSpec {
   final double veilAlphaLight;
   final double crestAlphaDark;
   final double crestAlphaLight;
-  final int dotCount;
-  final double dotDriftSpeed;
 
   const _XmbRibbonSpec({
     required this.startNorm,
@@ -80,15 +78,13 @@ class _XmbRibbonSpec {
     required this.veilAlphaLight,
     required this.crestAlphaDark,
     required this.crestAlphaLight,
-    required this.dotCount,
-    required this.dotDriftSpeed,
   });
 }
 
-/// Renders either curved dotted wave streams ([AmbientBackdropMode.dottedWave]) or
-/// translucent PS3 XMB silk waves ([AmbientBackdropMode.silkWave]) in `#5BABCE`.
+/// Renders either classic floating `#5BABCE` particles ([AmbientBackdropMode.particles])
+/// or smooth translucent PS3 XMB silk waves ([AmbientBackdropMode.silkWave]).
 class AmbientParticlesPainter extends CustomPainter {
-  /// Kept for backward API compatibility.
+  /// Unmodifiable view of active floating particles (used in [AmbientBackdropMode.particles]).
   final List<AmbientParticle> particles;
 
   /// Dynamic accent color (`#5BABCE` in canvas).
@@ -100,7 +96,7 @@ class AmbientParticlesPainter extends CustomPainter {
   /// Animation tick sequence ensuring deterministic repaints.
   final int repaintToken;
 
-  /// Backdrop style mode (`dottedWave` across app screens, `silkWave` in expanded PlayerScreen).
+  /// Backdrop style mode (`particles` across app screens, `silkWave` in expanded PlayerScreen).
   final AmbientBackdropMode mode;
 
   /// Fallback static phase (radians) when [waveTimeProvider] is omitted.
@@ -109,12 +105,15 @@ class AmbientParticlesPainter extends CustomPainter {
   /// Live time reader evaluated on every `paint()` tick triggered by [super.repaint].
   final double Function()? waveTimeProvider;
 
-  /// Live beat phase reader evaluated on every `paint()` tick for subtle rhythmic pulsing.
+  /// Kept for backward API compatibility.
   final double Function()? beatPhaseProvider;
 
-  /// Live playback status reader for subtle beat reactivity.
+  /// Kept for backward API compatibility.
   final bool Function()? isPlayingProvider;
 
+  final Paint _haloPaint = Paint()..isAntiAlias = true;
+  final Paint _corePaint = Paint()..isAntiAlias = true;
+  final Paint _glintPaint = Paint()..isAntiAlias = true;
   final Paint _veilMeshPaint = Paint()..isAntiAlias = true;
   final Paint _crestBloomPaint = Paint()
     ..isAntiAlias = true
@@ -126,8 +125,6 @@ class AmbientParticlesPainter extends CustomPainter {
     ..style = PaintingStyle.stroke
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
-  final Paint _dotHaloPaint = Paint()..isAntiAlias = true;
-  final Paint _dotCorePaint = Paint()..isAntiAlias = true;
 
   static const int _ribbonSteps = 76;
   static const int _cols = _ribbonSteps + 1;
@@ -146,9 +143,9 @@ class AmbientParticlesPainter extends CustomPainter {
   final List<Color> _colors = List<Color>.filled(_triVertexCount, Colors.transparent);
   final Path _crestPath = Path();
 
-  /// Overlapping wave ribbons shared between translucent silk (PlayerScreen) and dotted waves (app).
+  /// Three overlapping broad silk waves recreating the iconic PS3 XMB diagonal flow.
   static const List<_XmbRibbonSpec> _ribbons = [
-    // 1. Broad diagonal wave sweeping upper-left to bottom-right
+    // 1. Broad diagonal atmospheric silk curtain sweeping upper-left to bottom-right
     _XmbRibbonSpec(
       startNorm: Offset(-0.25, -0.02),
       endNorm: Offset(1.24, 0.78),
@@ -174,10 +171,8 @@ class AmbientParticlesPainter extends CustomPainter {
       veilAlphaLight: 0.07,
       crestAlphaDark: 0.09,
       crestAlphaLight: 0.07,
-      dotCount: 54,
-      dotDriftSpeed: 0.018,
     ),
-    // 2. Main foreground folding wave with wide luminous contour
+    // 2. Main foreground folding wave with wide luminous satin skirt
     _XmbRibbonSpec(
       startNorm: Offset(-0.24, 0.14),
       endNorm: Offset(1.25, 1.04),
@@ -203,10 +198,8 @@ class AmbientParticlesPainter extends CustomPainter {
       veilAlphaLight: 0.10,
       crestAlphaDark: 0.15,
       crestAlphaLight: 0.11,
-      dotCount: 64,
-      dotDriftSpeed: 0.024,
     ),
-    // 3. Intersecting upper-center ribbon pinch
+    // 3. Upper intersecting ribbon fold pinching smoothly across center-mid
     _XmbRibbonSpec(
       startNorm: Offset(-0.18, -0.14),
       endNorm: Offset(1.26, 0.56),
@@ -232,8 +225,6 @@ class AmbientParticlesPainter extends CustomPainter {
       veilAlphaLight: 0.08,
       crestAlphaDark: 0.13,
       crestAlphaLight: 0.09,
-      dotCount: 50,
-      dotDriftSpeed: -0.016,
     ),
   ];
 
@@ -243,7 +234,7 @@ class AmbientParticlesPainter extends CustomPainter {
     required this.accentColor,
     required this.isDark,
     required this.repaintToken,
-    this.mode = AmbientBackdropMode.dottedWave,
+    this.mode = AmbientBackdropMode.particles,
     this.waveTime = 0.0,
     this.waveTimeProvider,
     this.beatPhaseProvider,
@@ -254,29 +245,56 @@ class AmbientParticlesPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     if (size.width <= 0 || size.height <= 0) return;
 
-    final double activeTime = waveTimeProvider?.call() ?? waveTime;
-    final double beatPhase = beatPhaseProvider?.call() ?? 0.0;
-    final bool isPlaying = isPlayingProvider?.call() ?? false;
-    final double beatPulse = isPlaying ? (0.5 + 0.5 * math.sin(beatPhase)) : 0.0;
-
     if (mode == AmbientBackdropMode.silkWave) {
+      final double activeTime = waveTimeProvider?.call() ?? waveTime;
       for (int i = 0; i < _ribbons.length; i++) {
-        _paintSilkRibbon(canvas, size, _ribbons[i], activeTime, beatPulse);
+        _paintSilkRibbon(canvas, size, _ribbons[i], activeTime);
       }
-    } else {
-      for (int i = 0; i < _ribbons.length; i++) {
-        _paintDottedWaveRibbon(canvas, size, _ribbons[i], activeTime, beatPulse);
+      return;
+    }
+
+    _paintParticles(canvas, size);
+  }
+
+  /// Renders the classic glowing multi-layer floating particles across the rest of the app.
+  void _paintParticles(Canvas canvas, Size size) {
+    if (particles.isEmpty) return;
+
+    for (int i = 0; i < particles.length; i++) {
+      final particle = particles[i];
+
+      if (particle.y < -30.0 || particle.y > size.height + 30.0) continue;
+      if (particle.x < -30.0 || particle.x > size.width + 30.0) continue;
+
+      final double alpha = particle.computeAlpha(isDark: isDark);
+      if (alpha <= 0.005) continue;
+
+      final center = Offset(particle.x, particle.y);
+
+      // 1. Soft Outer Halo (Ethereal spread)
+      final double haloAlpha = (alpha * 0.35).clamp(0.0, 1.0);
+      _haloPaint.color = accentColor.withValues(alpha: haloAlpha);
+      canvas.drawCircle(center, particle.radius * 2.2, _haloPaint);
+
+      // 2. Focused Core (Main particle body)
+      _corePaint.color = accentColor.withValues(alpha: alpha);
+      canvas.drawCircle(center, particle.radius, _corePaint);
+
+      // 3. Central Glint (Delicate high-value speck for luminous shimmer)
+      if (particle.layer >= 1) {
+        final double glintAlpha = (alpha * 0.50).clamp(0.0, 1.0);
+        _glintPaint.color = Colors.white.withValues(alpha: glintAlpha);
+        canvas.drawCircle(center, particle.radius * 0.4, _glintPaint);
       }
     }
   }
 
-  /// Evaluates `(pCrest, pTail, tailSpread, scaleDim)` along a wave ribbon at parameter `u`.
-  ({Offset crest, Offset tail, double spread, double scaleDim}) _evaluateRibbonPoint(
+  /// Renders smooth, continuous PS3 XMB silk waves without beat-bounce jerking.
+  void _paintSilkRibbon(
+    Canvas canvas,
     Size size,
     _XmbRibbonSpec spec,
-    double u,
     double t,
-    double beatPulse,
   ) {
     final double w = size.width;
     final double h = size.height;
@@ -286,135 +304,51 @@ class AmbientParticlesPainter extends CustomPainter {
     final Offset end = Offset(spec.endNorm.dx * w, spec.endNorm.dy * h);
     final Offset axis = end - start;
     final double axisLen = axis.distance;
-    if (axisLen <= 1e-3) {
-      return (crest: Offset.zero, tail: Offset.zero, spread: 0.0, scaleDim: scaleDim);
-    }
+    if (axisLen <= 1e-3) return;
 
     final Offset dir = axis / axisLen;
     final Offset normal = Offset(-dir.dy, dir.dx);
-    final Offset spineBase = Offset.lerp(start, end, u)!;
 
-    final double beatSwell = 1.0 + 0.08 * beatPulse;
-    final double spineWave = (spec.spineAmp1 *
-                beatSwell *
-                math.sin(spec.spineFreq1 * u + t * spec.spineSpeed1 + spec.spinePhase1) +
-            spec.spineAmp2 *
-                math.cos(spec.spineFreq2 * u + t * spec.spineSpeed2 + spec.spinePhase2)) *
-        scaleDim;
-
-    final Offset spine = spineBase + normal * spineWave;
-
-    final double crestOff = spec.crestAmp *
-        math.sin(spec.crestFreq * u + t * spec.crestSpeed + spec.crestPhase) *
-        scaleDim;
-
-    final double twistAngle =
-        spec.tailTwistFreq * u + t * spec.tailTwistSpeed + spec.tailTwistPhase;
-    final double tailSpread =
-        (spec.tailBaseNorm + spec.tailTwistAmp * math.sin(twistAngle)) * scaleDim;
-    final double tailTan = spec.tailTangentAmp * math.cos(twistAngle) * scaleDim;
-
-    final Offset pCrest = spine + normal * crestOff;
-    final Offset pTail = spine + normal * (crestOff - tailSpread) + dir * tailTan;
-
-    return (crest: pCrest, tail: pTail, spread: tailSpread, scaleDim: scaleDim);
-  }
-
-  /// Renders wave contours as multi-lane streams of luminous `#5BABCE` dots ("ondas de puntos").
-  void _paintDottedWaveRibbon(
-    Canvas canvas,
-    Size size,
-    _XmbRibbonSpec spec,
-    double t,
-    double beatPulse,
-  ) {
-    final Color baseColor = isDark
-        ? accentColor
-        : Color.lerp(accentColor, const Color(0xFF2E7EA3), 0.20)!;
-    final Color glintColor = isDark
-        ? Color.lerp(accentColor, Colors.white, 0.35)!
-        : baseColor;
-
-    // 4 closely aligned filament dot lanes across each wave so curves read clearly as dotted waves
-    const List<({double laneFrac, double alphaScale, double baseRadius, int skipMod})> lanes = [
-      (laneFrac: 0.00, alphaScale: 1.00, baseRadius: 1.75, skipMod: 1),
-      (laneFrac: 0.09, alphaScale: 0.72, baseRadius: 1.40, skipMod: 1),
-      (laneFrac: 0.22, alphaScale: 0.45, baseRadius: 1.15, skipMod: 1),
-      (laneFrac: 0.40, alphaScale: 0.24, baseRadius: 0.90, skipMod: 2),
-    ];
-
-    final double baseOpacity = isDark ? 0.30 : 0.24;
-    final double beatGlow = 1.0 + 0.16 * beatPulse;
-
-    for (int laneIdx = 0; laneIdx < lanes.length; laneIdx++) {
-      final lane = lanes[laneIdx];
-      final int count = spec.dotCount;
-      final double laneShift = laneIdx * 0.008;
-
-      for (int k = 0; k < count; k++) {
-        if (lane.skipMod > 1 && k % lane.skipMod != 0) continue;
-
-        double u = ((k / count) + laneShift + t * spec.dotDriftSpeed) % 1.0;
-        if (u < 0.0) u += 1.0;
-
-        final pt = _evaluateRibbonPoint(size, spec, u, t, beatPulse);
-        final Offset pos = Offset.lerp(pt.crest, pt.tail, lane.laneFrac)!;
-
-        if (pos.dx < -16.0 ||
-            pos.dx > size.width + 16.0 ||
-            pos.dy < -16.0 ||
-            pos.dy > size.height + 16.0) {
-          continue;
-        }
-
-        // Smooth edge fade + subtle rhythmic shimmer along each dotted wave filament
-        final double edgeFade = math.sin(u * math.pi).clamp(0.0, 1.0);
-        final double shimmer =
-            0.72 + 0.28 * math.sin(u * 10.0 * math.pi - t * 1.6 + laneIdx * 1.4);
-        final double alpha =
-            (baseOpacity * lane.alphaScale * edgeFade * shimmer * beatGlow).clamp(0.0, 0.55);
-        if (alpha <= 0.01) continue;
-
-        final double radius = lane.baseRadius * (0.85 + 0.25 * shimmer);
-
-        _dotHaloPaint.color = baseColor.withValues(alpha: (alpha * 0.30).clamp(0.0, 1.0));
-        canvas.drawCircle(pos, radius * 2.1, _dotHaloPaint);
-
-        _dotCorePaint.color = glintColor.withValues(alpha: alpha);
-        canvas.drawCircle(pos, radius, _dotCorePaint);
-      }
-    }
-  }
-
-  /// Renders smooth translucent PS3 XMB silk waves exclusively inside the maximized player.
-  void _paintSilkRibbon(
-    Canvas canvas,
-    Size size,
-    _XmbRibbonSpec spec,
-    double t,
-    double beatPulse,
-  ) {
     final Color baseVeilColor = isDark
         ? Color.lerp(accentColor, const Color(0xFF1A4356), 0.22)!
         : Color.lerp(accentColor, const Color(0xFF2E7EA3), 0.14)!;
     final Color crestHighlightColor = isDark
-        ? Color.lerp(accentColor, Colors.white, 0.32 + 0.08 * beatPulse)!
+        ? Color.lerp(accentColor, Colors.white, 0.32)!
         : Color.lerp(accentColor, const Color(0xFF246F92), 0.22)!;
     final Color crestEdgeColor =
         Color.lerp(baseVeilColor, crestHighlightColor, 0.42)!;
 
-    final double beatMul = 1.0 + 0.14 * beatPulse;
-    final double veilPeak = (isDark ? spec.veilAlphaDark : spec.veilAlphaLight) * beatMul;
+    final double veilPeak = isDark ? spec.veilAlphaDark : spec.veilAlphaLight;
     final double crestPeak =
-        (isDark ? spec.crestAlphaDark : spec.crestAlphaLight) * beatMul;
+        isDark ? spec.crestAlphaDark : spec.crestAlphaLight;
 
     _crestPath.reset();
 
     for (int i = 0; i < _cols; i++) {
       final double u = i / _ribbonSteps;
-      final pt = _evaluateRibbonPoint(size, spec, u, t, beatPulse);
-      final Offset pCrest = pt.crest;
-      final Offset pTail = pt.tail;
+      final Offset spineBase = Offset.lerp(start, end, u)!;
+
+      final double spineWave = (spec.spineAmp1 *
+                  math.sin(spec.spineFreq1 * u + t * spec.spineSpeed1 + spec.spinePhase1) +
+              spec.spineAmp2 *
+                  math.cos(spec.spineFreq2 * u + t * spec.spineSpeed2 + spec.spinePhase2)) *
+          scaleDim;
+
+      final Offset spine = spineBase + normal * spineWave;
+
+      final double crestOff = spec.crestAmp *
+          math.sin(spec.crestFreq * u + t * spec.crestSpeed + spec.crestPhase) *
+          scaleDim;
+
+      final double twistAngle =
+          spec.tailTwistFreq * u + t * spec.tailTwistSpeed + spec.tailTwistPhase;
+      final double tailSpread =
+          (spec.tailBaseNorm + spec.tailTwistAmp * math.sin(twistAngle)) * scaleDim;
+      final double tailTan = spec.tailTangentAmp * math.cos(twistAngle) * scaleDim;
+
+      final Offset pCrest = spine + normal * crestOff;
+      final Offset pTail =
+          spine + normal * (crestOff - tailSpread) + dir * tailTan;
 
       final Offset pMid1 = Offset.lerp(pCrest, pTail, 0.24)!;
       final Offset pMid2 = Offset.lerp(pCrest, pTail, 0.62)!;
@@ -425,7 +359,7 @@ class AmbientParticlesPainter extends CustomPainter {
       _tailPts[i] = pTail;
 
       final double spreadNorm =
-          (pt.spread.abs() / (pt.scaleDim * 0.28)).clamp(0.15, 1.4);
+          (tailSpread.abs() / (scaleDim * 0.28)).clamp(0.15, 1.4);
       final double foldFocus = (1.18 - 0.30 * spreadNorm).clamp(0.75, 1.18);
       final double edgeEnvelope =
           (0.35 + 0.65 * math.sin(u * math.pi)).clamp(0.0, 1.0);
@@ -542,8 +476,6 @@ class AmbientParticlesPainter extends CustomPainter {
         oldDelegate.mode != mode ||
         oldDelegate.waveTime != waveTime ||
         oldDelegate.waveTimeProvider != waveTimeProvider ||
-        oldDelegate.beatPhaseProvider != beatPhaseProvider ||
-        oldDelegate.isPlayingProvider != isPlayingProvider ||
         oldDelegate.accentColor != accentColor ||
         oldDelegate.isDark != isDark ||
         oldDelegate.particles != particles;

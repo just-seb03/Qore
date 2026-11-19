@@ -174,7 +174,7 @@ void main() {
   });
 
   group('Split Backdrop Modes & BPM Speed Integration Tests', () {
-    testWidgets('PlayerScreen uses silkWave exclusively while AmbientParticlesBackground uses dottedWave',
+    testWidgets('PlayerScreen uses silkWave exclusively while AmbientParticlesBackground uses particles',
         (tester) async {
       await tester.pumpWidget(
         const MaterialApp(
@@ -184,7 +184,7 @@ void main() {
         ),
       );
       final appCanvas = tester.widget<AmbientParticlesCanvas>(find.byType(AmbientParticlesCanvas));
-      expect(appCanvas.mode, AmbientBackdropMode.dottedWave);
+      expect(appCanvas.mode, AmbientBackdropMode.particles);
 
       await tester.pumpWidget(
         const MaterialApp(
@@ -197,9 +197,25 @@ void main() {
       expect(playerCanvas.mode, AmbientBackdropMode.silkWave);
     });
 
-    test('dottedWave and silkWave both render visibly distinct animated frames over waveTime', () async {
+    test('silkWave animates smoothly over waveTime and stepFrame deduplicates identical frame stamps', () async {
       Future<List<int>> renderBytes(AmbientBackdropMode mode, double t) async {
         final painter = AmbientParticlesPainter(
+          particles: [
+            AmbientParticle(
+              x: 100.0,
+              y: 150.0,
+              baseX: 100.0,
+              vy: 20.0,
+              radius: 3.0,
+              waveAmplitude: 10.0,
+              waveFrequency: 1.0,
+              wavePhase: 0.0,
+              pulseFrequency: 1.0,
+              pulsePhase: 0.0,
+              baseAlpha: 0.25,
+              layer: 2,
+            ),
+          ],
           accentColor: const Color(0xFF5BABCE),
           isDark: true,
           repaintToken: 1,
@@ -215,12 +231,25 @@ void main() {
         return bytes!.buffer.asUint8List();
       }
 
-      final dotted0 = await renderBytes(AmbientBackdropMode.dottedWave, 0.0);
-      final dotted1 = await renderBytes(AmbientBackdropMode.dottedWave, 1.8);
       final silk0 = await renderBytes(AmbientBackdropMode.silkWave, 0.0);
+      final silk1 = await renderBytes(AmbientBackdropMode.silkWave, 1.8);
+      final dots = await renderBytes(AmbientBackdropMode.particles, 0.0);
 
-      expect(dotted1, isNot(equals(dotted0)));
-      expect(dotted0, isNot(equals(silk0)));
+      expect(silk1, isNot(equals(silk0)));
+      expect(dots, isNot(equals(silk0)));
+
+      // Verify stepFrame skips duplicate calls for the same vsync frameStamp
+      final ctrl = AmbientParticlesController.instance;
+      ctrl.setEnabled(true);
+      ctrl.setAppPaused(false);
+      ctrl.initializeParticles(const Size(400, 800));
+      final double tBefore = ctrl.waveTime;
+      const Duration stamp = Duration(milliseconds: 12345);
+      ctrl.stepFrame(0.016, const Size(400, 800), stamp);
+      final double tAfterFirst = ctrl.waveTime;
+      ctrl.stepFrame(0.016, const Size(400, 800), stamp);
+      expect(tAfterFirst, greaterThan(tBefore));
+      expect(ctrl.waveTime, equals(tAfterFirst));
     });
   });
 }

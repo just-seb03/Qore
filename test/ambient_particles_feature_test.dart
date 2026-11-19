@@ -184,6 +184,7 @@ void main() {
         accentColor: const Color(0xFF5BABCE),
         isDark: true,
         repaintToken: 1,
+        mode: AmbientBackdropMode.silkWave,
         waveTimeProvider: () => liveTime,
       );
 

@@ -40,6 +40,7 @@ class AmbientParticlesController extends ChangeNotifier {
   double _smoothedBpmSpeed = 1.0;
   double _effectiveVisualBpm = BpmAnalyzer.baselineVisualBpm;
   double _beatPulsePhase = 0.0;
+  Duration? _lastFrameStamp;
   Size _lastSize = Size.zero;
 
   /// Whether the ambient background particles feature is enabled.
@@ -104,7 +105,15 @@ class AmbientParticlesController extends ChangeNotifier {
     }
   }
 
-  /// Advances physics simulation by [dt] seconds.
+  /// Deduplicates frame ticks when multiple [AmbientParticlesCanvas] instances are mounted
+  /// simultaneously (e.g. IndexedStack tabs or PlayerScreen pushed over a route).
+  void stepFrame(double dt, Size size, Duration frameStamp) {
+    if (_lastFrameStamp == frameStamp) return;
+    _lastFrameStamp = frameStamp;
+    step(dt, size);
+  }
+
+  /// Advances physics and wave simulation by [dt] seconds.
   void step(double dt, Size size) {
     if (!isSimulating || dt <= 0.0) return;
 
@@ -112,14 +121,14 @@ class AmbientParticlesController extends ChangeNotifier {
       initializeParticles(size);
     }
 
-    // Clamp dt to avoid physics leaps during frame drops or resumes
-    final double safeDt = dt.clamp(0.0, 0.05);
+    // Clamp dt tightly so background resumes never jump wave phases or particles
+    final double safeDt = dt.clamp(0.0, 0.033);
 
     final double width = size.width > 0 ? size.width : 400.0;
     final double height = size.height > 0 ? size.height : 800.0;
 
     // Smoothly interpolate toward the target BPM-derived speed to avoid abrupt tempo jumps
-    final double blendFactor = math.min(1.0, safeDt * 3.5);
+    final double blendFactor = math.min(1.0, safeDt * 1.8);
     _smoothedBpmSpeed += (_targetBpmSpeed - _smoothedBpmSpeed) * blendFactor;
     final double effectiveSpeed = _speedMultiplier * _smoothedBpmSpeed;
 
@@ -132,7 +141,7 @@ class AmbientParticlesController extends ChangeNotifier {
       );
     }
 
-    _waveTime += safeDt * 0.95 * effectiveSpeed;
+    _waveTime += safeDt * 0.72 * effectiveSpeed;
     final double beatRate = _isAudioPlaying ? (_effectiveVisualBpm / 60.0) : 0.45;
     _beatPulsePhase =
         (_beatPulsePhase + safeDt * beatRate * 2.0 * math.pi) % (2.0 * math.pi * 100.0);
