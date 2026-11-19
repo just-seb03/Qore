@@ -143,10 +143,10 @@ class AmbientParticlesPainter extends CustomPainter {
       tailTwistSpeed: 0.48,
       tailTwistPhase: 0.25,
       tailTangentAmp: 0.12,
-      veilAlphaDark: 0.26,
-      veilAlphaLight: 0.16,
-      crestAlphaDark: 0.20,
-      crestAlphaLight: 0.14,
+      veilAlphaDark: 0.10,
+      veilAlphaLight: 0.07,
+      crestAlphaDark: 0.09,
+      crestAlphaLight: 0.07,
     ),
     // 2. Main foreground folding wave with wide luminous satin skirt
     _XmbRibbonSpec(
@@ -170,10 +170,10 @@ class AmbientParticlesPainter extends CustomPainter {
       tailTwistSpeed: 0.65,
       tailTwistPhase: 1.15,
       tailTangentAmp: 0.15,
-      veilAlphaDark: 0.38,
-      veilAlphaLight: 0.23,
-      crestAlphaDark: 0.32,
-      crestAlphaLight: 0.20,
+      veilAlphaDark: 0.15,
+      veilAlphaLight: 0.10,
+      crestAlphaDark: 0.15,
+      crestAlphaLight: 0.11,
     ),
     // 3. Upper intersecting ribbon fold pinching smoothly across center-mid
     _XmbRibbonSpec(
@@ -197,10 +197,10 @@ class AmbientParticlesPainter extends CustomPainter {
       tailTwistSpeed: -0.58,
       tailTwistPhase: 2.35,
       tailTangentAmp: 0.13,
-      veilAlphaDark: 0.32,
-      veilAlphaLight: 0.19,
-      crestAlphaDark: 0.28,
-      crestAlphaLight: 0.18,
+      veilAlphaDark: 0.12,
+      veilAlphaLight: 0.08,
+      crestAlphaDark: 0.13,
+      crestAlphaLight: 0.09,
     ),
   ];
 
@@ -245,13 +245,13 @@ class AmbientParticlesPainter extends CustomPainter {
     final Offset normal = Offset(-dir.dy, dir.dx);
 
     final Color baseVeilColor = isDark
-        ? accentColor
-        : Color.lerp(accentColor, const Color(0xFF2E7EA3), 0.16)!;
+        ? Color.lerp(accentColor, const Color(0xFF1A4356), 0.22)!
+        : Color.lerp(accentColor, const Color(0xFF2E7EA3), 0.14)!;
     final Color crestHighlightColor = isDark
-        ? Color.lerp(accentColor, Colors.white, 0.58)!
-        : Color.lerp(accentColor, const Color(0xFF246F92), 0.24)!;
+        ? Color.lerp(accentColor, Colors.white, 0.32)!
+        : Color.lerp(accentColor, const Color(0xFF246F92), 0.22)!;
     final Color crestEdgeColor =
-        Color.lerp(baseVeilColor, crestHighlightColor, 0.52)!;
+        Color.lerp(baseVeilColor, crestHighlightColor, 0.42)!;
 
     final double veilPeak = isDark ? spec.veilAlphaDark : spec.veilAlphaLight;
     final double crestPeak =
@@ -303,8 +303,8 @@ class AmbientParticlesPainter extends CustomPainter {
           (veilPeak * foldFocus * edgeEnvelope).clamp(0.0, 0.72);
 
       _crestCols[i] = crestEdgeColor.withValues(alpha: aCrest);
-      _mid1Cols[i] = baseVeilColor.withValues(alpha: aCrest * 0.68);
-      _mid2Cols[i] = baseVeilColor.withValues(alpha: aCrest * 0.26);
+      _mid1Cols[i] = baseVeilColor.withValues(alpha: aCrest * 0.56);
+      _mid2Cols[i] = baseVeilColor.withValues(alpha: aCrest * 0.18);
       _tailCols[i] = baseVeilColor.withValues(alpha: 0.0);
 
       if (i == 0) {
@@ -369,14 +369,14 @@ class AmbientParticlesPainter extends CustomPainter {
       ..strokeWidth = 14.0
       ..blendMode = isDark ? BlendMode.plus : BlendMode.srcOver
       ..color =
-          baseVeilColor.withValues(alpha: (crestPeak * 0.22).clamp(0.0, 1.0));
+          baseVeilColor.withValues(alpha: (crestPeak * 0.18).clamp(0.0, 1.0));
     canvas.drawPath(_crestPath, _crestBloomPaint);
 
     _crestSoftPaint
-      ..strokeWidth = 2.8
+      ..strokeWidth = 2.2
       ..blendMode = isDark ? BlendMode.plus : BlendMode.srcOver
       ..color = crestHighlightColor
-          .withValues(alpha: (crestPeak * 0.45).clamp(0.0, 1.0));
+          .withValues(alpha: (crestPeak * 0.34).clamp(0.0, 1.0));
     canvas.drawPath(_crestPath, _crestSoftPaint);
   }
 
