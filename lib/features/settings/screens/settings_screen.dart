@@ -246,7 +246,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         left: 12.0,
                         right: 20.0,
                         top: 10.0,
-                        bottom: 8.0,
+                        bottom: 10.0,
                       ),
                       child: Row(
                         children: [
@@ -275,6 +275,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ],
                       ),
                     ),
+                    Container(
+                      height: 1.0,
+                      margin: const EdgeInsets.symmetric(horizontal: 20.0),
+                      color: AppColors.outline.withValues(alpha: 0.22),
+                    ),
 
                     // 2. Metro Settings List
                     Expanded(
@@ -282,7 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         physics: const BouncingScrollPhysics(),
                         padding: const EdgeInsets.symmetric(
                           horizontal: 20.0,
-                          vertical: 12.0,
+                          vertical: 18.0,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -291,7 +296,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             _buildSectionHeader(
                               isSpanish ? 'TEMA' : 'THEME',
                             ),
-                            const SizedBox(height: 8.0),
+                            const SizedBox(height: 10.0),
                             Row(
                               children: [
                                 Expanded(
@@ -315,52 +320,43 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 28.0),
+                            const SizedBox(height: 24.0),
 
                             // Section: Language
                             _buildSectionHeader(
                               isSpanish ? 'IDIOMA' : 'LANGUAGE',
                             ),
-                            const SizedBox(height: 8.0),
+                            const SizedBox(height: 10.0),
                             Row(
                               children: [
                                 Expanded(
                                   child: _buildOptionTile(
-                                    key: const ValueKey('settings_lang_system'),
-                                    label: isSpanish ? 'Sistema' : 'System',
-                                    isSelected: locCtrl.followSystemLocale,
-                                    onTap: () => locCtrl.enableSystemLocale(),
-                                  ),
-                                ),
-                                const SizedBox(width: 8.0),
-                                Expanded(
-                                  child: _buildOptionTile(
                                     key: const ValueKey('settings_lang_es'),
                                     label: 'Español',
-                                    isSelected: !locCtrl.followSystemLocale &&
+                                    isSelected:
                                         locCtrl.currentAppLocale == AppLocale.es,
                                     onTap: () => locCtrl.setLocale(AppLocale.es),
                                   ),
                                 ),
-                                const SizedBox(width: 8.0),
+                                const SizedBox(width: 10.0),
                                 Expanded(
                                   child: _buildOptionTile(
                                     key: const ValueKey('settings_lang_en'),
                                     label: 'English',
-                                    isSelected: !locCtrl.followSystemLocale &&
+                                    isSelected:
                                         locCtrl.currentAppLocale == AppLocale.en,
                                     onTap: () => locCtrl.setLocale(AppLocale.en),
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 28.0),
+                            const SizedBox(height: 24.0),
 
                             // Section: Library
                             _buildSectionHeader(
                               isSpanish ? 'BIBLIOTECA' : 'LIBRARY',
                             ),
-                            const SizedBox(height: 8.0),
+                            const SizedBox(height: 10.0),
                             _buildActionTile(
                               key: const ValueKey('settings_quick_rescan'),
                               icon: Icons.refresh_rounded,
@@ -373,13 +369,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               isLoading: _isScanning,
                               onTap: _handleQuickRescan,
                             ),
-                            const SizedBox(height: 28.0),
+                            const SizedBox(height: 24.0),
 
                             // Section: User Data
                             _buildSectionHeader(
                               isSpanish ? 'DATOS DE USUARIO' : 'USER DATA',
                             ),
-                            const SizedBox(height: 8.0),
+                            const SizedBox(height: 10.0),
                             _buildActionTile(
                               key: const ValueKey('settings_reset_user_data'),
                               icon: Icons.restart_alt_rounded,
@@ -409,14 +405,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildSectionHeader(String title) {
-    return Text(
-      title,
-      style: AppFonts.segoe(
-        fontSize: 14.0,
-        fontWeight: FontWeight.w400,
-        letterSpacing: 1.5,
-        color: AppColors.onSurfaceVariant,
-      ),
+    return Row(
+      children: [
+        Container(
+          width: 3.0,
+          height: 13.0,
+          color: AppColors.accent,
+        ),
+        const SizedBox(width: 8.0),
+        Text(
+          title,
+          style: AppFonts.segoe(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.4,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 
@@ -427,53 +433,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: isSelected
-            ? AppColors.accent.withValues(alpha: 0.16)
-            : AppColors.surfaceContainer.withValues(alpha: 0.85),
-        borderRadius: BorderRadius.zero,
-        border: Border.all(
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 52.0),
+      child: Container(
+        decoration: BoxDecoration(
           color: isSelected
-              ? AppColors.accent
-              : AppColors.outline.withValues(alpha: 0.35),
-          width: isSelected ? 1.5 : 1.0,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.zero,
-        child: InkWell(
-          key: key,
+              ? AppColors.accent.withValues(alpha: 0.16)
+              : AppColors.surfaceContainer.withValues(alpha: 0.85),
           borderRadius: BorderRadius.zero,
-          splashColor: AppColors.accent.withValues(alpha: 0.15),
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 14.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(
-                    icon,
-                    size: 18.0,
-                    color: isSelected ? AppColors.accent : AppColors.onSurface,
-                  ),
-                  const SizedBox(width: 8.0),
-                ],
-                Flexible(
-                  child: Text(
-                    label,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppFonts.segoe(
-                      fontSize: 14.5,
-                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+          border: Border.all(
+            color: isSelected
+                ? AppColors.accent
+                : AppColors.outline.withValues(alpha: 0.30),
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Material(
+          color: Colors.transparent,
+          borderRadius: BorderRadius.zero,
+          child: InkWell(
+            key: key,
+            borderRadius: BorderRadius.zero,
+            splashColor: AppColors.accent.withValues(alpha: 0.15),
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 14.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (icon != null) ...[
+                    Icon(
+                      icon,
+                      size: 18.0,
                       color: isSelected ? AppColors.accent : AppColors.onSurface,
                     ),
+                    const SizedBox(width: 8.0),
+                  ],
+                  Flexible(
+                    child: Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.segoe(
+                        fontSize: 14.5,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? AppColors.accent : AppColors.onSurface,
+                      ),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),

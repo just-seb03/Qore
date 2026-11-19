@@ -202,9 +202,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         ? 'ARTISTA MÁS ESCUCHADO'
                                         : 'MOST PLAYED ARTIST',
                                   ),
-                                  const SizedBox(height: 6.0),
+                                  const SizedBox(height: 8.0),
                                   _buildTopArtistTile(context, _topArtist!, isSpanish),
-                                  const SizedBox(height: 24.0),
+                                  const SizedBox(height: 18.0),
                                 ],
 
                                 // 2. Álbum Más Escuchado
@@ -214,9 +214,9 @@ class _ProfileScreenState extends State<ProfileScreen>
                                         ? 'ÁLBUM MÁS ESCUCHADO'
                                         : 'MOST PLAYED ALBUM',
                                   ),
-                                  const SizedBox(height: 6.0),
+                                  const SizedBox(height: 8.0),
                                   _buildTopAlbumTile(context, _topAlbum!, isSpanish),
-                                  const SizedBox(height: 24.0),
+                                  const SizedBox(height: 22.0),
                                 ],
 
                                 // 3. Top Canciones Generales (sin contador)
@@ -224,10 +224,19 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   _buildSectionHeader(
                                     isSpanish ? 'TOP CANCIONES' : 'TOP SONGS',
                                   ),
-                                  const SizedBox(height: 4.0),
-                                  for (final song in _topSongs)
-                                    _buildTopSongTile(context, song),
-                                  const SizedBox(height: 28.0),
+                                  const SizedBox(height: 6.0),
+                                  for (int i = 0; i < _topSongs.length; i++) ...[
+                                    _buildTopSongTile(context, _topSongs[i]),
+                                    if (i < _topSongs.length - 1)
+                                      Divider(
+                                        height: 1.0,
+                                        thickness: 0.5,
+                                        indent: 82.0,
+                                        endIndent: 20.0,
+                                        color: AppColors.outline.withValues(alpha: 0.16),
+                                      ),
+                                  ],
+                                  const SizedBox(height: 22.0),
                                 ],
 
                                 // Empty state if no listening history yet
@@ -251,7 +260,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   ),
                                 ],
 
-                                // 4. Metro Settings Button (placeholder, non-functional for now)
+                                // 4. Metro Settings Button
+                                Container(
+                                  height: 1.0,
+                                  margin: const EdgeInsets.symmetric(horizontal: 20.0),
+                                  color: AppColors.outline.withValues(alpha: 0.18),
+                                ),
+                                const SizedBox(height: 18.0),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                                   child: Container(
@@ -260,7 +275,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                           .withValues(alpha: 0.85),
                                       borderRadius: BorderRadius.zero,
                                       border: Border.all(
-                                        color: AppColors.outline.withValues(alpha: 0.35),
+                                        color: AppColors.outline.withValues(alpha: 0.30),
                                         width: 1.0,
                                       ),
                                     ),
@@ -286,7 +301,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                               Icon(
                                                 Icons.settings_outlined,
                                                 size: 22.0,
-                                                color: AppColors.onSurface,
+                                                color: AppColors.accent,
                                               ),
                                               const SizedBox(width: 14.0),
                                               Expanded(
@@ -331,15 +346,25 @@ class _ProfileScreenState extends State<ProfileScreen>
 
   Widget _buildSectionHeader(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
-      child: Text(
-        title,
-        style: AppFonts.segoe(
-          fontSize: 14.5,
-          fontWeight: FontWeight.w400,
-          letterSpacing: 1.5,
-          color: AppColors.onSurfaceVariant,
-        ),
+      padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 4.0),
+      child: Row(
+        children: [
+          Container(
+            width: 3.0,
+            height: 13.0,
+            color: AppColors.accent,
+          ),
+          const SizedBox(width: 8.0),
+          Text(
+            title,
+            style: AppFonts.segoe(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1.4,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -436,6 +461,10 @@ class _ProfileScreenState extends State<ProfileScreen>
         decoration: BoxDecoration(
           color: AppColors.surfaceContainer.withValues(alpha: 0.85),
           borderRadius: BorderRadius.zero,
+          border: Border.all(
+            color: AppColors.outline.withValues(alpha: 0.30),
+            width: 1.0,
+          ),
         ),
         child: Material(
           color: Colors.transparent,
@@ -449,14 +478,14 @@ class _ProfileScreenState extends State<ProfileScreen>
               );
             },
             child: Padding(
-              padding: const EdgeInsets.all(14.0),
+              padding: const EdgeInsets.all(12.0),
               child: Row(
                 children: [
                   MaterialArtistAvatar(
-                    radius: 34.0,
+                    radius: 30.0,
                     artistName: artist.name,
                   ),
-                  const SizedBox(width: 16.0),
+                  const SizedBox(width: 14.0),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -467,7 +496,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppFonts.light(
-                            fontSize: 21.0,
+                            fontSize: 20.0,
                             color: AppColors.onSurface,
                           ),
                         ),
@@ -486,7 +515,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                   Icon(
                     Icons.chevron_right_rounded,
                     color: AppColors.onSurfaceVariant,
-                    size: 22.0,
+                    size: 20.0,
                   ),
                 ],
               ),
@@ -508,6 +537,10 @@ class _ProfileScreenState extends State<ProfileScreen>
         decoration: BoxDecoration(
           color: AppColors.surfaceContainer.withValues(alpha: 0.85),
           borderRadius: BorderRadius.zero,
+          border: Border.all(
+            color: AppColors.outline.withValues(alpha: 0.30),
+            width: 1.0,
+          ),
         ),
         child: Material(
           color: Colors.transparent,
@@ -526,7 +559,7 @@ class _ProfileScreenState extends State<ProfileScreen>
               );
             },
             child: Padding(
-              padding: const EdgeInsets.all(14.0),
+              padding: const EdgeInsets.all(12.0),
               child: Row(
                 children: [
                   AnimaArtworkImage(
@@ -534,13 +567,13 @@ class _ProfileScreenState extends State<ProfileScreen>
                     albumId: album.albumId,
                     albumName: album.name,
                     artistName: album.artist,
-                    width: 68.0,
-                    height: 68.0,
+                    width: 60.0,
+                    height: 60.0,
                     borderRadius: 0.0,
                     isThumbnail: false,
                     fallbackIcon: Icons.album_rounded,
                   ),
-                  const SizedBox(width: 16.0),
+                  const SizedBox(width: 14.0),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,

@@ -71,6 +71,11 @@ void main() {
       await tester.pump();
       expect(ThemeController.instance.isDarkMode, isTrue);
 
+      // System language button was removed; only Español and English remain
+      expect(find.byKey(const ValueKey('settings_lang_system')), findsNothing);
+      expect(find.byKey(const ValueKey('settings_lang_es')), findsOneWidget);
+      expect(find.byKey(const ValueKey('settings_lang_en')), findsOneWidget);
+
       // Switch language to English immediately
       await tester.tap(find.byKey(const ValueKey('settings_lang_en')));
       await tester.pump();
