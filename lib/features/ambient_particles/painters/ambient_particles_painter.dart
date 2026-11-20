@@ -105,6 +105,9 @@ class AmbientParticlesPainter extends CustomPainter {
   /// Live time reader evaluated on every `paint()` tick triggered by [super.repaint].
   final double Function()? waveTimeProvider;
 
+  /// Live wave color reader allowing silk waves to smoothly adapt to active cover art.
+  final Color Function()? waveColorProvider;
+
   /// Kept for backward API compatibility.
   final double Function()? beatPhaseProvider;
 
@@ -237,6 +240,7 @@ class AmbientParticlesPainter extends CustomPainter {
     this.mode = AmbientBackdropMode.particles,
     this.waveTime = 0.0,
     this.waveTimeProvider,
+    this.waveColorProvider,
     this.beatPhaseProvider,
     this.isPlayingProvider,
   });
@@ -309,12 +313,20 @@ class AmbientParticlesPainter extends CustomPainter {
     final Offset dir = axis / axisLen;
     final Offset normal = Offset(-dir.dy, dir.dx);
 
+    // Resolve dynamic cover color and gently clamp luminance so dark or bright covers remain visible
+    final Color rawColor = waveColorProvider?.call() ?? accentColor;
+    final HSLColor rawHsl = HSLColor.fromColor(rawColor);
+    final double clampedLightness = isDark
+        ? rawHsl.lightness.clamp(0.42, 0.68)
+        : rawHsl.lightness.clamp(0.35, 0.56);
+    final Color adaptedColor = rawHsl.withLightness(clampedLightness).toColor();
+
     final Color baseVeilColor = isDark
-        ? Color.lerp(accentColor, const Color(0xFF1A4356), 0.22)!
-        : Color.lerp(accentColor, const Color(0xFF2E7EA3), 0.14)!;
+        ? Color.lerp(adaptedColor, const Color(0xFF0E0E10), 0.14)!
+        : Color.lerp(adaptedColor, const Color(0xFF1F3B4D), 0.10)!;
     final Color crestHighlightColor = isDark
-        ? Color.lerp(accentColor, Colors.white, 0.32)!
-        : Color.lerp(accentColor, const Color(0xFF246F92), 0.22)!;
+        ? Color.lerp(adaptedColor, Colors.white, 0.30)!
+        : Color.lerp(adaptedColor, const Color(0xFF1A252B), 0.18)!;
     final Color crestEdgeColor =
         Color.lerp(baseVeilColor, crestHighlightColor, 0.42)!;
 
@@ -476,6 +488,7 @@ class AmbientParticlesPainter extends CustomPainter {
         oldDelegate.mode != mode ||
         oldDelegate.waveTime != waveTime ||
         oldDelegate.waveTimeProvider != waveTimeProvider ||
+        oldDelegate.waveColorProvider != waveColorProvider ||
         oldDelegate.accentColor != accentColor ||
         oldDelegate.isDark != isDark ||
         oldDelegate.particles != particles;

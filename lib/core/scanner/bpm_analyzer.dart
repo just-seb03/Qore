@@ -318,18 +318,18 @@ abstract final class BpmAnalyzer {
     return effective;
   }
 
-  /// Maps any track [bpm] (including extremes like 300 BPM) to a perceptually balanced
-  /// wave motion speed multiplier in `[0.55, 1.48]`, centered at `115 BPM -> 1.0`.
+  /// Maps any track [bpm] (including extremes like 300 BPM) to a perceptually responsive,
+  /// octave-equivalent wave motion speed multiplier in `[0.38, 1.92]`, centered around `115 BPM`.
   static double mapBpmToWaveSpeed(double? bpm) {
     if (bpm == null || bpm <= 0 || bpm.isNaN || bpm.isInfinite) {
       return 1.0;
     }
     final double effective = effectiveVisualBpm(bpm);
-    final double x = (effective - baselineVisualBpm) / 52.0;
+    final double x = (effective - baselineVisualBpm) / 42.0;
     final double ex = math.exp(x);
     final double enx = math.exp(-x);
     final double tanhX = (ex - enx) / (ex + enx);
-    return (1.0 + 0.55 * tanhX).clamp(0.55, 1.48);
+    return (1.05 + 0.85 * tanhX).clamp(0.38, 1.92);
   }
 
   static double? _parseBpmString(String? raw) {

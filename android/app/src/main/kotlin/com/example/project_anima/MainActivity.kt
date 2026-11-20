@@ -441,10 +441,10 @@ class MainActivity : AudioServiceActivity() {
             val bufferInfo = MediaCodec.BufferInfo()
             var iterations = 0
 
-            while (!outputDone && energyCount < maxEnergies && iterations < 4000) {
+            while (!outputDone && energyCount < maxEnergies && iterations < 12000) {
                 iterations++
                 if (!inputDone) {
-                    val inIdx = codec.dequeueInputBuffer(2500L)
+                    val inIdx = codec.dequeueInputBuffer(1500L)
                     if (inIdx >= 0) {
                         val inBuf = codec.getInputBuffer(inIdx)
                         if (inBuf != null) {
@@ -461,7 +461,7 @@ class MainActivity : AudioServiceActivity() {
                     }
                 }
 
-                val outIdx = codec.dequeueOutputBuffer(bufferInfo, 2500L)
+                val outIdx = codec.dequeueOutputBuffer(bufferInfo, 1500L)
                 if (outIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                     val outFmt = codec.outputFormat
                     if (outFmt.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {

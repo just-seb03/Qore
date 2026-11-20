@@ -13,8 +13,10 @@ import 'dart:io';
 import 'package:audio_service/audio_service.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:project_anima/core/artwork/artwork_color_extractor.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
@@ -45,6 +47,8 @@ class PlaybackController extends ChangeNotifier {
   bool _isShuffleEnabled = false;
   bool _isSyncingBuffer = false;
   int? _resolvingBpmMediaStoreId;
+  int? _resolvingColorMediaStoreId;
+  int? _resolvedCoverColorSongId;
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<ProcessingState>? _processingStateSubscription;
@@ -81,6 +85,7 @@ class PlaybackController extends ChangeNotifier {
         _audioBuffer = audioBuffer ?? AudioPlaybackBuffer(player: player) {
     _initAudioSession();
     _listenToStreams();
+    ArtworkService.instance.addListener(_onArtworkServiceUpdated);
   }
 
   /// Reference to persistence coordinator for testing or inspection.
@@ -226,7 +231,12 @@ class PlaybackController extends ChangeNotifier {
       _queue.clear();
       _originalQueue.clear();
       _currentIndex = -1;
-      AmbientParticlesController.instance.syncWithPlayback(bpm: null, isPlaying: false);
+      _resolvedCoverColorSongId = null;
+      AmbientParticlesController.instance.syncWithPlayback(
+        bpm: null,
+        isPlaying: false,
+        waveColor: ArtworkColorExtractor.defaultWaveColor,
+      );
       notifyListeners();
     } catch (e) {
       debugPrint('PlaybackController Error stopping playback: $e');
@@ -312,19 +322,60 @@ class PlaybackController extends ChangeNotifier {
     return true;
   }
 
-  /// Synchronizes ambient wave velocity & rhythmic beat phase with the active song's BPM.
-  void _syncAmbientBackdropBpm({bool resolveIfMissing = false}) {
+  void _onArtworkServiceUpdated() {
     final active = _currentSong;
+    if (active == null) return;
+    if (_resolvedCoverColorSongId == active.mediaStoreId) return;
+    unawaited(_resolvePlayingSongCoverColor(active));
+  }
+
+  /// Synchronizes ambient wave velocity, cover color, and rhythmic beat phase with active playback.
+  void _syncAmbientBackdropBpm({
+    bool resolveIfMissing = false,
+    bool? overridePlaying,
+  }) {
+    final active = _currentSong;
+    final bool isPlaying = overridePlaying ?? _player.playing;
+    final Color? cachedColor =
+        active != null ? ArtworkColorExtractor.getCachedColorForSong(active) : null;
+
     AmbientParticlesController.instance.syncWithPlayback(
       bpm: active?.bpm,
-      isPlaying: _player.playing,
+      isPlaying: isPlaying,
+      waveColor: cachedColor,
     );
 
+    if (active == null) return;
+
+    if (cachedColor != null) {
+      _resolvedCoverColorSongId = active.mediaStoreId;
+    } else if (_resolvingColorMediaStoreId != active.mediaStoreId) {
+      unawaited(_resolvePlayingSongCoverColor(active));
+    }
+
     if (resolveIfMissing &&
-        active != null &&
         (active.bpm == null || active.bpm! <= 0) &&
         _resolvingBpmMediaStoreId != active.mediaStoreId) {
       unawaited(_resolvePlayingSongBpm(active));
+    }
+  }
+
+  /// Resolves the dominant cover art color for the currently playing song on demand.
+  Future<void> _resolvePlayingSongCoverColor(Song song) async {
+    _resolvingColorMediaStoreId = song.mediaStoreId;
+    try {
+      final Color resolvedColor =
+          await ArtworkColorExtractor.getDominantColorForSong(song);
+      if (resolvedColor != ArtworkColorExtractor.defaultWaveColor) {
+        _resolvedCoverColorSongId = song.mediaStoreId;
+      }
+      if (_currentSong?.mediaStoreId == song.mediaStoreId) {
+        AmbientParticlesController.instance.setWaveColor(resolvedColor);
+      }
+    } finally {
+      if (_resolvingColorMediaStoreId == song.mediaStoreId) {
+        _resolvingColorMediaStoreId = null;
+      }
     }
   }
 
@@ -621,12 +672,12 @@ class PlaybackController extends ChangeNotifier {
         _isSyncingBuffer = true;
         try {
           await _audioBuffer.seekToIndex(targetIndex);
-          await _player.play();
+          unawaited(_player.play());
 
           _persistCurrentSessionImmediate();
           _updateSystemNotification(_currentSong!);
           _recordPlaybackHistory(_currentSong!);
-          _syncAmbientBackdropBpm(resolveIfMissing: true);
+          _syncAmbientBackdropBpm(resolveIfMissing: true, overridePlaying: true);
         } catch (e) {
           debugPrint('PlaybackController Error seeking to track in active buffer: $e');
         } finally {
@@ -653,12 +704,12 @@ class PlaybackController extends ChangeNotifier {
       if (_player.currentIndex != _currentIndex) {
         await _audioBuffer.seekToIndex(_currentIndex);
       }
-      await _player.play();
+      unawaited(_player.play());
 
       _persistCurrentSessionImmediate();
       _updateSystemNotification(song);
       _recordPlaybackHistory(song);
-      _syncAmbientBackdropBpm(resolveIfMissing: true);
+      _syncAmbientBackdropBpm(resolveIfMissing: true, overridePlaying: true);
     } catch (e) {
       debugPrint('PlaybackController Error loading audio queue: $e');
     } finally {
@@ -685,7 +736,7 @@ class PlaybackController extends ChangeNotifier {
       _persistCurrentSessionImmediate();
       _updateSystemNotification(_currentSong!);
       _recordPlaybackHistory(_currentSong!);
-      _syncAmbientBackdropBpm(resolveIfMissing: true);
+      _syncAmbientBackdropBpm(resolveIfMissing: true, overridePlaying: true);
     } catch (e) {
       debugPrint('PlaybackController Error loading audio buffer at index $index: $e');
     } finally {
@@ -954,6 +1005,7 @@ class PlaybackController extends ChangeNotifier {
 
   @override
   void dispose() {
+    ArtworkService.instance.removeListener(_onArtworkServiceUpdated);
     FavoriteSongsDao.instance.favoritesRevision.removeListener(_onFavoritesRevisionChanged);
     _persistenceCoordinator.dispose();
     _playerStateSubscription?.cancel();

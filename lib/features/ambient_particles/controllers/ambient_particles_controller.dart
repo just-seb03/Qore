@@ -10,6 +10,7 @@ library;
 import 'dart:collection';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:project_anima/core/artwork/artwork_color_extractor.dart';
 import 'package:project_anima/core/scanner/bpm_analyzer.dart';
 import 'package:project_anima/features/ambient_particles/models/ambient_particle.dart';
 
@@ -40,6 +41,8 @@ class AmbientParticlesController extends ChangeNotifier {
   double _smoothedBpmSpeed = 1.0;
   double _effectiveVisualBpm = BpmAnalyzer.baselineVisualBpm;
   double _beatPulsePhase = 0.0;
+  Color _targetWaveColor = ArtworkColorExtractor.defaultWaveColor;
+  Color _smoothedWaveColor = ArtworkColorExtractor.defaultWaveColor;
   Duration? _lastFrameStamp;
   Size _lastSize = Size.zero;
 
@@ -79,6 +82,12 @@ class AmbientParticlesController extends ChangeNotifier {
 
   /// Beat-synchronized oscillation phase (radians).
   double get beatPulsePhase => _beatPulsePhase;
+
+  /// Smoothly interpolated primary wave color matching the active track's album cover.
+  Color get waveColor => _smoothedWaveColor;
+
+  /// Target dominant cover color toward which [waveColor] transitions.
+  Color get targetWaveColor => _targetWaveColor;
 
   /// Active list of simulated particles (cached unmodifiable view).
   List<AmbientParticle> get particles => _particlesView;
@@ -128,9 +137,16 @@ class AmbientParticlesController extends ChangeNotifier {
     final double height = size.height > 0 ? size.height : 800.0;
 
     // Smoothly interpolate toward the target BPM-derived speed to avoid abrupt tempo jumps
-    final double blendFactor = math.min(1.0, safeDt * 1.8);
+    final double blendFactor = math.min(1.0, safeDt * 2.2);
     _smoothedBpmSpeed += (_targetBpmSpeed - _smoothedBpmSpeed) * blendFactor;
     final double effectiveSpeed = _speedMultiplier * _smoothedBpmSpeed;
+
+    // Smoothly crossfade silk wave color toward the active track's cover color
+    if (_smoothedWaveColor != _targetWaveColor) {
+      final double colorBlend = math.min(1.0, safeDt * 3.0);
+      _smoothedWaveColor =
+          Color.lerp(_smoothedWaveColor, _targetWaveColor, colorBlend) ?? _targetWaveColor;
+    }
 
     for (int i = 0; i < _particles.length; i++) {
       _particles[i].update(
@@ -141,7 +157,7 @@ class AmbientParticlesController extends ChangeNotifier {
       );
     }
 
-    _waveTime += safeDt * 0.72 * effectiveSpeed;
+    _waveTime += safeDt * 0.78 * effectiveSpeed;
     final double beatRate = _isAudioPlaying ? (_effectiveVisualBpm / 60.0) : 0.45;
     _beatPulsePhase =
         (_beatPulsePhase + safeDt * beatRate * 2.0 * math.pi) % (2.0 * math.pi * 100.0);
@@ -149,15 +165,26 @@ class AmbientParticlesController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Synchronizes wave velocity and rhythmic beat phase with the currently playing track's BPM.
+  /// Synchronizes wave velocity, rhythmic beat phase, and optional wave color with playback.
   void syncWithPlayback({
     double? bpm,
     required bool isPlaying,
+    Color? waveColor,
   }) {
     _currentBpm = bpm;
     _isAudioPlaying = isPlaying;
     _effectiveVisualBpm = BpmAnalyzer.effectiveVisualBpm(bpm);
-    _targetBpmSpeed = isPlaying ? BpmAnalyzer.mapBpmToWaveSpeed(bpm) : 0.60;
+    _targetBpmSpeed = isPlaying ? BpmAnalyzer.mapBpmToWaveSpeed(bpm) : 0.35;
+    if (waveColor != null) {
+      _targetWaveColor = waveColor;
+    }
+    notifyListeners();
+  }
+
+  /// Updates the expanded player wave target color to match the active track's cover art.
+  void setWaveColor(Color color) {
+    if (_targetWaveColor == color) return;
+    _targetWaveColor = color;
     notifyListeners();
   }
 

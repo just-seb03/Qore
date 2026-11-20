@@ -162,6 +162,7 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
                 mode: widget.mode,
                 waveTime: _controller.waveTime,
                 waveTimeProvider: () => _controller.waveTime,
+                waveColorProvider: () => _controller.waveColor,
                 beatPhaseProvider: () => _controller.beatPulsePhase,
                 isPlayingProvider: () => _controller.isAudioPlaying,
               ),

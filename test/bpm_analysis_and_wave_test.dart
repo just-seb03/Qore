@@ -10,7 +10,9 @@ import 'dart:typed_data';
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
+import 'package:project_anima/core/artwork/artwork_color_extractor.dart';
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -113,11 +115,69 @@ void main() {
       final extreme300Speed = BpmAnalyzer.mapBpmToWaveSpeed(300.0);
 
       expect(slowSpeed, lessThan(midSpeed));
-      expect(midSpeed, closeTo(1.0, 0.01));
+      expect(midSpeed, closeTo(1.05, 0.02));
       expect(fastSpeed, greaterThan(midSpeed));
-      // 300 BPM renders at the exact 150 BPM equivalent, bounded cleanly (< 1.48)
+      // Clear speed contrast between 70 BPM slow ballad and 150 BPM energetic track
+      expect(fastSpeed / slowSpeed, greaterThan(2.5));
+      // 300 BPM renders at the exact 150 BPM equivalent, bounded cleanly in [0.38, 1.92]
       expect(extreme300Speed, closeTo(fastSpeed, 0.001));
-      expect(extreme300Speed, inInclusiveRange(0.55, 1.48));
+      expect(extreme300Speed, inInclusiveRange(0.38, 1.92));
+    });
+  });
+
+  group('ArtworkColorExtractor Cover Color & Wave Transition Tests', () {
+    test('extracts dominant crimson color from cover even with dark border margins', () {
+      final canvasImg = img.Image(width: 48, height: 48);
+      img.fill(canvasImg, color: img.ColorRgba8(8, 8, 10, 255));
+      // Paint central cover artwork in crimson red (210, 42, 60)
+      img.fillRect(
+        canvasImg,
+        x1: 12,
+        y1: 12,
+        x2: 36,
+        y2: 36,
+        color: img.ColorRgba8(210, 42, 60, 255),
+      );
+      final pngBytes = Uint8List.fromList(img.encodePng(canvasImg));
+
+      final extracted = ArtworkColorExtractor.extractDominantColorFromBytes(pngBytes);
+      expect(extracted, isNotNull);
+      expect((extracted!.r * 255).round(), greaterThan(170));
+      expect((extracted.g * 255).round(), lessThan(80));
+      expect((extracted.b * 255).round(), lessThan(90));
+    });
+
+    test('AmbientParticlesController smoothly transitions waveColor and reflects in silkWave render', () async {
+      final ctrl = AmbientParticlesController.instance;
+      ctrl.setEnabled(true);
+      ctrl.setAppPaused(false);
+      ctrl.setWaveColor(const Color(0xFFE04050));
+      for (int i = 0; i < 40; i++) {
+        ctrl.step(0.03, const Size(240, 480));
+      }
+      expect((ctrl.waveColor.r * 255).round(), greaterThan(180));
+
+      Future<List<int>> renderWithColor(Color color) async {
+        final painter = AmbientParticlesPainter(
+          accentColor: const Color(0xFF5BABCE),
+          isDark: true,
+          repaintToken: 1,
+          mode: AmbientBackdropMode.silkWave,
+          waveTime: 0.8,
+          waveColorProvider: () => color,
+        );
+        final recorder = ui.PictureRecorder();
+        final canvas = Canvas(recorder);
+        painter.paint(canvas, const Size(200, 400));
+        final pic = recorder.endRecording();
+        final image = await pic.toImage(200, 400);
+        final data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+        return data!.buffer.asUint8List();
+      }
+
+      final redBytes = await renderWithColor(const Color(0xFFE04050));
+      final blueBytes = await renderWithColor(const Color(0xFF5BABCE));
+      expect(redBytes, isNot(equals(blueBytes)));
     });
   });
 
