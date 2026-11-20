@@ -1,22 +1,28 @@
 /// File: audio_handler.dart
 /// Description: Dedicated AudioService background handler for Project Anima.
-/// Enforces a strict 3-action media notification layout [Previous, Play/Pause, Next]
-/// with no redundant Stop button, eliminating action jumping and layout bugs on Android/MIUI.
+/// Enforces a strict 4-action media notification layout [Favorite, Previous, Play/Pause, Next]
+/// and guarantees immediate MediaMetadata + PlaybackState updates across Android / MIUI MediaSession.
 ///
 /// Components / Classes / Functions:
 /// - AnimaAudioHandler: Custom BaseAudioHandler routing system media controls to AudioPlayer.
 library;
 
+import 'dart:async';
 import 'package:audio_service/audio_service.dart';
 import 'package:just_audio/just_audio.dart';
 
-/// Custom background AudioHandler providing rock-solid notification controls.
+/// Custom background AudioHandler providing rock-solid notification controls & live metadata sync.
 class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
   final AudioPlayer _player;
   final Future<void> Function() onSkipToNext;
   final Future<void> Function() onSkipToPrevious;
   final Future<void> Function()? onToggleFavorite;
   final bool Function()? isFavorite;
+
+  MediaItem? _lastMediaItem;
+  StreamSubscription<PlaybackEvent>? _playbackEventSub;
+  StreamSubscription<PlayerState>? _playerStateSub;
+  StreamSubscription<Duration?>? _durationSub;
 
   AnimaAudioHandler(
     this._player, {
@@ -26,17 +32,31 @@ class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
     this.isFavorite,
   }) {
     _broadcastState(_player.playbackEvent);
-    _player.playbackEventStream.listen(_broadcastState);
-    _player.playerStateStream.listen((_) => _broadcastState(_player.playbackEvent));
+    _playbackEventSub = _player.playbackEventStream.listen(_broadcastState);
+    _playerStateSub = _player.playerStateStream.listen(
+      (_) => _broadcastState(_player.playbackEvent),
+    );
+    _durationSub = _player.durationStream.listen((resolvedDuration) {
+      if (resolvedDuration != null &&
+          resolvedDuration > Duration.zero &&
+          _lastMediaItem != null &&
+          _lastMediaItem!.duration != resolvedDuration) {
+        final updated = _lastMediaItem!.copyWith(duration: resolvedDuration);
+        _lastMediaItem = updated;
+        mediaItem.add(updated);
+        queue.add([updated]);
+        _broadcastState(_player.playbackEvent);
+      }
+    });
   }
 
   /// Manually re-broadcasts playback state (e.g. when favorite status toggles).
-  void broadcastCurrentState() {
-    _broadcastState(_player.playbackEvent);
+  void broadcastCurrentState({bool? forcePlaying}) {
+    _broadcastState(_player.playbackEvent, forcePlaying: forcePlaying);
   }
 
-  void _broadcastState(PlaybackEvent event) {
-    final playing = _player.playing;
+  void _broadcastState(PlaybackEvent event, {bool? forcePlaying}) {
+    final playing = forcePlaying ?? _player.playing;
     final isFav = isFavorite?.call() ?? false;
 
     final favoriteControl = MediaControl.custom(
@@ -63,7 +83,9 @@ class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
       },
       androidCompactActionIndices: const [1, 2, 3],
       processingState: switch (_player.processingState) {
-        ProcessingState.idle => AudioProcessingState.idle,
+        ProcessingState.idle => forcePlaying == true
+            ? AudioProcessingState.ready
+            : AudioProcessingState.idle,
         ProcessingState.completed => AudioProcessingState.completed,
         ProcessingState.loading ||
         ProcessingState.buffering ||
@@ -74,13 +96,28 @@ class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
       updatePosition: _player.position,
       bufferedPosition: _player.bufferedPosition,
       speed: _player.speed,
-      queueIndex: event.currentIndex,
+      queueIndex: _lastMediaItem != null ? 0 : event.currentIndex,
     ));
   }
 
-  /// Updates the system notification metadata (title, artist, album, artUri, duration).
-  void updateMetadata(MediaItem item) {
+  /// Updates system notification metadata (`title`, `artist`, `album`, `artUri`, `duration`)
+  /// and forces sequential `PlaybackStateCompat` refreshes so Android/MIUI SystemUI redraws reliably.
+  void updateMetadata(MediaItem item, {bool? forcePlaying}) {
+    _lastMediaItem = item;
+    queue.add([item]);
     mediaItem.add(item);
+
+    // Re-broadcast immediately and after channel delivery so Android/MIUI never drops metadata changes
+    Future.microtask(() {
+      if (_lastMediaItem?.id == item.id) {
+        _broadcastState(_player.playbackEvent, forcePlaying: forcePlaying);
+      }
+    });
+    Future<void>.delayed(const Duration(milliseconds: 90), () {
+      if (_lastMediaItem?.id == item.id) {
+        _broadcastState(_player.playbackEvent);
+      }
+    });
   }
 
   @override
@@ -114,16 +151,14 @@ class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
 
   @override
   Future<void> stop() async {
+    await _playbackEventSub?.cancel();
+    await _playerStateSub?.cancel();
+    await _durationSub?.cancel();
     await _player.stop();
     playbackState.add(playbackState.value.copyWith(
       processingState: AudioProcessingState.idle,
       playing: false,
     ));
     await super.stop();
-  }
-
-  @override
-  Future<void> onTaskRemoved() async {
-    await stop();
   }
 }

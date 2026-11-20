@@ -15,6 +15,7 @@ import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/components/scroll_edge_fade_mask.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
+import 'package:project_anima/core/navigation/app_route_tracker.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist_discography/components/artist_discography_grid.dart';
@@ -62,6 +63,9 @@ class ArtistDiscographyScreen extends StatefulWidget {
     bool showMiniPlayer = true,
   }) {
     return PageRouteBuilder<void>(
+      settings: RouteSettings(
+        name: AppRouteTracker.artistDiscographyRouteName(artistName),
+      ),
       pageBuilder: (context, animation, secondaryAnimation) =>
           ArtistDiscographyScreen(
         artistName: artistName,

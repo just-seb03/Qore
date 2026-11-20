@@ -41,6 +41,12 @@ class FavoriteSongsDao {
     await _loadingFuture;
   }
 
+  /// Forces an immediate reload of favorite IDs from SQLite and notifies listeners.
+  Future<void> refreshCache() async {
+    _isCacheLoaded = false;
+    await ensureLoaded();
+  }
+
   Future<void> _loadCache() async {
     try {
       final db = await _dbProvider.database;

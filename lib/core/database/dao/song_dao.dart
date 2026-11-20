@@ -8,6 +8,8 @@ library;
 
 import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/app_database.dart';
+import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
+import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -218,12 +220,23 @@ class SongDao {
     required List<int> toDelete,
   }) async {
     final db = await _appDatabase.database;
+    int prunedPins = 0;
 
     await db.transaction((txn) async {
       final batch = txn.batch();
 
-      // 1. Delete removed tracks
+      // 1. Delete removed tracks and dependent favorite / playlist rows
       for (final mediaStoreId in toDelete) {
+        batch.delete(
+          'playlist_songs',
+          where: 'media_store_id = ?',
+          whereArgs: [mediaStoreId],
+        );
+        batch.delete(
+          'favorite_songs',
+          where: 'media_store_id = ?',
+          whereArgs: [mediaStoreId],
+        );
         batch.delete(
           'songs',
           where: 'media_store_id = ?',
@@ -274,7 +287,22 @@ class SongDao {
         }
         await saBatch.commit(noResult: true);
       }
+
+      // 4. Prune Space pinned albums/artists that no longer have any tracks
+      if (toDelete.isNotEmpty) {
+        prunedPins = await PinnedFavoritesDao.instance.pruneOrphanedPins(
+          executor: txn,
+          notify: false,
+        );
+      }
     });
+
+    if (prunedPins > 0) {
+      PinnedFavoritesDao.revision.value++;
+    }
+    if (toDelete.isNotEmpty) {
+      await FavoriteSongsDao.instance.refreshCache();
+    }
   }
 
   /// Synchronizes the relational `song_artists` table with `songs` if out of sync.
@@ -1738,15 +1766,28 @@ class SongDao {
     return AlbumDiscoveryItem.fromMap(results.first);
   }
 
-  /// Deletes a song from SQLite across songs, playlist_songs, favorite_songs, and playback_history.
+  /// Deletes a song from SQLite across songs, playlist_songs, favorite_songs, playback_history, and Space pins.
   Future<void> deleteSong(int mediaStoreId) async {
     final db = await _appDatabase.database;
+    int prunedPins = 0;
     await db.transaction((txn) async {
       await txn.delete('playlist_songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
       await txn.delete('favorite_songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
-      await txn.delete('playback_history', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
+      await txn.rawDelete(
+        'DELETE FROM playback_history WHERE song_id IN (SELECT id FROM songs WHERE media_store_id = ?)',
+        [mediaStoreId],
+      );
+      await txn.delete('song_artists', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
       await txn.delete('songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
+      prunedPins = await PinnedFavoritesDao.instance.pruneOrphanedPins(
+        executor: txn,
+        notify: false,
+      );
     });
+    if (prunedPins > 0) {
+      PinnedFavoritesDao.revision.value++;
+    }
+    await FavoriteSongsDao.instance.refreshCache();
     notifyPlaybackHistoryChanged();
   }
 }

@@ -20,6 +20,7 @@ import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/navigation/app_route_tracker.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
@@ -73,6 +74,12 @@ class PlaylistDetailScreen extends StatefulWidget {
     bool showHeroCover = true,
   }) {
     return PageRouteBuilder<Playlist?>(
+      settings: RouteSettings(
+        name: AppRouteTracker.playlistRouteName(
+          playlistId: playlist.id,
+          name: playlist.name,
+        ),
+      ),
       pageBuilder: (context, animation, secondaryAnimation) => PlaylistDetailScreen(
         playlist: playlist,
         initialSongs: initialSongs,

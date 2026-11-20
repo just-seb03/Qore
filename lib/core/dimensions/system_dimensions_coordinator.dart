@@ -98,6 +98,16 @@ class SystemDimensionsCoordinator {
     }
   }
 
+  /// Moves the app task to background without finishing the Activity or interrupting audio.
+  Future<bool> moveToBackground() async {
+    try {
+      final moved = await _channel.invokeMethod<bool>('moveToBackground');
+      return moved ?? false;
+    } catch (_) {
+      return false;
+    }
+  }
+
   /// Injects simulated dimensions for unit and widget testing.
   @visibleForTesting
   void setDimensionsForTesting(SystemDimensions dimensions) {

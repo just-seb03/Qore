@@ -12,6 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/home/components/tiles/metro_album_tile.dart';
 import 'package:project_anima/features/home/components/tiles/metro_artist_tile.dart';
@@ -69,6 +70,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
       _loadPinned();
     }
     PinnedFavoritesDao.revision.addListener(_onRevisionChanged);
+    MusicIndexer.revision.addListener(_onRevisionChanged);
   }
 
   @override
@@ -86,6 +88,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
   @override
   void dispose() {
     PinnedFavoritesDao.revision.removeListener(_onRevisionChanged);
+    MusicIndexer.revision.removeListener(_onRevisionChanged);
     super.dispose();
   }
 

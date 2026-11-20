@@ -9,6 +9,7 @@
 /// - AnimaApp: Root StatefulWidget configuring global theme, lifecycle, and adaptive boundaries.
 library;
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -19,7 +20,9 @@ import 'package:project_anima/core/dimensions/adaptive_system_boundary.dart';
 import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/localization/localization_controller.dart';
+import 'package:project_anima/core/navigation/app_route_tracker.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
+import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/startup/screens/startup_loading_screen.dart';
@@ -115,11 +118,26 @@ class AnimaApp extends StatefulWidget {
 
 class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
   Key _appKey = UniqueKey();
+  DateTime? _lastResumeSyncAt;
 
   void restart() {
     setState(() {
       _appKey = UniqueKey();
     });
+  }
+
+  Future<void> _triggerResumeLibrarySync() async {
+    if (MusicIndexer.instance.isIndexing) return;
+    final now = DateTime.now();
+    if (_lastResumeSyncAt != null &&
+        now.difference(_lastResumeSyncAt!) < const Duration(seconds: 4)) {
+      return;
+    }
+    final onboardingDone = AppMetadataDao.instance.isOnboardingCompletedSync ||
+        await AppMetadataDao.instance.isOnboardingCompleted();
+    if (!onboardingDone || MusicIndexer.instance.isIndexing) return;
+    _lastResumeSyncAt = now;
+    await MusicIndexer.instance.syncWithDevice();
   }
 
   @override
@@ -140,6 +158,7 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
       // Re-detect system dimensions and notch concealment in case user modified device settings
       SystemDimensionsCoordinator.instance.refresh();
       AmbientParticlesController.instance.setAppPaused(false);
+      unawaited(_triggerResumeLibrarySync());
     }
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive ||
@@ -182,6 +201,7 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
           return MaterialApp(
           title: 'Project Anima',
           debugShowCheckedModeBanner: false,
+          navigatorObservers: [AppRouteTracker.instance],
           theme: ThemeController.instance.currentThemeData,
           locale: LocalizationController.instance.currentLocale,
           supportedLocales: AppLocalizations.supportedLocales,

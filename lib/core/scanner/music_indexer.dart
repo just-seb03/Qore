@@ -14,6 +14,7 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/bpm_analyzer.dart';
@@ -353,6 +354,9 @@ class MusicIndexer {
 
       // Si delta == 0: Finalizar sincronización de inmediato sin tocar el disco
       if (deltaCount == 0) {
+        if (mockDeviceItems == null) {
+          await PinnedFavoritesDao.instance.pruneOrphanedPins();
+        }
         stopwatch.stop();
         final int totalSongs = cachedIds.length;
         debugPrint(

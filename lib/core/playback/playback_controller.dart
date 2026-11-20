@@ -49,6 +49,7 @@ class PlaybackController extends ChangeNotifier {
   int? _resolvingBpmMediaStoreId;
   int? _resolvingColorMediaStoreId;
   int? _resolvedCoverColorSongId;
+  int? _notifiedArtUriSongId;
 
   StreamSubscription<PlayerState>? _playerStateSubscription;
   StreamSubscription<ProcessingState>? _processingStateSubscription;
@@ -325,6 +326,12 @@ class PlaybackController extends ChangeNotifier {
   void _onArtworkServiceUpdated() {
     final active = _currentSong;
     if (active == null) return;
+    if (_notifiedArtUriSongId != active.mediaStoreId) {
+      final artUri = _resolveArtUri(active);
+      if (artUri != null) {
+        _updateSystemNotification(active);
+      }
+    }
     if (_resolvedCoverColorSongId == active.mediaStoreId) return;
     unawaited(_resolvePlayingSongCoverColor(active));
   }
@@ -466,7 +473,7 @@ class PlaybackController extends ChangeNotifier {
     _currentIndex = index;
     _currentSong = _queue[index];
 
-    _updateSystemNotification(_currentSong!);
+    _updateSystemNotification(_currentSong!, forcePlaying: _player.playing);
     _persistCurrentSessionImmediate();
     _recordPlaybackHistory(_currentSong!);
     _syncAmbientBackdropBpm(resolveIfMissing: true);
@@ -523,6 +530,8 @@ class PlaybackController extends ChangeNotifier {
       final coverPath = ArtworkService.instance.getCoverPath(
         song.mediaStoreId,
         albumId: song.albumId,
+        album: song.album,
+        artist: song.albumArtist ?? song.artist,
       );
       if (coverPath != null && File(coverPath).existsSync()) {
         return Uri.file(coverPath);
@@ -530,6 +539,8 @@ class PlaybackController extends ChangeNotifier {
       final thumbPath = ArtworkService.instance.getThumbnailPath(
         song.mediaStoreId,
         albumId: song.albumId,
+        album: song.album,
+        artist: song.albumArtist ?? song.artist,
       );
       if (thumbPath != null && File(thumbPath).existsSync()) {
         return Uri.file(thumbPath);
@@ -542,7 +553,7 @@ class PlaybackController extends ChangeNotifier {
   }
 
   /// Updates the system notification metadata (title, artist, album, artUri, duration).
-  void _updateSystemNotification(Song song) {
+  void _updateSystemNotification(Song song, {bool? forcePlaying}) {
     final title = song.title.trim().isEmpty ? 'Canción' : song.title;
     final artist = (song.artist == null || song.artist!.trim().isEmpty)
         ? '<Desconocido>'
@@ -551,17 +562,24 @@ class PlaybackController extends ChangeNotifier {
         ? '<Desconocido>'
         : song.album!;
 
+    final resolvedDuration = song.duration > 0
+        ? Duration(milliseconds: song.duration)
+        : (_player.duration ?? Duration.zero);
+    final artUri = _resolveArtUri(song);
+    if (artUri != null) {
+      _notifiedArtUriSongId = song.mediaStoreId;
+    }
+
     final mediaItem = MediaItem(
-      id: '${song.id ?? song.mediaStoreId}',
+      id: '${song.mediaStoreId}_${song.path.hashCode}',
       album: album,
       title: title,
       artist: artist,
-      duration: Duration(milliseconds: song.duration),
-      artUri: _resolveArtUri(song),
+      duration: resolvedDuration,
+      artUri: artUri,
     );
 
-    _audioHandler?.updateMetadata(mediaItem);
-    _audioHandler?.broadcastCurrentState();
+    _audioHandler?.updateMetadata(mediaItem, forcePlaying: forcePlaying);
   }
 
   /// Requests notification permissions on Android 13+ (API 33+) to guarantee system media widget display.
@@ -675,7 +693,7 @@ class PlaybackController extends ChangeNotifier {
           unawaited(_player.play());
 
           _persistCurrentSessionImmediate();
-          _updateSystemNotification(_currentSong!);
+          _updateSystemNotification(_currentSong!, forcePlaying: true);
           _recordPlaybackHistory(_currentSong!);
           _syncAmbientBackdropBpm(resolveIfMissing: true, overridePlaying: true);
         } catch (e) {
@@ -707,7 +725,7 @@ class PlaybackController extends ChangeNotifier {
       unawaited(_player.play());
 
       _persistCurrentSessionImmediate();
-      _updateSystemNotification(song);
+      _updateSystemNotification(song, forcePlaying: true);
       _recordPlaybackHistory(song);
       _syncAmbientBackdropBpm(resolveIfMissing: true, overridePlaying: true);
     } catch (e) {
@@ -734,7 +752,7 @@ class PlaybackController extends ChangeNotifier {
       unawaited(_player.play());
 
       _persistCurrentSessionImmediate();
-      _updateSystemNotification(_currentSong!);
+      _updateSystemNotification(_currentSong!, forcePlaying: true);
       _recordPlaybackHistory(_currentSong!);
       _syncAmbientBackdropBpm(resolveIfMissing: true, overridePlaying: true);
     } catch (e) {

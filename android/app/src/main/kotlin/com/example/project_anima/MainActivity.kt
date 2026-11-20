@@ -270,6 +270,10 @@ class MainActivity : AudioServiceActivity() {
                         result.success(false)
                     }
                 }
+                "moveToBackground" -> {
+                    moveTaskToBack(true)
+                    result.success(true)
+                }
                 else -> result.notImplemented()
             }
         }

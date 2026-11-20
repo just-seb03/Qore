@@ -42,6 +42,8 @@ class NavigationController extends ChangeNotifier {
   static const Duration doubleTapTimeout = Duration(milliseconds: 1500);
 
   DateTime? _lastSearchTapTime;
+  bool _searchInterceptsBack = false;
+  bool _searchHandledBackRecently = false;
 
   /// Trigger dispatched when the search screen should reset to its initial state
   /// (e.g. tapped twice consecutively in the bottom navigation bar).
@@ -52,6 +54,24 @@ class NavigationController extends ChangeNotifier {
 
   /// Gets the currently active tab index.
   int get currentIndex => _currentIndex;
+
+  /// Whether the active Search tab should intercept the current system back press
+  /// instead of letting the root container move the task to background.
+  bool get searchInterceptsBack =>
+      (_searchHandledBackRecently || _searchInterceptsBack) &&
+      _currentIndex == NavigationTab.search.index;
+
+  /// Updates whether the Search tab needs to intercept the next system back press.
+  void setSearchInterceptsBack(bool intercept) {
+    _searchInterceptsBack = intercept;
+  }
+
+  /// Marks that the Search tab just handled a system back press in the current
+  /// synchronous dispatch loop so the root container does not also minimize.
+  void notifySearchHandledBack() {
+    _searchHandledBackRecently = true;
+    Future.microtask(() => _searchHandledBackRecently = false);
+  }
 
   /// Updates the internal index without triggering route transitions.
   void setIndex(int index) {
@@ -102,6 +122,8 @@ class NavigationController extends ChangeNotifier {
   void reset({int initialIndex = 2}) {
     _currentIndex = initialIndex;
     _lastSearchTapTime = null;
+    _searchInterceptsBack = false;
+    _searchHandledBackRecently = false;
     notifyListeners();
   }
 }

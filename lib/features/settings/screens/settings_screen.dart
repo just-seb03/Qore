@@ -15,6 +15,7 @@ import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/localization/app_locale.dart';
 import 'package:project_anima/core/localization/localization_controller.dart';
+import 'package:project_anima/core/navigation/app_route_tracker.dart';
 import 'package:project_anima/core/scanner/models/indexing_result.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
@@ -65,6 +66,7 @@ class SettingsScreen extends StatefulWidget {
   /// Slide route to present SettingsScreen.
   static Route<void> route() {
     return PageRouteBuilder<void>(
+      settings: const RouteSettings(name: AppRouteTracker.settingsRouteName),
       pageBuilder: (context, animation, secondaryAnimation) =>
           const SettingsScreen(),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {

@@ -64,6 +64,16 @@ class _SearchScreenState extends State<SearchScreen>
     RecentSearchController.instance.init();
     NavigationController.instance.searchResetNotifier.addListener(_onSearchReset);
     NavigationController.instance.searchScrollToTopNotifier.addListener(_onScrollToTop);
+    _searchFocusNode.addListener(_syncSearchBackInterception);
+    _searchController.addListener(_syncSearchBackInterception);
+  }
+
+  void _syncSearchBackInterception() {
+    if (!mounted) return;
+    final isTabVisible = TickerMode.valuesOf(context).enabled;
+    NavigationController.instance.setSearchInterceptsBack(
+      isTabVisible && (_searchFocusNode.hasFocus || _searchController.text.isNotEmpty),
+    );
   }
 
   Future<void> _handleRecentItemTap(RecentSearchItem item) async {
@@ -273,6 +283,9 @@ class _SearchScreenState extends State<SearchScreen>
   void dispose() {
     NavigationController.instance.searchResetNotifier.removeListener(_onSearchReset);
     NavigationController.instance.searchScrollToTopNotifier.removeListener(_onScrollToTop);
+    NavigationController.instance.setSearchInterceptsBack(false);
+    _searchFocusNode.removeListener(_syncSearchBackInterception);
+    _searchController.removeListener(_syncSearchBackInterception);
     _searchFocusNode.dispose();
     _searchController.dispose();
     _searchEngine.dispose();
@@ -285,6 +298,9 @@ class _SearchScreenState extends State<SearchScreen>
     super.build(context);
 
     final isTabVisible = TickerMode.valuesOf(context).enabled;
+    NavigationController.instance.setSearchInterceptsBack(
+      isTabVisible && (_searchFocusNode.hasFocus || _searchController.text.isNotEmpty),
+    );
 
     return PopScope(
       canPop: !isTabVisible || (!_searchFocusNode.hasFocus && _searchController.text.isEmpty),
@@ -293,12 +309,14 @@ class _SearchScreenState extends State<SearchScreen>
 
         // 1. If keyboard / search bar is focused, just close keyboard
         if (_searchFocusNode.hasFocus) {
+          NavigationController.instance.notifySearchHandledBack();
           _searchFocusNode.unfocus();
           return;
         }
 
         // 2. If keyboard is already closed and in query mode, clear query
         if (_searchController.text.isNotEmpty) {
+          NavigationController.instance.notifySearchHandledBack();
           _searchController.clear();
           _searchEngine.clear();
           _searchFocusNode.unfocus();

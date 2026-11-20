@@ -9,6 +9,7 @@ library;
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:project_anima/core/navigation/app_route_tracker.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
@@ -26,6 +27,7 @@ class PlayerScreen extends StatefulWidget {
   /// Factory helper for smooth bottom-to-top modal slide transition.
   static Route<void> route() {
     return PageRouteBuilder<void>(
+      settings: const RouteSettings(name: AppRouteTracker.playerRouteName),
       pageBuilder: (context, animation, secondaryAnimation) => const PlayerScreen(),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {
         final tween = Tween<Offset>(

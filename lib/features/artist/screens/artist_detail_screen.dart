@@ -16,6 +16,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
+import 'package:project_anima/core/navigation/app_route_tracker.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
@@ -50,6 +51,9 @@ class ArtistDetailScreen extends StatefulWidget {
   /// Factory helper for smooth bottom-to-top modal slide transition.
   static Route<void> route(String artistName) {
     return PageRouteBuilder<void>(
+      settings: RouteSettings(
+        name: AppRouteTracker.artistRouteName(artistName),
+      ),
       pageBuilder: (context, animation, secondaryAnimation) =>
           ArtistDetailScreen(artistName: artistName),
       transitionsBuilder: (context, animation, secondaryAnimation, child) {

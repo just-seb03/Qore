@@ -102,6 +102,67 @@ class PinnedFavoritesDao {
     return deleted;
   }
 
+  /// Removes pinned albums, artists, and playlists whose underlying media no longer exists.
+  /// Returns total deleted count and increments [revision] when [notify] is true.
+  Future<int> pruneOrphanedPins({
+    DatabaseExecutor? executor,
+    bool notify = true,
+  }) async {
+    final db = executor ?? await _db;
+    int totalDeleted = 0;
+
+    // 1. Prune pinned albums with zero matching songs left in `songs`
+    totalDeleted += await db.rawDelete('''
+      DELETE FROM pinned_favorites
+      WHERE item_type = 'album'
+        AND NOT EXISTS (
+          SELECT 1 FROM songs s
+          WHERE LOWER(TRIM(s.album)) = LOWER(TRIM(pinned_favorites.title))
+            AND (
+              pinned_favorites.subtitle IS NULL
+              OR TRIM(pinned_favorites.subtitle) = ''
+              OR LOWER(TRIM(pinned_favorites.subtitle)) IN ('<desconocido>', 'unknown artist')
+              OR LOWER(TRIM(COALESCE(NULLIF(TRIM(s.album_artist), ''), NULLIF(TRIM(s.artist), ''), ''))) = LOWER(TRIM(pinned_favorites.subtitle))
+              OR LOWER(TRIM(s.artist)) LIKE LOWER(TRIM(pinned_favorites.subtitle)) || '%'
+              OR EXISTS (
+                SELECT 1 FROM song_artists sa
+                WHERE sa.song_id = s.id AND LOWER(TRIM(sa.artist)) = LOWER(TRIM(pinned_favorites.subtitle))
+              )
+            )
+        )
+    ''');
+
+    // 2. Prune pinned artists with zero matching tracks left in `songs` or `song_artists`
+    totalDeleted += await db.rawDelete('''
+      DELETE FROM pinned_favorites
+      WHERE item_type = 'artist'
+        AND NOT EXISTS (
+          SELECT 1 FROM songs s
+          WHERE LOWER(TRIM(s.artist)) = LOWER(TRIM(pinned_favorites.title))
+             OR LOWER(TRIM(s.album_artist)) = LOWER(TRIM(pinned_favorites.title))
+        )
+        AND NOT EXISTS (
+          SELECT 1 FROM song_artists sa
+          WHERE LOWER(TRIM(sa.artist)) = LOWER(TRIM(pinned_favorites.title))
+        )
+    ''');
+
+    // 3. Prune pinned playlists whose playlist row was deleted
+    totalDeleted += await db.rawDelete('''
+      DELETE FROM pinned_favorites
+      WHERE item_type = 'playlist'
+        AND playlist_id IS NOT NULL
+        AND NOT EXISTS (
+          SELECT 1 FROM playlists p WHERE p.id = pinned_favorites.playlist_id
+        )
+    ''');
+
+    if (totalDeleted > 0 && notify) {
+      revision.value++;
+    }
+    return totalDeleted;
+  }
+
   /// Clears all pinned favorites (useful for tests).
   @visibleForTesting
   Future<void> clearAll() async {

@@ -16,6 +16,7 @@ library;
 import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
+import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart';
 import 'package:project_anima/features/explore/screens/explore.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/screens/library.dart';
@@ -369,21 +370,29 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
       return animatedContent;
     }
 
-    return Scaffold(
-      resizeToAvoidBottomInset: false,
-      extendBody: true,
-      backgroundColor: Colors.transparent,
-      body: animatedContent,
-      bottomNavigationBar: ListenableBuilder(
-        listenable: _controller,
-        builder: (context, _) {
-          return AppBottomNav(
-            currentIndex: _controller.currentIndex,
-            onDestinationSelected: (index) {
-              NavigationController.instance.handleDestinationSelected(context, index);
-            },
-          );
-        },
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        if (NavigationController.instance.searchInterceptsBack) return;
+        SystemDimensionsCoordinator.instance.moveToBackground();
+      },
+      child: Scaffold(
+        resizeToAvoidBottomInset: false,
+        extendBody: true,
+        backgroundColor: Colors.transparent,
+        body: animatedContent,
+        bottomNavigationBar: ListenableBuilder(
+          listenable: _controller,
+          builder: (context, _) {
+            return AppBottomNav(
+              currentIndex: _controller.currentIndex,
+              onDestinationSelected: (index) {
+                NavigationController.instance.handleDestinationSelected(context, index);
+              },
+            );
+          },
+        ),
       ),
     );
   }
