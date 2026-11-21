@@ -7,7 +7,9 @@
 /// - _WavyTrackPainter: CustomPainter drawing the animated sinusoidal wave and track.
 library;
 
+import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -29,6 +31,10 @@ class PlayerProgressBar extends StatefulWidget {
 class _PlayerProgressBarState extends State<PlayerProgressBar>
     with SingleTickerProviderStateMixin {
   late final AnimationController _waveAnimationController;
+  final ValueNotifier<double> _progressNotifier = ValueNotifier<double>(0.0);
+  final ValueNotifier<int> _elapsedSecondsNotifier = ValueNotifier<int>(0);
+  final ValueNotifier<int> _totalDurationMsNotifier = ValueNotifier<int>(0);
+  StreamSubscription<Duration>? _positionSub;
 
   bool _isDragging = false;
   double _dragProgress = 0.0;
@@ -48,14 +54,27 @@ class _PlayerProgressBarState extends State<PlayerProgressBar>
       duration: const Duration(milliseconds: 2400),
     );
 
-    if (widget.controller.isPlaying) {
-      _waveAnimationController.repeat();
-    }
+    _syncFromController(widget.controller.position);
+    _syncWaveAnimation();
 
     widget.controller.addListener(_onPlaybackStateChanged);
+    _positionSub = widget.controller.positionStream.listen(_onPositionUpdate);
   }
 
-  void _onPlaybackStateChanged() {
+  @override
+  void didUpdateWidget(covariant PlayerProgressBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller.removeListener(_onPlaybackStateChanged);
+      _positionSub?.cancel();
+      widget.controller.addListener(_onPlaybackStateChanged);
+      _positionSub = widget.controller.positionStream.listen(_onPositionUpdate);
+      _syncFromController(widget.controller.position);
+      _syncWaveAnimation();
+    }
+  }
+
+  void _syncWaveAnimation() {
     if (widget.controller.isPlaying) {
       if (!_waveAnimationController.isAnimating) {
         _waveAnimationController.repeat();
@@ -67,14 +86,46 @@ class _PlayerProgressBarState extends State<PlayerProgressBar>
     }
   }
 
+  void _syncFromController(Duration position) {
+    final int totalMs = widget.controller.duration.inMilliseconds;
+    _totalDurationMsNotifier.value = totalMs;
+
+    if (_isDragging) return;
+    final double progress =
+        totalMs > 0 ? (position.inMilliseconds / totalMs).clamp(0.0, 1.0) : 0.0;
+    _progressNotifier.value = progress;
+    _elapsedSecondsNotifier.value = position.inSeconds;
+  }
+
+  void _onPositionUpdate(Duration position) {
+    if (_isDragging) return;
+    _syncFromController(position);
+  }
+
+  void _onPlaybackStateChanged() {
+    _syncWaveAnimation();
+    _syncFromController(widget.controller.position);
+  }
+
   @override
   void dispose() {
     widget.controller.removeListener(_onPlaybackStateChanged);
+    _positionSub?.cancel();
     _waveAnimationController.dispose();
+    _progressNotifier.dispose();
+    _elapsedSecondsNotifier.dispose();
+    _totalDurationMsNotifier.dispose();
     super.dispose();
   }
 
   String _formatDuration(Duration duration) => formatDuration(duration);
+
+  void _updateDragProgress(double progress) {
+    _dragProgress = progress;
+    _progressNotifier.value = progress;
+    final int totalMs = _totalDurationMsNotifier.value;
+    _elapsedSecondsNotifier.value = ((progress * totalMs) / 1000).round();
+  }
 
   void _handleSeek(double progress, Duration totalDuration) {
     final int targetMs = (progress * totalDuration.inMilliseconds).round();
@@ -83,114 +134,93 @@ class _PlayerProgressBarState extends State<PlayerProgressBar>
 
   @override
   Widget build(BuildContext context) {
-    return StreamBuilder<Duration>(
-      stream: widget.controller.positionStream,
-      builder: (context, snapshot) {
-        final position = snapshot.data ?? widget.controller.position;
-        final duration = widget.controller.duration;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 24.0),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 1. Material 3 Expressive Wavy Seek Bar Area
+          SizedBox(
+            height: 38.0,
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final width = constraints.maxWidth;
 
-        final double totalMs = duration.inMilliseconds.toDouble();
-        final double currentMs = position.inMilliseconds.toDouble();
+                double localProgress(double dx) =>
+                    width > 0 ? (dx / width).clamp(0.0, 1.0) : 0.0;
 
-        final double naturalProgress = totalMs > 0 ? (currentMs / totalMs).clamp(0.0, 1.0) : 0.0;
-        final double displayProgress = _isDragging ? _dragProgress : naturalProgress;
-
-        final currentTimestamp = Duration(
-          milliseconds: (displayProgress * totalMs).round(),
-        );
-
-        return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // 1. Material 3 Expressive Wavy Seek Bar Area
-              SizedBox(
-                height: 38.0,
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final width = constraints.maxWidth;
-
-                    void updateFromLocalDx(double dx) {
-                      final progress = (dx / width).clamp(0.0, 1.0);
-                      setState(() {
-                        _dragProgress = progress;
-                      });
-                    }
-
-                    return GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onHorizontalDragStart: (details) {
-                        setState(() {
-                          _isDragging = true;
-                        });
-                        updateFromLocalDx(details.localPosition.dx);
-                      },
-                      onHorizontalDragUpdate: (details) {
-                        updateFromLocalDx(details.localPosition.dx);
-                      },
-                      onHorizontalDragEnd: (_) {
-                        setState(() {
-                          _isDragging = false;
-                        });
-                        _handleSeek(_dragProgress, duration);
-                      },
-                      onTapDown: (details) {
-                        final progress = (details.localPosition.dx / width).clamp(0.0, 1.0);
-                        setState(() {
-                          _dragProgress = progress;
-                        });
-                        _handleSeek(progress, duration);
-                      },
-                      child: AnimatedBuilder(
-                        animation: _waveAnimationController,
-                        builder: (context, _) {
-                          return CustomPaint(
-                            size: Size(width, 38.0),
-                            painter: _WavyTrackPainter(
-                              progress: displayProgress,
-                              phase: _waveAnimationController.value * 2 * math.pi,
-                              isPlaying: widget.controller.isPlaying,
-                            ),
-                          );
-                        },
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onHorizontalDragStart: (details) {
+                    _isDragging = true;
+                    _updateDragProgress(localProgress(details.localPosition.dx));
+                  },
+                  onHorizontalDragUpdate: (details) {
+                    _updateDragProgress(localProgress(details.localPosition.dx));
+                  },
+                  onHorizontalDragEnd: (_) {
+                    _isDragging = false;
+                    _handleSeek(_dragProgress, widget.controller.duration);
+                  },
+                  onTapDown: (details) {
+                    final progress = localProgress(details.localPosition.dx);
+                    _updateDragProgress(progress);
+                    _handleSeek(progress, widget.controller.duration);
+                  },
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      size: Size(width, 38.0),
+                      painter: _WavyTrackPainter(
+                        progressListenable: _progressNotifier,
+                        waveAnimation: _waveAnimationController,
+                        isPlayingProvider: () => widget.controller.isPlaying,
                       ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // 2. Timestamps Row (Elapsed updates at most 1 Hz, Total on track duration change)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 2.0),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                ValueListenableBuilder<int>(
+                  valueListenable: _elapsedSecondsNotifier,
+                  builder: (context, seconds, _) {
+                    return Text(
+                      _formatDuration(Duration(seconds: seconds)),
+                      style: _timestampStyle,
                     );
                   },
                 ),
-              ),
-
-              // 2. Timestamps Row (Elapsed on Left, Total on Right)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 2.0),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      _formatDuration(currentTimestamp),
+                ValueListenableBuilder<int>(
+                  valueListenable: _totalDurationMsNotifier,
+                  builder: (context, totalMs, _) {
+                    return Text(
+                      _formatDuration(Duration(milliseconds: totalMs)),
                       style: _timestampStyle,
-                    ),
-                    Text(
-                      _formatDuration(duration),
-                      style: _timestampStyle,
-                    ),
-                  ],
+                    );
+                  },
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-        );
-      },
+        ],
+      ),
     );
   }
 }
 
 /// Custom painter rendering the Material 3 Expressive squiggly/wavy active track,
-/// clean straight inactive track, and circular thumb.
+/// clean straight inactive track, and circular thumb without widget rebuilds.
 class _WavyTrackPainter extends CustomPainter {
-  final double progress;
-  final double phase;
-  final bool isPlaying;
+  final ValueListenable<double> progressListenable;
+  final Animation<double> waveAnimation;
+  final bool Function() isPlayingProvider;
 
   static const double trackHeight = 3.5;
   static const double thumbRadius = 6.5;
@@ -212,14 +242,18 @@ class _WavyTrackPainter extends CustomPainter {
     ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4.0);
   static final Paint _thumbPaint = Paint()..style = PaintingStyle.fill;
 
-  const _WavyTrackPainter({
-    required this.progress,
-    required this.phase,
-    required this.isPlaying,
-  });
+  _WavyTrackPainter({
+    required this.progressListenable,
+    required this.waveAnimation,
+    required this.isPlayingProvider,
+  }) : super(repaint: Listenable.merge([waveAnimation, progressListenable]));
 
   @override
   void paint(Canvas canvas, Size size) {
+    final double progress = progressListenable.value;
+    final double phase = waveAnimation.value * 2 * math.pi;
+    final bool isPlaying = isPlayingProvider();
+
     final double cy = size.height / 2;
     final double trackWidth = size.width;
     final double thumbX = (trackWidth * progress).clamp(0.0, trackWidth);
@@ -277,8 +311,7 @@ class _WavyTrackPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _WavyTrackPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.phase != phase ||
-        oldDelegate.isPlaying != isPlaying;
+    return !identical(oldDelegate.progressListenable, progressListenable) ||
+        !identical(oldDelegate.waveAnimation, waveAnimation);
   }
 }

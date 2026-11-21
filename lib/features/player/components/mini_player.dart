@@ -12,7 +12,9 @@
 /// - _LiquidFillPainter: Custom painter rendering the dual-layer animated undulating water waves.
 library;
 
+import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -274,85 +276,144 @@ class _MiniPlayerLiquidProgress extends StatefulWidget {
 class _MiniPlayerLiquidProgressState extends State<_MiniPlayerLiquidProgress>
     with SingleTickerProviderStateMixin {
   late final AnimationController _waveController;
+  final ValueNotifier<double> _progressNotifier = ValueNotifier<double>(0.0);
+  StreamSubscription<Duration>? _positionSub;
+  Duration _lastPosition = Duration.zero;
+  bool _isTickerEnabled = true;
+  late bool _isDark;
+  late Color _targetWaterColor;
+
+  bool get _shouldTrackPlayback =>
+      _isTickerEnabled &&
+      !AmbientParticlesController.instance.isExpandedPlayerVisible;
+
+  Color _resolveTargetColor(bool isDark) {
+    return MiniPlayer.resolveWaterColor(
+      AmbientParticlesController.instance.targetWaveColor,
+      isDark: isDark,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
+    _isDark = ThemeController.instance.isDarkMode;
+    _targetWaterColor = _resolveTargetColor(_isDark);
     _waveController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2400),
     );
-    if (widget.controller.isPlaying) {
-      _waveController.repeat();
-    }
+
+    AmbientParticlesController.instance.addListener(_onAmbientChanged);
+    ThemeController.instance.addListener(_onThemeChanged);
+    widget.controller.addListener(_onPlaybackChanged);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bool tickerEnabled = TickerMode.valuesOf(context).enabled;
+    _isTickerEnabled = tickerEnabled;
+    _syncPlaybackSubscriptions();
   }
 
   @override
   void didUpdateWidget(covariant _MiniPlayerLiquidProgress oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.controller.isPlaying && !_waveController.isAnimating) {
-      _waveController.repeat();
-    } else if (!widget.controller.isPlaying && _waveController.isAnimating) {
-      _waveController.stop();
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller.removeListener(_onPlaybackChanged);
+      _positionSub?.cancel();
+      _positionSub = null;
+      _lastPosition = Duration.zero;
+      _progressNotifier.value = 0.0;
+      widget.controller.addListener(_onPlaybackChanged);
+    }
+    _syncPlaybackSubscriptions();
+  }
+
+  void _syncPlaybackSubscriptions() {
+    if (_shouldTrackPlayback) {
+      _positionSub ??= widget.controller.positionStream.listen(_onPositionUpdate);
+      if (widget.controller.isPlaying) {
+        if (!_waveController.isAnimating) {
+          _waveController.repeat();
+        }
+      } else if (_waveController.isAnimating) {
+        _waveController.stop();
+      }
+    } else {
+      _positionSub?.cancel();
+      _positionSub = null;
+      if (_waveController.isAnimating) {
+        _waveController.stop();
+      }
+    }
+  }
+
+  void _onPositionUpdate(Duration position) {
+    _lastPosition = position;
+    final int totalMs = widget.controller.duration.inMilliseconds;
+    _progressNotifier.value = totalMs > 0
+        ? (position.inMilliseconds / totalMs).clamp(0.0, 1.0)
+        : 0.0;
+  }
+
+  void _onPlaybackChanged() {
+    _syncPlaybackSubscriptions();
+    _onPositionUpdate(_lastPosition);
+  }
+
+  void _onAmbientChanged() {
+    _syncPlaybackSubscriptions();
+    final Color nextColor = _resolveTargetColor(_isDark);
+    if (nextColor != _targetWaterColor && mounted) {
+      setState(() {
+        _targetWaterColor = nextColor;
+      });
+    }
+  }
+
+  void _onThemeChanged() {
+    final bool nextDark = ThemeController.instance.isDarkMode;
+    final Color nextColor = _resolveTargetColor(nextDark);
+    if ((nextDark != _isDark || nextColor != _targetWaterColor) && mounted) {
+      setState(() {
+        _isDark = nextDark;
+        _targetWaterColor = nextColor;
+      });
     }
   }
 
   @override
   void dispose() {
+    AmbientParticlesController.instance.removeListener(_onAmbientChanged);
+    ThemeController.instance.removeListener(_onThemeChanged);
+    widget.controller.removeListener(_onPlaybackChanged);
+    _positionSub?.cancel();
     _waveController.dispose();
+    _progressNotifier.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: Listenable.merge([
-        AmbientParticlesController.instance,
-        ThemeController.instance,
-      ]),
-      builder: (context, _) {
-        final bool isDark = ThemeController.instance.isDarkMode;
-        final Color targetWaterColor = MiniPlayer.resolveWaterColor(
-          AmbientParticlesController.instance.targetWaveColor,
-          isDark: isDark,
-        );
-
-        return TweenAnimationBuilder<Color?>(
-          tween: ColorTween(end: targetWaterColor),
-          duration: const Duration(milliseconds: 380),
-          curve: Curves.easeOutCubic,
-          builder: (context, animatedColor, _) {
-            final Color waterColor = animatedColor ?? targetWaterColor;
-            return StreamBuilder<Duration>(
-              stream: widget.controller.positionStream,
-              builder: (context, snapshot) {
-                final position = snapshot.data ?? Duration.zero;
-                final total = widget.controller.duration;
-                final double progress = total.inMilliseconds > 0
-                    ? (position.inMilliseconds / total.inMilliseconds).clamp(0.0, 1.0)
-                    : 0.0;
-
-                return RepaintBoundary(
-                  child: AnimatedBuilder(
-                    animation: _waveController,
-                    builder: (context, _) {
-                      return CustomPaint(
-                        key: const ValueKey('mini_player_liquid_paint'),
-                        size: Size.infinite,
-                        painter: _LiquidFillPainter(
-                          progress: progress,
-                          wavePhase: _waveController.value * 2 * math.pi,
-                          isPlaying: widget.controller.isPlaying,
-                          waterColor: waterColor,
-                          isDark: isDark,
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            );
-          },
+    return TweenAnimationBuilder<Color?>(
+      tween: ColorTween(end: _targetWaterColor),
+      duration: const Duration(milliseconds: 380),
+      curve: Curves.easeOutCubic,
+      builder: (context, animatedColor, _) {
+        final Color waterColor = animatedColor ?? _targetWaterColor;
+        return RepaintBoundary(
+          child: CustomPaint(
+            key: const ValueKey('mini_player_liquid_paint'),
+            size: Size.infinite,
+            painter: _LiquidFillPainter(
+              progressListenable: _progressNotifier,
+              waveAnimation: _waveController,
+              waterColor: waterColor,
+              isDark: _isDark,
+            ),
+          ),
         );
       },
     );
@@ -360,11 +421,11 @@ class _MiniPlayerLiquidProgressState extends State<_MiniPlayerLiquidProgress>
 }
 
 /// CustomPainter rendering two layers of fluid sinusoidal water waves
-/// tinted with the active track's cover color (falling back to `#5BABCE`).
+/// tinted with the active track's cover color (falling back to `#5BABCE`),
+/// caching the fill gradient shader and repainting via [Listenable.merge].
 class _LiquidFillPainter extends CustomPainter {
-  final double progress;
-  final double wavePhase;
-  final bool isPlaying;
+  final ValueListenable<double> progressListenable;
+  final Animation<double> waveAnimation;
   final Color waterColor;
   final bool isDark;
 
@@ -373,18 +434,26 @@ class _LiquidFillPainter extends CustomPainter {
   static final Paint _backWavePaint = Paint()..style = PaintingStyle.fill;
   static final Paint _frontWavePaint = Paint()..style = PaintingStyle.fill;
 
-  const _LiquidFillPainter({
-    required this.progress,
-    required this.wavePhase,
-    required this.isPlaying,
+  static Shader? _cachedFrontShader;
+  static int? _cachedShaderColorArgb;
+  static bool? _cachedShaderIsDark;
+  static double _cachedShaderWidth = -1.0;
+  static double _cachedShaderTop = -1.0;
+  static double _cachedShaderHeight = -1.0;
+
+  _LiquidFillPainter({
+    required this.progressListenable,
+    required this.waveAnimation,
     required this.waterColor,
     required this.isDark,
-  });
+  }) : super(repaint: Listenable.merge([waveAnimation, progressListenable]));
 
   @override
   void paint(Canvas canvas, Size size) {
+    final double progress = progressListenable.value;
     if (size.width <= 0 || size.height <= 0 || progress <= 0.0) return;
 
+    final double wavePhase = waveAnimation.value * 2 * math.pi;
     final double w = size.width;
     final double h = size.height;
 
@@ -398,16 +467,21 @@ class _LiquidFillPainter extends CustomPainter {
     final double amp2 = 1.8 * amplitudeTaper;
     const double wavelength1 = 160.0;
     const double wavelength2 = 120.0;
+    const double stepX = 6.0;
 
     // 1. Back Wave (deeper, shifted phase, slower flow)
     _backWavePath.reset();
     _backWavePath.moveTo(0, h);
     _backWavePath.lineTo(0, (baseWaterY + amp1 * math.sin(wavePhase * 0.8)).clamp(0.0, h));
 
-    for (double x = 0; x <= w; x += 3.0) {
+    for (double x = 0; x <= w; x += stepX) {
       final double y = baseWaterY + amp1 * math.sin((x / wavelength1) * 2 * math.pi + wavePhase * 0.8);
       _backWavePath.lineTo(x, y.clamp(0.0, h));
     }
+    _backWavePath.lineTo(
+      w,
+      (baseWaterY + amp1 * math.sin((w / wavelength1) * 2 * math.pi + wavePhase * 0.8)).clamp(0.0, h),
+    );
     _backWavePath.lineTo(w, h);
     _backWavePath.close();
 
@@ -419,31 +493,50 @@ class _LiquidFillPainter extends CustomPainter {
     _frontWavePath.moveTo(0, h);
     _frontWavePath.lineTo(0, (baseWaterY + amp2 * math.sin(wavePhase + math.pi / 2)).clamp(0.0, h));
 
-    for (double x = 0; x <= w; x += 3.0) {
+    for (double x = 0; x <= w; x += stepX) {
       final double y = baseWaterY + amp2 * math.sin((x / wavelength2) * 2 * math.pi + wavePhase + math.pi / 2);
       _frontWavePath.lineTo(x, y.clamp(0.0, h));
     }
+    _frontWavePath.lineTo(
+      w,
+      (baseWaterY + amp2 * math.sin((w / wavelength2) * 2 * math.pi + wavePhase + math.pi / 2)).clamp(0.0, h),
+    );
     _frontWavePath.lineTo(w, h);
     _frontWavePath.close();
 
-    final Rect liquidRect = Rect.fromLTWH(0, math.max(0.0, baseWaterY - amp2), w, waterHeight + amp2);
-    _frontWavePaint.shader = LinearGradient(
-      begin: Alignment.topCenter,
-      end: Alignment.bottomCenter,
-      colors: [
-        waterColor.withValues(alpha: isDark ? 0.36 : 0.30),
-        waterColor.withValues(alpha: isDark ? 0.13 : 0.11),
-      ],
-    ).createShader(liquidRect);
+    final double rectTop = math.max(0.0, baseWaterY - amp2);
+    final double rectHeight = waterHeight + amp2;
+    final int colorArgb = waterColor.toARGB32();
+    if (_cachedFrontShader == null ||
+        _cachedShaderColorArgb != colorArgb ||
+        _cachedShaderIsDark != isDark ||
+        (_cachedShaderWidth - w).abs() >= 1.0 ||
+        (_cachedShaderTop - rectTop).abs() >= 1.0 ||
+        (_cachedShaderHeight - rectHeight).abs() >= 1.0) {
+      final Rect liquidRect = Rect.fromLTWH(0, rectTop, w, rectHeight);
+      _cachedFrontShader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          waterColor.withValues(alpha: isDark ? 0.36 : 0.30),
+          waterColor.withValues(alpha: isDark ? 0.13 : 0.11),
+        ],
+      ).createShader(liquidRect);
+      _cachedShaderColorArgb = colorArgb;
+      _cachedShaderIsDark = isDark;
+      _cachedShaderWidth = w;
+      _cachedShaderTop = rectTop;
+      _cachedShaderHeight = rectHeight;
+    }
 
+    _frontWavePaint.shader = _cachedFrontShader;
     canvas.drawPath(_frontWavePath, _frontWavePaint);
   }
 
   @override
   bool shouldRepaint(covariant _LiquidFillPainter oldDelegate) {
-    return oldDelegate.progress != progress ||
-        oldDelegate.wavePhase != wavePhase ||
-        oldDelegate.isPlaying != isPlaying ||
+    return !identical(oldDelegate.progressListenable, progressListenable) ||
+        !identical(oldDelegate.waveAnimation, waveAnimation) ||
         oldDelegate.waterColor != waterColor ||
         oldDelegate.isDark != isDark;
   }

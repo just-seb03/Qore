@@ -213,5 +213,32 @@ void main() {
       expect(lightCrimsonSample.avgA, greaterThan(0.0));
       expect(lightCrimsonSample.avgR, greaterThan(lightCrimsonSample.avgB * 1.5));
     });
+    testWidgets('pauses positionStream subscription while expanded player is visible and resumes when closed',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          supportedLocales: AppLocalizations.supportedLocales,
+          home: Scaffold(
+            bottomNavigationBar: MiniPlayer(controller: fakeController),
+          ),
+        ),
+      );
+
+      expect(fakeController._positionController.hasListener, isTrue);
+
+      AmbientParticlesController.instance.setExpandedPlayerVisible(true);
+      await tester.pump();
+      expect(fakeController._positionController.hasListener, isFalse);
+
+      AmbientParticlesController.instance.setExpandedPlayerVisible(false);
+      await tester.pump();
+      expect(fakeController._positionController.hasListener, isTrue);
+    });
   });
 }
