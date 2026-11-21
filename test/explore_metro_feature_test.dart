@@ -329,16 +329,18 @@ void main() {
 
       AnimatedSlide slideWidget = tester.widget<AnimatedSlide>(animatedSlideFinder);
       expect(slideWidget.offset, Offset.zero);
+      expect(find.byType(CustomScrollView), findsOneWidget);
+      expect(find.byType(SingleChildScrollView), findsNothing);
 
       // Scroll down
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, -300), warnIfMissed: false);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, -300), warnIfMissed: false);
       await tester.pump(const Duration(milliseconds: 300));
 
       slideWidget = tester.widget<AnimatedSlide>(animatedSlideFinder);
       expect(slideWidget.offset.dy < 0, isTrue);
 
       // Scroll back up
-      await tester.drag(find.byType(SingleChildScrollView), const Offset(0, 300), warnIfMissed: false);
+      await tester.drag(find.byType(CustomScrollView), const Offset(0, 300), warnIfMissed: false);
       await tester.pump(const Duration(milliseconds: 300));
 
       slideWidget = tester.widget<AnimatedSlide>(animatedSlideFinder);

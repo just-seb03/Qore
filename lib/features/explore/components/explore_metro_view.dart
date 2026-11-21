@@ -290,87 +290,93 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
     final l10n = context.l10n;
     final recentSongs10 = _recentlyPlayedSongs.take(10).toList();
 
-    return SingleChildScrollView(
+    return CustomScrollView(
       controller: widget.scrollController,
       physics: const AlwaysScrollableScrollPhysics(
         parent: BouncingScrollPhysics(),
       ),
-      padding: EdgeInsets.only(
-        top: widget.topPadding,
-        bottom: widget.bottomPadding,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // 1. Featured Section (Daily Mix occupying full width / 2 cuadros, solid color with centered icon)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: ExploreMetroTile(
-              title: 'Daily Mix',
-              subtitle: l10n.search.songCount(_todaySongs.length),
-              icon: Icons.today_rounded,
-              isSolid: true,
-              aspectRatio: 2.3,
-              onTap: () => _handleOpenDailyMix(context),
+      slivers: [
+        SliverPadding(
+          padding: EdgeInsets.only(top: widget.topPadding),
+          sliver: SliverToBoxAdapter(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 1. Featured Section (Daily Mix occupying full width / 2 cuadros, solid color with centered icon)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  child: ExploreMetroTile(
+                    title: 'Daily Mix',
+                    subtitle: l10n.search.songCount(_todaySongs.length),
+                    icon: Icons.today_rounded,
+                    isSolid: true,
+                    aspectRatio: 2.3,
+                    onTap: () => _handleOpenDailyMix(context),
+                  ),
+                ),
+                const SizedBox(height: 24.0),
+
+                // 2. Nuevos Álbumes Section (top 5 newest albums)
+                if (_newestAlbums.isNotEmpty) ...[
+                  _buildMetroSectionHeader(l10n.search.newAlbumsSectionHeader),
+                  const SizedBox(height: 10.0),
+                  SizedBox(
+                    height: 135.0,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      itemCount: _newestAlbums.length,
+                      separatorBuilder: (context, index) => const SizedBox(width: 10.0),
+                      itemBuilder: (context, index) {
+                        final album = _newestAlbums[index];
+                        return ExploreMetroAlbumTile(
+                          album: album,
+                          onTap: () => _handleAlbumTap(album),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24.0),
+                ],
+
+                // 3. Nuevos Artistas Section (top 5 newest artists)
+                if (_newestArtists.isNotEmpty) ...[
+                  _buildMetroSectionHeader(l10n.search.newArtistsSectionHeader),
+                  const SizedBox(height: 10.0),
+                  SizedBox(
+                    height: 135.0,
+                    child: ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      physics: const BouncingScrollPhysics(),
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      itemCount: _newestArtists.length,
+                      separatorBuilder: (context, index) => const SizedBox(width: 10.0),
+                      itemBuilder: (context, index) {
+                        final artist = _newestArtists[index];
+                        return ExploreMetroArtistTile(
+                          artist: artist,
+                          onTap: () => _handleArtistTap(artist),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 24.0),
+                ],
+
+                // 4. Recientes Section Header
+                if (recentSongs10.isNotEmpty) ...[
+                  _buildMetroSectionHeader(l10n.search.recentlyPlayedTitle),
+                  const SizedBox(height: 8.0),
+                ],
+              ],
             ),
           ),
-          const SizedBox(height: 24.0),
-
-          // 2. Nuevos Álbumes Section (top 5 newest albums)
-          if (_newestAlbums.isNotEmpty) ...[
-            _buildMetroSectionHeader(l10n.search.newAlbumsSectionHeader),
-            const SizedBox(height: 10.0),
-            SizedBox(
-              height: 135.0,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                itemCount: _newestAlbums.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 10.0),
-                itemBuilder: (context, index) {
-                  final album = _newestAlbums[index];
-                  return ExploreMetroAlbumTile(
-                    album: album,
-                    onTap: () => _handleAlbumTap(album),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24.0),
-          ],
-
-          // 3. Artistas Nuevos Section (top 5 newest artists)
-          if (_newestArtists.isNotEmpty) ...[
-            _buildMetroSectionHeader(l10n.search.newArtistsSectionHeader),
-            const SizedBox(height: 10.0),
-            SizedBox(
-              height: 135.0,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                physics: const BouncingScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                itemCount: _newestArtists.length,
-                separatorBuilder: (context, index) => const SizedBox(width: 10.0),
-                itemBuilder: (context, index) {
-                  final artist = _newestArtists[index];
-                  return ExploreMetroArtistTile(
-                    artist: artist,
-                    onTap: () => _handleArtistTap(artist),
-                  );
-                },
-              ),
-            ),
-            const SizedBox(height: 24.0),
-          ],
-
-          // 4. Recientes Section (up to 10 recently played songs)
-          if (recentSongs10.isNotEmpty) ...[
-            _buildMetroSectionHeader(l10n.search.recentlyPlayedTitle),
-            const SizedBox(height: 8.0),
-            ListView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+        ),
+        if (recentSongs10.isNotEmpty)
+          SliverPadding(
+            padding: EdgeInsets.only(bottom: widget.bottomPadding),
+            sliver: SliverList.builder(
               itemCount: recentSongs10.length,
               itemBuilder: (context, index) {
                 final song = recentSongs10[index];
@@ -380,9 +386,12 @@ class _ExploreMetroViewState extends State<ExploreMetroView> {
                 );
               },
             ),
-          ],
-        ],
-      ),
+          )
+        else
+          SliverToBoxAdapter(
+            child: SizedBox(height: widget.bottomPadding),
+          ),
+      ],
     );
   }
 }
