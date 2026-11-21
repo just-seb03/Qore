@@ -13,7 +13,6 @@ import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
-import 'package:project_anima/features/playlist/components/playlist_color_picker_dialog.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlist_tile.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_view.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
@@ -36,8 +35,6 @@ import 'package:project_anima/features/player/components/song_delete_dialog.dart
 import 'package:project_anima/features/player/components/song_playlist_picker_sheet.dart';
 import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/features/player/components/playback_queue_sheet.dart';
-import 'package:project_anima/features/playlist/utils/playlist_effect_helper.dart';
-import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 class FakeSongDao extends Fake implements SongDao {
@@ -535,54 +532,10 @@ void main() {
       expect(find.byIcon(Symbols.queue_music_rounded), findsOneWidget);
       expect(find.byIcon(Icons.camera_alt_rounded), findsOneWidget);
     });
-
-    testWidgets('PlaylistColorPickerDialog renders preview, HEX field, and allows color picking', (tester) async {
-      tester.view.physicalSize = const Size(800, 1200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-
-      Color? selectedColor;
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => ElevatedButton(
-                onPressed: () async {
-                  selectedColor = await PlaylistColorPickerDialog.show(
-                    context,
-                    initialColor: const Color(0xFFFF0055),
-                    title: 'COLOR SÓLIDO',
-                  );
-                },
-                child: const Text('Open Picker'),
-              ),
-            ),
-          ),
-        ),
-      );
-
-      await tester.tap(find.text('Open Picker'));
-      await tester.pumpAndSettle();
-
-      expect(find.text('COLOR SÓLIDO'), findsOneWidget);
-      expect(find.text('#FF0055'), findsOneWidget);
-      expect(find.text('MATIZ (HUE)'), findsOneWidget);
-      expect(find.text('SATURACIÓN'), findsOneWidget);
-      expect(find.text('BRILLO'), findsOneWidget);
-      expect(find.text('PALETA RÁPIDA'), findsNothing);
-
-      await tester.tap(find.text('APLICAR'));
-      await tester.pumpAndSettle();
-
-      expect(selectedColor, isNotNull);
-    });
   });
 
   group('PlaylistEditScreen Functionality Tests', () {
-    testWidgets('renders 2:1 photo box, editable name, font grid, and floating Save button', (tester) async {
+    testWidgets('renders 2:1 Metro banner, name input, song search input, and Save button', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: PlaylistEditScreen(
@@ -597,131 +550,23 @@ void main() {
       // Top dismiss arrow indicator
       expect(find.byType(ModalDismissIndicator), findsOneWidget);
 
-      // 2:1 Hero photo banner box
+      // 2:1 Metro cover banner
       expect(find.byType(PlaylistTextBanner), findsOneWidget);
 
-      // Name input field (single name field)
-      expect(find.byType(TextField), findsOneWidget);
+      // Name input and integrated song search input
+      expect(find.byKey(const ValueKey('playlist_name_input')), findsOneWidget);
+      expect(find.byKey(const ValueKey('playlist_edit_song_search')), findsOneWidget);
 
-      // Floating Save button
-      expect(find.text('Save'), findsOneWidget);
+      // Save button
+      expect(find.byKey(const ValueKey('playlist_edit_save_button')), findsOneWidget);
+
+      // Obsolete typography/effect/gradient controls should not exist
+      expect(find.text('TYPOGRAPHY'), findsNothing);
+      expect(find.text('EFECTOS DE TEXTO'), findsNothing);
+      expect(find.text('GRADIENTE'), findsNothing);
     });
 
-    test('availablePlaylistFonts includes 13 curated fonts with Inconsolata default, dot and futuristic options', () {
-      expect(availablePlaylistFonts.length, 13);
-      final ids = availablePlaylistFonts.map((f) => f.id).toList();
-      expect(ids, containsAll([
-        'Inconsolata',
-        'UnifrakturMaguntia',
-        'Fascinate Inline',
-        'Permanent Marker',
-        'Splash',
-        'Monoton',
-        'Alien Block',
-        'Michroma',
-        'Silkscreen',
-        'DotGothic16',
-        'Press Start 2P',
-        'Rubik Glitch',
-        'Audiowide',
-      ]));
-      for (final option in availablePlaylistFonts) {
-        expect(() => getPlaylistTitleFont(option.id), returnsNormally);
-      }
-    });
-
-    test('availablePlaylistEffects includes 6 curated effects', () {
-      expect(availablePlaylistEffects.length, 6);
-      final ids = availablePlaylistEffects.map((e) => e.id).toList();
-      expect(ids, containsAll([
-        'none',
-        'shadow',
-        'neon',
-        'glitch',
-        'outline',
-        'retro3d',
-      ]));
-      for (final effect in availablePlaylistEffects) {
-        expect(() => getPlaylistTextEffectShadows(effect.id), returnsNormally);
-      }
-      expect(getPlaylistTextEffectShadows('none'), isEmpty);
-      expect(getPlaylistTextEffectShadows('shadow'), isNotEmpty);
-      expect(getPlaylistTextEffectShadows('neon'), isNotEmpty);
-      expect(getPlaylistTextEffectShadows('glitch'), isNotEmpty);
-      expect(getPlaylistTextEffectShadows('outline'), isNotEmpty);
-      expect(getPlaylistTextEffectShadows('retro3d'), isNotEmpty);
-    });
-
-    testWidgets('effects section renders all 6 visual effect choices and allows selection', (tester) async {
-      tester.view.physicalSize = const Size(800, 2200);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PlaylistEditScreen(
-            playlistDao: FakePlaylistDao(),
-            songDao: FakeSongDao([]),
-            animateBounce: false,
-          ),
-        ),
-      );
-      await tester.pump();
-
-      expect(find.text('EFECTOS DE TEXTO'), findsOneWidget);
-      expect(find.text('Ninguno'), findsOneWidget);
-      expect(find.text('Sombra'), findsOneWidget);
-      expect(find.text('Neón'), findsOneWidget);
-      expect(find.text('Glitch'), findsOneWidget);
-      expect(find.text('Contorno'), findsOneWidget);
-      expect(find.text('Retro 3D'), findsOneWidget);
-
-      await tester.tap(find.text('Neón'));
-      await tester.pumpAndSettle();
-    });
-
-    testWidgets('gradient presets and quick swatches are not rendered', (tester) async {
-      tester.view.physicalSize = const Size(800, 1600);
-      tester.view.devicePixelRatio = 1.0;
-      addTearDown(() {
-        tester.view.resetPhysicalSize();
-        tester.view.resetDevicePixelRatio();
-      });
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PlaylistEditScreen(
-            playlistDao: FakePlaylistDao(),
-            songDao: FakeSongDao([]),
-            animateBounce: false,
-          ),
-        ),
-      );
-      await tester.pump();
-
-      // Quick palette / presets should not exist in solid mode
-      expect(find.text('Sunset'), findsNothing);
-      expect(find.text('Cyberpunk'), findsNothing);
-      expect(find.text('Fire'), findsNothing);
-      expect(find.text('Toxic Lime'), findsNothing);
-      expect(find.text('PALETA RÁPIDA'), findsNothing);
-
-      // Tap GRADIENTE toggle
-      await tester.tap(find.text('GRADIENTE'));
-      await tester.pumpAndSettle();
-
-      // Gradient presets should still not exist, only dual color pickers
-      expect(find.text('Sunset'), findsNothing);
-      expect(find.text('Cyberpunk'), findsNothing);
-      expect(find.text('Fire'), findsNothing);
-      expect(find.text('COLOR 1'), findsOneWidget);
-      expect(find.text('COLOR 2'), findsOneWidget);
-    });
-
-    testWidgets('search bar queries songs and quick add inserts into reorderable list', (tester) async {
+    testWidgets('search bar filters songs and toggling rows saves selected songs', (tester) async {
       final s1 = Song(
         mediaStoreId: 301,
         title: 'Starboy',
@@ -730,6 +575,14 @@ void main() {
         path: '/starboy.mp3',
         dateModified: 100,
       );
+      final s2 = Song(
+        mediaStoreId: 302,
+        title: 'Midnight City',
+        artist: 'M83',
+        duration: 243000,
+        path: '/midnight.mp3',
+        dateModified: 101,
+      );
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -737,7 +590,7 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final fakeSongDao = FakeSongDao([s1]);
+      final fakeSongDao = FakeSongDao([s1, s2]);
       final fakePlaylistDao = FakePlaylistDao();
 
       await tester.pumpWidget(
@@ -761,33 +614,42 @@ void main() {
       await tester.tap(find.text('Open Editor'));
       await tester.pumpAndSettle();
 
-      // Enter playlist name in text field
-      await tester.enterText(find.byType(TextField), 'Cyber Sunset');
+      // Enter playlist name
+      await tester.enterText(
+        find.byKey(const ValueKey('playlist_name_input')),
+        'Cyber Sunset',
+      );
       await tester.pump();
 
-      // Verify name is reflected in real-time inside the 2:1 photo box
+      // Verify name is reflected in real-time inside the 2:1 Metro banner
       expect(find.text('Cyber Sunset'), findsWidgets);
 
-      // Select gradient mode
-      await tester.tap(find.text('GRADIENTE'));
-      await tester.pumpAndSettle();
+      // Filter songs in-memory
+      await tester.enterText(
+        find.byKey(const ValueKey('playlist_edit_song_search')),
+        'Starboy',
+      );
+      await tester.pump();
 
-      // Invert gradient colors
-      await tester.tap(find.byIcon(Icons.swap_horiz_rounded));
-      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('playlist_pick_row_301')), findsOneWidget);
+      expect(find.byKey(const ValueKey('playlist_pick_row_302')), findsNothing);
+
+      // Toggle song 301 into playlist
+      await tester.tap(find.byKey(const ValueKey('playlist_pick_row_301')));
+      await tester.pump();
 
       // Save playlist
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pump();
-      await tester.tap(find.text('Save'));
+      await tester.tap(find.byKey(const ValueKey('playlist_edit_save_button')));
       await tester.pumpAndSettle();
 
       expect(fakePlaylistDao.lastCreated, isNotNull);
       expect(fakePlaylistDao.lastCreated!.name, 'Cyber Sunset');
-      expect(fakePlaylistDao.lastCreated!.textGradientColor, isNotNull);
+      expect(fakePlaylistDao.lastCreated!.songCount, 1);
     });
 
-    testWidgets('PlaylistEditScreen allows selecting a custom typography font for playlist title', (tester) async {
+    testWidgets('editing playlist with custom cover shows remove cover action', (tester) async {
       tester.view.physicalSize = const Size(800, 1600);
       tester.view.devicePixelRatio = 1.0;
       addTearDown(() {
@@ -795,40 +657,33 @@ void main() {
         tester.view.resetDevicePixelRatio();
       });
 
-      final fakePlaylistDao = FakePlaylistDao();
+      final existing = Playlist(
+        id: 12,
+        name: 'Night Drive',
+        coverPath: '/tmp/nonexistent_cover.jpg',
+        songCount: 0,
+        totalDuration: 0,
+        createdAt: 100,
+        updatedAt: 100,
+      );
 
       await tester.pumpWidget(
         MaterialApp(
           home: PlaylistEditScreen(
-            playlistDao: fakePlaylistDao,
+            initialPlaylist: existing,
+            playlistDao: FakePlaylistDao(),
             songDao: FakeSongDao([]),
             animateBounce: false,
           ),
         ),
       );
-      await tester.pump();
-
-      expect(find.text('TYPOGRAPHY'), findsOneWidget);
-      expect(find.text('Permanent Marker'), findsOneWidget);
-      expect(find.text('Michroma'), findsOneWidget);
-
-      // Tap on 'Permanent Marker' font card (2 per row)
-      await tester.ensureVisible(find.text('Permanent Marker'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Permanent Marker'));
       await tester.pumpAndSettle();
 
-      // Enter name
-      await tester.enterText(find.byType(TextField), 'Roman Epic');
-      await tester.pump();
-
-      // Tap Save
-      await tester.tap(find.text('Save'));
+      expect(find.byIcon(Icons.close_rounded), findsOneWidget);
+      await tester.tap(find.byIcon(Icons.close_rounded));
       await tester.pumpAndSettle();
 
-      expect(fakePlaylistDao.lastCreated, isNotNull);
-      expect(fakePlaylistDao.lastCreated!.name, 'Roman Epic');
-      expect(fakePlaylistDao.lastCreated!.fontFamily, 'Permanent Marker');
+      expect(find.byIcon(Icons.close_rounded), findsNothing);
     });
   });
 
@@ -937,6 +792,13 @@ void main() {
         path: '/two.mp3',
         dateModified: 100,
       );
+
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
 
       await tester.pumpWidget(
         MaterialApp(
@@ -1597,17 +1459,6 @@ void main() {
         allPlaylistSongs: [testSong],
       );
       expect(tile.trackIndex, 1);
-    });
-
-    test('getPlaylistTitleFont defaults to Inconsolata when fontFamily is null or empty', () {
-      final defaultStyle = getPlaylistTitleFont(null);
-      expect(defaultStyle.fontFamily, contains('Inconsolata'));
-
-      final emptyStyle = getPlaylistTitleFont('');
-      expect(emptyStyle.fontFamily, contains('Inconsolata'));
-
-      final inconsolataStyle = getPlaylistTitleFont('Inconsolata');
-      expect(inconsolataStyle.fontFamily, contains('Inconsolata'));
     });
 
     testWidgets('PlaybackQueueSheet renders only upcoming tracks after currently playing song without BackdropFilter blur', (tester) async {
