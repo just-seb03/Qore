@@ -591,10 +591,9 @@ void main() {
       );
       await tester.pump();
 
-      // Starts on Albums and lazily defers unvisited sub-tabs
+      // Starts on Albums
       expect(find.byType(LibraryAlbumsGrid), findsOneWidget);
-      expect(find.byType(LibraryArtistsList, skipOffstage: false), findsNothing);
-      expect(find.byType(LibrarySongsList, skipOffstage: false), findsNothing);
+      expect(find.byType(LibraryArtistsList), findsNothing);
 
       // Swipe left (drag leftwards with finger) -> moves forward to Artists
       await tester.fling(find.byType(LibraryTransitionControl), const Offset(-500.0, 0.0), 1000.0);

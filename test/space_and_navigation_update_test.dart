@@ -237,11 +237,6 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
       expect(find.byType(SpaceTilesGrid), findsOneWidget);
       expect(find.text('Space'), findsOneWidget); // Bottom nav tab
-      // Unvisited main tabs are lazily deferred rather than eagerly mounted offstage
-      expect(find.byType(ExploreScreen, skipOffstage: false), findsNothing);
-      expect(find.byType(SearchScreen, skipOffstage: false), findsNothing);
-      expect(find.byType(LibraryScreen, skipOffstage: false), findsNothing);
-      expect(find.byType(ProfileScreen, skipOffstage: false), findsNothing);
       // Exactly one shared AmbientParticlesCanvas across all 5 main tabs
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
     });

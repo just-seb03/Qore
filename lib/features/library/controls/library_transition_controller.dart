@@ -184,7 +184,7 @@ class LibraryTransitionControl extends StatefulWidget {
 }
 
 class _LibraryTransitionControlState extends State<LibraryTransitionControl>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin {
   late LibraryTransitionController _controller;
   bool _internalControllerCreated = false;
 
@@ -202,12 +202,10 @@ class _LibraryTransitionControlState extends State<LibraryTransitionControl>
 
   double _accumulatedDragDelta = 0.0;
   late List<Widget> _subScreens;
-  late List<bool> _mountedSubTabs;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     if (widget.controller != null) {
       _controller = widget.controller!;
       _internalControllerCreated = false;
@@ -249,15 +247,11 @@ class _LibraryTransitionControlState extends State<LibraryTransitionControl>
     _subScreens = List<Widget>.generate(
       widget.children.length,
       (index) => RepaintBoundary(
-        key: PageStorageKey<String>('library_tab_$index'),
+        key: ValueKey<int>(index),
         child: widget.children[index],
       ),
       growable: false,
     );
-    _mountedSubTabs = List<bool>.filled(widget.children.length, false);
-    if (_mountedSubTabs.isNotEmpty) {
-      _mountedSubTabs[_renderedCurrentIndex.clamp(0, _mountedSubTabs.length - 1)] = true;
-    }
 
     _controller.addListener(_onControllerChanged);
   }
@@ -283,16 +277,11 @@ class _LibraryTransitionControlState extends State<LibraryTransitionControl>
     if (!mounted) return;
 
     if (_controller.currentIndex != _renderedCurrentIndex) {
-      final int targetIdx = _controller.currentIndex;
-      if (targetIdx >= 0 && targetIdx < _mountedSubTabs.length) {
-        _mountedSubTabs[targetIdx] = true;
-      }
-
       if (!_controller.isAnimating) {
         setState(() {
-          _renderedCurrentIndex = targetIdx;
-          _activeCurrentIndex = targetIdx;
-          _activePreviousIndex = targetIdx;
+          _renderedCurrentIndex = _controller.currentIndex;
+          _activeCurrentIndex = _controller.currentIndex;
+          _activePreviousIndex = _controller.currentIndex;
           _isTransitioning = false;
         });
         return;
@@ -300,12 +289,9 @@ class _LibraryTransitionControlState extends State<LibraryTransitionControl>
 
       final isForward = _controller.direction == LibraryTransitionDirection.forward;
       _activePreviousIndex = _renderedCurrentIndex;
-      _activeCurrentIndex = targetIdx;
+      _activeCurrentIndex = _controller.currentIndex;
       _activeDirection = _controller.direction;
-      _renderedCurrentIndex = targetIdx;
-      if (_activePreviousIndex >= 0 && _activePreviousIndex < _mountedSubTabs.length) {
-        _mountedSubTabs[_activePreviousIndex] = true;
-      }
+      _renderedCurrentIndex = _controller.currentIndex;
 
       _updateSlideAnimations(isForward);
 
@@ -314,21 +300,6 @@ class _LibraryTransitionControlState extends State<LibraryTransitionControl>
         _animController.stop();
       }
       _animController.forward(from: 0.0);
-      setState(() {});
-    }
-  }
-
-  @override
-  void didHaveMemoryPressure() {
-    if (!mounted || _isTransitioning) return;
-    bool released = false;
-    for (int i = 0; i < _mountedSubTabs.length; i++) {
-      if (i != _activeCurrentIndex && _mountedSubTabs[i]) {
-        _mountedSubTabs[i] = false;
-        released = true;
-      }
-    }
-    if (released) {
       setState(() {});
     }
   }
@@ -352,10 +323,6 @@ class _LibraryTransitionControlState extends State<LibraryTransitionControl>
         _internalControllerCreated = true;
       }
       _controller.addListener(_onControllerChanged);
-      final int activeIdx = _controller.currentIndex;
-      if (activeIdx >= 0 && activeIdx < _mountedSubTabs.length) {
-        _mountedSubTabs[activeIdx] = true;
-      }
     }
     if (widget.duration != oldWidget.duration) {
       _animController.duration = widget.duration ?? _controller.duration;
@@ -364,23 +331,16 @@ class _LibraryTransitionControlState extends State<LibraryTransitionControl>
       _subScreens = List<Widget>.generate(
         widget.children.length,
         (index) => RepaintBoundary(
-          key: PageStorageKey<String>('library_tab_$index'),
+          key: ValueKey<int>(index),
           child: widget.children[index],
         ),
         growable: false,
       );
-      if (_mountedSubTabs.length != widget.children.length) {
-        _mountedSubTabs = List<bool>.filled(widget.children.length, false);
-        if (_mountedSubTabs.isNotEmpty) {
-          _mountedSubTabs[_activeCurrentIndex.clamp(0, _mountedSubTabs.length - 1)] = true;
-        }
-      }
     }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_onControllerChanged);
     if (_internalControllerCreated) {
       _controller.dispose();
@@ -432,14 +392,6 @@ class _LibraryTransitionControlState extends State<LibraryTransitionControl>
           final bool isPrevious = index == _activePreviousIndex;
           final bool isVisible =
               _isTransitioning ? (isCurrent || isPrevious) : isCurrent;
-          final bool shouldMount = _mountedSubTabs[index] || isVisible;
-
-          if (!shouldMount) {
-            return KeyedSubtree(
-              key: ValueKey<int>(index),
-              child: const SizedBox.shrink(),
-            );
-          }
 
           Animation<Offset> slideAnim;
           if (_isTransitioning) {

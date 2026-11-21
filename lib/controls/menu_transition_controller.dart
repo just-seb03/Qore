@@ -177,7 +177,7 @@ class MenuTransitionControl extends StatefulWidget {
 }
 
 class _MenuTransitionControlState extends State<MenuTransitionControl>
-    with SingleTickerProviderStateMixin, WidgetsBindingObserver {
+    with SingleTickerProviderStateMixin {
   late final MenuTransitionController _controller;
   late final AnimationController _animController;
   late final Animation<double> _animation;
@@ -192,12 +192,10 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
   bool _isTransitioning = false;
 
   late List<Widget> _menuScreens;
-  late List<bool> _mountedTabs;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _controller = widget.controller ?? MenuTransitionController.instance;
 
     _renderedCurrentIndex = _controller.currentIndex;
@@ -242,15 +240,11 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
     _menuScreens = List<Widget>.generate(
       screens.length,
       (index) => RepaintBoundary(
-        key: PageStorageKey<String>('menu_tab_$index'),
+        key: ValueKey<int>(index),
         child: screens[index],
       ),
       growable: false,
     );
-    _mountedTabs = List<bool>.filled(screens.length, false);
-    if (_mountedTabs.isNotEmpty) {
-      _mountedTabs[_renderedCurrentIndex.clamp(0, _mountedTabs.length - 1)] = true;
-    }
 
     _controller.addListener(_onControllerChanged);
   }
@@ -277,16 +271,11 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
 
     if (_controller.currentIndex != _renderedCurrentIndex) {
       FocusManager.instance.primaryFocus?.unfocus();
-      final int targetIdx = _controller.currentIndex;
-      if (targetIdx >= 0 && targetIdx < _mountedTabs.length) {
-        _mountedTabs[targetIdx] = true;
-      }
-
       if (!_controller.isAnimating) {
         setState(() {
-          _renderedCurrentIndex = targetIdx;
-          _activeCurrentIndex = targetIdx;
-          _activePreviousIndex = targetIdx;
+          _renderedCurrentIndex = _controller.currentIndex;
+          _activeCurrentIndex = _controller.currentIndex;
+          _activePreviousIndex = _controller.currentIndex;
           _isTransitioning = false;
         });
         return;
@@ -294,32 +283,14 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
 
       final isForward = _controller.direction == MenuTransitionDirection.forward;
       _activePreviousIndex = _renderedCurrentIndex;
-      _activeCurrentIndex = targetIdx;
+      _activeCurrentIndex = _controller.currentIndex;
       _activeDirection = _controller.direction;
-      _renderedCurrentIndex = targetIdx;
-      if (_activePreviousIndex >= 0 && _activePreviousIndex < _mountedTabs.length) {
-        _mountedTabs[_activePreviousIndex] = true;
-      }
+      _renderedCurrentIndex = _controller.currentIndex;
 
       _updateSlideAnimations(isForward);
 
       _isTransitioning = true;
       _animController.forward(from: 0.0);
-      setState(() {});
-    }
-  }
-
-  @override
-  void didHaveMemoryPressure() {
-    if (!mounted || _isTransitioning) return;
-    bool released = false;
-    for (int i = 0; i < _mountedTabs.length; i++) {
-      if (i != _activeCurrentIndex && _mountedTabs[i]) {
-        _mountedTabs[i] = false;
-        released = true;
-      }
-    }
-    if (released) {
       setState(() {});
     }
   }
@@ -331,35 +302,28 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
       _animController.duration = widget.duration ?? _controller.duration;
     }
     if (widget.children != oldWidget.children && widget.children != null) {
-      final newScreens = widget.children!;
       _menuScreens = List<Widget>.generate(
-        newScreens.length,
+        widget.children!.length,
         (index) => RepaintBoundary(
-          key: PageStorageKey<String>('menu_tab_$index'),
-          child: newScreens[index],
+          key: ValueKey<int>(index),
+          child: widget.children![index],
         ),
         growable: false,
       );
-      if (_mountedTabs.length != newScreens.length) {
-        _mountedTabs = List<bool>.filled(newScreens.length, false);
-        if (_mountedTabs.isNotEmpty) {
-          _mountedTabs[_activeCurrentIndex.clamp(0, _mountedTabs.length - 1)] = true;
-        }
-      }
     }
   }
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_onControllerChanged);
     _animController.dispose();
     super.dispose();
   }
 
   Widget _buildAnimatedContent() {
-    // Lazily mount tabs on first visit, preserve state with Offstage/TickerMode/PageStorageKey,
-    // and reclaim inactive tabs on OS memory pressure.
+    // Maintain all screens permanently mounted in the tree to preserve user state
+    // (such as search queries, results, and scroll positions) across tab switches.
+    // Inactive screens are hidden with Offstage and paused with TickerMode.
     return ClipRect(
       child: Stack(
         fit: StackFit.expand,
@@ -368,14 +332,6 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
           final bool isPrevious = index == _activePreviousIndex;
           final bool isVisible =
               _isTransitioning ? (isCurrent || isPrevious) : isCurrent;
-          final bool shouldMount = _mountedTabs[index] || isVisible;
-
-          if (!shouldMount) {
-            return KeyedSubtree(
-              key: ValueKey<int>(index),
-              child: const SizedBox.shrink(),
-            );
-          }
 
           Animation<Offset> slideAnim;
           if (_isTransitioning) {
