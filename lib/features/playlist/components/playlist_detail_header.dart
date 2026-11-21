@@ -78,11 +78,10 @@ class PlaylistDetailHeader extends StatelessWidget {
       durationStr: durationStr.isNotEmpty ? durationStr : null,
     );
 
-    final titleStyle = AppFonts.segoe(
-      fontSize: 24.0,
-      fontWeight: FontWeight.w700,
+    final titleStyle = AppFonts.light(
+      fontSize: 28.0,
       color: AppColors.onBackground,
-      letterSpacing: -0.3,
+      letterSpacing: -0.4,
     );
 
     return Column(
@@ -90,52 +89,40 @@ class PlaylistDetailHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (showHeroCover) ...[
-          // 1. Space-styled 2:1 Rectangular Hero Banner (non-interactive; edit via pencil button)
+          // 1. Flat Metro 2:1 Rectangular Cover (photo-only, title placed below like AlbumHeaderView)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.zero,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.65),
-                    blurRadius: 28.0,
-                    spreadRadius: 1.0,
-                    offset: const Offset(0, 10),
-                  ),
-                ],
-              ),
-              child: PlaylistTextBanner(
-                title: playlist.name,
-                coverPath: playlist.coverPath,
-                representativeSongId: playlist.firstMediaStoreId,
-              ),
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: PlaylistTextBanner(
+              title: playlist.name,
+              coverPath: playlist.coverPath,
+              representativeSongId: playlist.firstMediaStoreId,
+              showTitle: false,
             ),
           ),
-          const SizedBox(height: 14.0),
-        ] else ...[
+          const SizedBox(height: 22.0),
+        ] else
           const SizedBox(height: 12.0),
-          // 2. Playlist Name (Centered fallback if no hero cover)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24.0),
-            child: Text(
-              playlist.name,
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: titleStyle,
-            ),
-          ),
-          const SizedBox(height: 6.0),
-        ],
 
-        // 3. Cantidad de canciones & duration (Centered)
+        // 2. Playlist Name below Cover (Segoe UI Light, matching AlbumHeaderView)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Text(
+            playlist.name,
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: titleStyle,
+          ),
+        ),
+        const SizedBox(height: 6.0),
+
+        // 3. Track count & duration (Centered, matching AlbumHeaderView)
         Text(
           metadataSubtitle,
           textAlign: TextAlign.center,
           style: AppFonts.segoe(
             fontSize: 13.0,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w300,
             color: AppColors.onSurfaceVariant,
             letterSpacing: 0.6,
           ),

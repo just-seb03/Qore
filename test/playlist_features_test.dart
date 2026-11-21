@@ -854,6 +854,13 @@ void main() {
     });
 
     testWidgets('tapping edit pencil in tracks section opens PlaylistEditScreen and tapping banner does nothing', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       const playlist = Playlist(
         id: 42,
         name: 'Chill Vibes',
