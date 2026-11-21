@@ -154,11 +154,15 @@ void main() {
       expect(find.text('2'), findsOneWidget);
       expect(find.text('5'), findsOneWidget);
       expect(find.text('30'), findsOneWidget);
-      expect(find.text('TOP CANCIONES'), findsOneWidget);
+      expect(find.text('PISTAS MÁS ESCUCHADAS'), findsOneWidget);
       expect(find.text('Breathe'), findsOneWidget);
       expect(find.text('ARTISTAS MÁS ESCUCHADOS'), findsOneWidget);
       expect(find.text('ÁLBUMES MÁS ESCUCHADOS'), findsOneWidget);
       expect(find.text('GÉNERO FAVORITO'), findsOneWidget);
+      expect(
+        tester.getTopLeft(find.text('GÉNERO FAVORITO')).dy,
+        lessThan(tester.getTopLeft(find.text('PISTAS MÁS ESCUCHADAS')).dy),
+      );
       expect(find.text('Progressive Rock'), findsOneWidget);
       expect(find.text('Pink Floyd'), findsAtLeastNWidgets(1));
       expect(find.text('The Dark Side of the Moon'), findsOneWidget);

@@ -279,10 +279,27 @@ class _ProfileScreenState extends State<ProfileScreen>
                                 const SizedBox(height: 22.0),
                               ],
 
-                              // 4. Top 5 Canciones Más Escuchadas
+                              // 4. Género Favorito
+                              if (_favoriteGenre != null &&
+                                  _favoriteGenre!.isNotEmpty) ...[
+                                _buildSectionHeader(
+                                  isSpanish
+                                      ? 'GÉNERO FAVORITO'
+                                      : 'FAVORITE GENRE',
+                                ),
+                                const SizedBox(height: 8.0),
+                                ProfileFavoriteGenreTile(
+                                  genre: _favoriteGenre!,
+                                ),
+                                const SizedBox(height: 22.0),
+                              ],
+
+                              // 5. Top 5 Pistas Más Escuchadas
                               if (_topSongs.isNotEmpty) ...[
                                 _buildSectionHeader(
-                                  isSpanish ? 'TOP CANCIONES' : 'TOP SONGS',
+                                  isSpanish
+                                      ? 'PISTAS MÁS ESCUCHADAS'
+                                      : 'MOST PLAYED TRACKS',
                                 ),
                                 const SizedBox(height: 6.0),
                                 for (int i = 0; i < _topSongs.length; i++) ...[
@@ -296,21 +313,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                                       color: AppColors.outline.withValues(alpha: 0.16),
                                     ),
                                 ],
-                                const SizedBox(height: 22.0),
-                              ],
-
-                              // 5. Género Favorito
-                              if (_favoriteGenre != null &&
-                                  _favoriteGenre!.isNotEmpty) ...[
-                                _buildSectionHeader(
-                                  isSpanish
-                                      ? 'GÉNERO FAVORITO'
-                                      : 'FAVORITE GENRE',
-                                ),
-                                const SizedBox(height: 8.0),
-                                ProfileFavoriteGenreTile(
-                                  genre: _favoriteGenre!,
-                                ),
                                 const SizedBox(height: 22.0),
                               ],
 
