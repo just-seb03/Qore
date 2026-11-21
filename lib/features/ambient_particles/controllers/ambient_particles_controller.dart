@@ -136,8 +136,8 @@ class AmbientParticlesController extends ChangeNotifier {
       initializeParticles(size);
     }
 
-    // Clamp dt tightly so background resumes never jump wave phases or particles
-    final double safeDt = dt.clamp(0.0, 0.033);
+    // Clamp dt so background resumes never jump wave phases or particles while preserving 30Hz pacing
+    final double safeDt = dt.clamp(0.0, 0.045);
 
     final double width = size.width > 0 ? size.width : 400.0;
     final double height = size.height > 0 ? size.height : 800.0;

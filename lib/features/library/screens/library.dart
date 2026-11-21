@@ -70,6 +70,9 @@ class LibraryScreen extends StatefulWidget {
   /// Whether to display the bottom navigation bar. Defaults to true.
   final bool showBottomNav;
 
+  /// Whether to mount the local [AmbientParticlesCanvas] backdrop behind this screen.
+  final bool showAmbientBackdrop;
+
   /// Initial active filter. Defaults to [LibraryFilter.albums].
   final LibraryFilter initialFilter;
 
@@ -97,6 +100,7 @@ class LibraryScreen extends StatefulWidget {
   const LibraryScreen({
     super.key,
     this.showBottomNav = true,
+    this.showAmbientBackdrop = true,
     this.initialFilter = LibraryFilter.albums,
     this.initialAlbums,
     this.initialArtists,
@@ -233,12 +237,14 @@ class _LibraryScreenState extends State<LibraryScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.bottomNavBackground,
+      color: widget.showAmbientBackdrop
+          ? AppColors.bottomNavBackground
+          : Colors.transparent,
       child: Stack(
         fit: StackFit.expand,
         children: [
           // Dynamic ambient particles simulation backdrop (persistent across section transitions)
-          const AmbientParticlesCanvas(),
+          if (widget.showAmbientBackdrop) const AmbientParticlesCanvas(),
 
           ListenableBuilder(
             listenable: Listenable.merge([

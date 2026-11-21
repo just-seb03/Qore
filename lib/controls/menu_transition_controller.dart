@@ -17,6 +17,8 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/dimensions/system_dimensions_coordinator.dart';
+import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/explore/screens/explore.dart';
 import 'package:project_anima/features/home/screens/home.dart';
 import 'package:project_anima/features/library/screens/library.dart';
@@ -228,11 +230,11 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
 
     final screens = widget.children ??
         const [
-          ExploreScreen(showBottomNav: false),
-          SearchScreen(showBottomNav: false),
-          HomeScreen(showBottomNav: false),
-          LibraryScreen(showBottomNav: false),
-          ProfileScreen(showBottomNav: false),
+          ExploreScreen(showBottomNav: false, showAmbientBackdrop: false),
+          SearchScreen(showBottomNav: false, showAmbientBackdrop: false),
+          HomeScreen(showBottomNav: false, showAmbientBackdrop: false),
+          LibraryScreen(showBottomNav: false, showAmbientBackdrop: false),
+          ProfileScreen(showBottomNav: false, showAmbientBackdrop: false),
         ];
 
     _menuScreens = List<Widget>.generate(
@@ -365,34 +367,49 @@ class _MenuTransitionControlState extends State<MenuTransitionControl>
   @override
   Widget build(BuildContext context) {
     final animatedContent = _buildAnimatedContent();
+    final bool useSharedBackdrop = widget.children == null;
 
-    if (!widget.includeBottomNav) {
-      return animatedContent;
+    final Widget shell = !widget.includeBottomNav
+        ? animatedContent
+        : PopScope(
+            canPop: false,
+            onPopInvokedWithResult: (didPop, result) {
+              if (didPop) return;
+              if (NavigationController.instance.searchInterceptsBack) return;
+              SystemDimensionsCoordinator.instance.moveToBackground();
+            },
+            child: Scaffold(
+              resizeToAvoidBottomInset: false,
+              extendBody: true,
+              backgroundColor: Colors.transparent,
+              body: animatedContent,
+              bottomNavigationBar: ListenableBuilder(
+                listenable: _controller,
+                builder: (context, _) {
+                  return AppBottomNav(
+                    currentIndex: _controller.currentIndex,
+                    onDestinationSelected: (index) {
+                      NavigationController.instance
+                          .handleDestinationSelected(context, index);
+                    },
+                  );
+                },
+              ),
+            ),
+          );
+
+    if (!useSharedBackdrop) {
+      return shell;
     }
 
-    return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (didPop, result) {
-        if (didPop) return;
-        if (NavigationController.instance.searchInterceptsBack) return;
-        SystemDimensionsCoordinator.instance.moveToBackground();
-      },
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        extendBody: true,
-        backgroundColor: Colors.transparent,
-        body: animatedContent,
-        bottomNavigationBar: ListenableBuilder(
-          listenable: _controller,
-          builder: (context, _) {
-            return AppBottomNav(
-              currentIndex: _controller.currentIndex,
-              onDestinationSelected: (index) {
-                NavigationController.instance.handleDestinationSelected(context, index);
-              },
-            );
-          },
-        ),
+    return ColoredBox(
+      color: AppColors.bottomNavBackground,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          const AmbientParticlesCanvas(),
+          shell,
+        ],
       ),
     );
   }

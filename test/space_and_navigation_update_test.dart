@@ -237,6 +237,8 @@ void main() {
       expect(find.byType(HomeScreen), findsOneWidget);
       expect(find.byType(SpaceTilesGrid), findsOneWidget);
       expect(find.text('Space'), findsOneWidget); // Bottom nav tab
+      // Exactly one shared AmbientParticlesCanvas across all 5 main tabs
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
     });
   });
 
@@ -345,6 +347,7 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 350));
       expect(find.byType(ProfileScreen), findsOneWidget);
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
     });
   });
 }

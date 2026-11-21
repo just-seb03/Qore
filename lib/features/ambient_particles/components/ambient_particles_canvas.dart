@@ -33,6 +33,8 @@ class AmbientParticlesCanvas extends StatefulWidget {
 
 class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
     with SingleTickerProviderStateMixin {
+  static const int _minBackdropFrameIntervalUs = 31000;
+
   late final AmbientParticlesController _controller;
   late final AnimationController _animController;
   final Stopwatch _frameClock = Stopwatch();
@@ -124,7 +126,12 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
     if (!_shouldAnimate) return;
 
     final int nowUs = _frameClock.elapsedMicroseconds;
-    final double dt = (nowUs - _lastElapsedUs) / 1000000.0;
+    final int elapsedSinceLastStepUs = nowUs - _lastElapsedUs;
+    if (elapsedSinceLastStepUs < _minBackdropFrameIntervalUs) {
+      return;
+    }
+
+    final double dt = elapsedSinceLastStepUs / 1000000.0;
     _lastElapsedUs = nowUs;
 
     if (_lastKnownSize.width > 0 && _lastKnownSize.height > 0) {

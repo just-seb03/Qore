@@ -39,9 +39,13 @@ class SearchScreen extends StatefulWidget {
   /// Whether to display the bottom navigation bar. Defaults to true.
   final bool showBottomNav;
 
+  /// Whether to mount the local [AmbientParticlesCanvas] backdrop behind this screen.
+  final bool showAmbientBackdrop;
+
   const SearchScreen({
     super.key,
     this.showBottomNav = true,
+    this.showAmbientBackdrop = true,
   });
 
   @override
@@ -326,10 +330,12 @@ class _SearchScreenState extends State<SearchScreen>
       child: Scaffold(
         resizeToAvoidBottomInset: false,
         extendBody: true,
-        backgroundColor: AppColors.bottomNavBackground,
+        backgroundColor: widget.showAmbientBackdrop
+            ? AppColors.bottomNavBackground
+            : Colors.transparent,
         body: Stack(
           children: [
-            const AmbientParticlesCanvas(),
+            if (widget.showAmbientBackdrop) const AmbientParticlesCanvas(),
             SafeArea(
               bottom: false,
               child: Column(

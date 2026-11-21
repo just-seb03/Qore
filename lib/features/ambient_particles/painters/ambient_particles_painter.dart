@@ -129,7 +129,7 @@ class AmbientParticlesPainter extends CustomPainter {
     ..strokeCap = StrokeCap.round
     ..strokeJoin = StrokeJoin.round;
 
-  static const int _ribbonSteps = 76;
+  static const int _ribbonSteps = 40;
   static const int _cols = _ribbonSteps + 1;
   static const int _triVertexCount = _ribbonSteps * 6 * 3;
 

@@ -29,6 +29,9 @@ class HomeScreen extends StatelessWidget {
   /// Whether to display the bottom navigation bar. Defaults to true.
   final bool showBottomNav;
 
+  /// Whether to mount the local [AmbientParticlesCanvas] backdrop behind this screen.
+  final bool showAmbientBackdrop;
+
   /// Optional pre-loaded today's selection songs (retained for backward compatibility/testing).
   final List<Song>? initialTodaySongs;
 
@@ -44,6 +47,7 @@ class HomeScreen extends StatelessWidget {
   const HomeScreen({
     super.key,
     this.showBottomNav = true,
+    this.showAmbientBackdrop = true,
     this.initialTodaySongs,
     this.initialFavoriteSongs,
     this.initialPinnedItems,
@@ -53,12 +57,12 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.bottomNavBackground,
+      color: showAmbientBackdrop ? AppColors.bottomNavBackground : Colors.transparent,
       child: Stack(
         fit: StackFit.expand,
         children: [
           // Exclusive dynamic PS3-style ambient particles
-          const AmbientParticlesCanvas(),
+          if (showAmbientBackdrop) const AmbientParticlesCanvas(),
 
           // Space screen with full-screen Windows Phone Metro live tiles grid
           Scaffold(

@@ -31,6 +31,9 @@ class ExploreScreen extends StatefulWidget {
   /// Whether to display the bottom navigation bar. Defaults to true.
   final bool showBottomNav;
 
+  /// Whether to mount the local [AmbientParticlesCanvas] backdrop behind this screen.
+  final bool showAmbientBackdrop;
+
   /// Optional initial song count for testing or pre-fetching.
   final int? initialSongCount;
 
@@ -49,6 +52,7 @@ class ExploreScreen extends StatefulWidget {
   const ExploreScreen({
     super.key,
     this.showBottomNav = true,
+    this.showAmbientBackdrop = true,
     this.initialSongCount,
     this.initialAlbums,
     this.initialArtists,
@@ -138,12 +142,14 @@ class _ExploreScreenState extends State<ExploreScreen> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.bottomNavBackground,
+      color: widget.showAmbientBackdrop
+          ? AppColors.bottomNavBackground
+          : Colors.transparent,
       child: Stack(
         fit: StackFit.expand,
         children: [
           // Dynamic ambient particles simulation backdrop
-          const AmbientParticlesCanvas(),
+          if (widget.showAmbientBackdrop) const AmbientParticlesCanvas(),
 
           // Windows Phone Metro Explore UI
           Scaffold(
