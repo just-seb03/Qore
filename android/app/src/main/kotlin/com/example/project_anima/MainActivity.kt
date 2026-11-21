@@ -1,6 +1,8 @@
 package com.example.project_anima
 
+import android.app.Activity
 import android.content.ContentResolver
+import android.content.Intent
 import android.database.ContentObserver
 import android.database.Cursor
 import android.media.AudioFormat
@@ -33,7 +35,16 @@ import kotlin.math.sqrt
 class MainActivity : AudioServiceActivity() {
     private val CHANNEL = "project_anima/media_store"
     private val DIMENSIONS_CHANNEL = "project_anima/system_dimensions"
+    private val BACKUP_CHANNEL = "project_anima/user_data_backup"
     private var notchObserver: ContentObserver? = null
+
+    private var pendingBackupResult: MethodChannel.Result? = null
+    private var pendingExportJson: String? = null
+
+    companion object {
+        private const val REQUEST_EXPORT_JSON = 9101
+        private const val REQUEST_IMPORT_JSON = 9102
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -276,6 +287,88 @@ class MainActivity : AudioServiceActivity() {
                 }
                 else -> result.notImplemented()
             }
+        }
+
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, BACKUP_CHANNEL).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "exportJsonFile" -> {
+                    if (pendingBackupResult != null) {
+                        result.error("BUSY", "Another file operation is already in progress", null)
+                        return@setMethodCallHandler
+                    }
+                    val fileName = call.argument<String>("fileName") ?: "qore_backup.json"
+                    val content = call.argument<String>("content")
+                    if (content == null) {
+                        result.error("INVALID_ARGS", "Missing backup content", null)
+                        return@setMethodCallHandler
+                    }
+                    pendingBackupResult = result
+                    pendingExportJson = content
+                    val intent = Intent(Intent.ACTION_CREATE_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "application/json"
+                        putExtra(Intent.EXTRA_TITLE, fileName)
+                    }
+                    startActivityForResult(intent, REQUEST_EXPORT_JSON)
+                }
+                "importJsonFile" -> {
+                    if (pendingBackupResult != null) {
+                        result.error("BUSY", "Another file operation is already in progress", null)
+                        return@setMethodCallHandler
+                    }
+                    pendingBackupResult = result
+                    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+                        addCategory(Intent.CATEGORY_OPENABLE)
+                        type = "*/*"
+                        putExtra(Intent.EXTRA_MIME_TYPES, arrayOf("application/json", "text/plain", "application/octet-stream"))
+                    }
+                    startActivityForResult(intent, REQUEST_IMPORT_JSON)
+                }
+                else -> result.notImplemented()
+            }
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        val pending = pendingBackupResult ?: return
+        if (requestCode == REQUEST_EXPORT_JSON) {
+            pendingBackupResult = null
+            val content = pendingExportJson
+            pendingExportJson = null
+            val uri = if (resultCode == Activity.RESULT_OK) data?.data else null
+            if (uri == null || content == null) {
+                pending.success(false)
+                return
+            }
+            Thread {
+                try {
+                    contentResolver.openOutputStream(uri)?.use { stream ->
+                        stream.write(content.toByteArray(Charsets.UTF_8))
+                        stream.flush()
+                    } ?: throw IllegalStateException("Unable to open output stream")
+                    runOnUiThread { pending.success(true) }
+                } catch (e: Exception) {
+                    runOnUiThread { pending.error("EXPORT_ERROR", e.message, null) }
+                }
+            }.start()
+        } else if (requestCode == REQUEST_IMPORT_JSON) {
+            pendingBackupResult = null
+            val uri = if (resultCode == Activity.RESULT_OK) data?.data else null
+            if (uri == null) {
+                pending.success(null)
+                return
+            }
+            Thread {
+                try {
+                    val json = contentResolver.openInputStream(uri)?.use { stream ->
+                        stream.bufferedReader(Charsets.UTF_8).readText()
+                    } ?: throw IllegalStateException("Unable to open input stream")
+                    runOnUiThread { pending.success(json) }
+                } catch (e: Exception) {
+                    runOnUiThread { pending.error("IMPORT_ERROR", e.message, null) }
+                }
+            }.start()
         }
     }
 

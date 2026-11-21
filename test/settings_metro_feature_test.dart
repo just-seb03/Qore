@@ -11,6 +11,7 @@ import 'package:project_anima/core/scanner/models/indexing_result.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/settings/screens/settings_screen.dart';
+import 'package:project_anima/features/settings/services/user_data_backup_service.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 const _testDelegates = [
@@ -151,7 +152,7 @@ void main() {
       expect(songRows.length, 1);
     });
 
-    testWidgets('Reset User Data shows confirmation dialog and triggers UI restart', (tester) async {
+    testWidgets('Manage Data opens sheet with Import, Export, and Clear options and Clear triggers confirmation', (tester) async {
       bool resetCalled = false;
       bool restarted = false;
 
@@ -171,10 +172,16 @@ void main() {
       );
       await tester.pump();
 
-      // Tap reset button -> opens Metro confirmation dialog
-      await tester.tap(find.byKey(const ValueKey('settings_reset_user_data')));
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 200));
+      // Tap Gestionar datos -> opens Metro bottom sheet with 3 options
+      await tester.tap(find.byKey(const ValueKey('settings_manage_user_data')));
+      await tester.pumpAndSettle();
+      expect(find.text('Importar datos de usuario'), findsOneWidget);
+      expect(find.text('Exportar datos de usuario'), findsOneWidget);
+      expect(find.text('Borrar datos de usuario'), findsOneWidget);
+
+      // Tap Borrar datos de usuario -> opens Metro confirmation dialog
+      await tester.tap(find.byKey(const ValueKey('user_data_clear_option')));
+      await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('confirm_reset_user_data_button')), findsOneWidget);
 
       await tester.tap(find.byKey(const ValueKey('confirm_reset_user_data_button')));
@@ -183,6 +190,97 @@ void main() {
 
       expect(resetCalled, isTrue);
       expect(restarted, isTrue);
+    });
+
+    test('UserDataBackupService exports stats & Space and skips missing library items on import', () async {
+      final db = await appDatabase.database;
+      final existingSongId = await db.insert(
+        'songs',
+        Song(
+          mediaStoreId: 101,
+          title: 'Time',
+          artist: 'Pink Floyd',
+          album: 'The Dark Side of the Moon',
+          albumId: 501,
+          duration: 413000,
+          path: '/music/time.mp3',
+          dateModified: 100,
+        ).toMap(),
+      );
+      final missingSongId = await db.insert(
+        'songs',
+        Song(
+          mediaStoreId: 202,
+          title: 'Missing Track',
+          artist: 'Ghost Artist',
+          album: 'Ghost Album',
+          albumId: 502,
+          duration: 200000,
+          path: '/music/missing.mp3',
+          dateModified: 100,
+        ).toMap(),
+      );
+
+      // Record 2 plays for Time, 1 play for Missing Track
+      await db.insert('playback_history', {
+        'song_id': existingSongId,
+        'artist': 'Pink Floyd',
+        'played_at': 1000,
+      });
+      await db.insert('playback_history', {
+        'song_id': existingSongId,
+        'artist': 'Pink Floyd',
+        'played_at': 2000,
+      });
+      await db.insert('playback_history', {
+        'song_id': missingSongId,
+        'artist': 'Ghost Artist',
+        'played_at': 3000,
+      });
+
+      // Pin existing album and missing album to Space
+      await db.insert('pinned_favorites', {
+        'item_type': 'album',
+        'item_key': 'album_The Dark Side of the Moon',
+        'title': 'The Dark Side of the Moon',
+        'subtitle': 'Pink Floyd',
+        'representative_song_id': 101,
+        'album_id': 501,
+        'pinned_at': 5000,
+      });
+      await db.insert('pinned_favorites', {
+        'item_type': 'album',
+        'item_key': 'album_Ghost Album',
+        'title': 'Ghost Album',
+        'subtitle': 'Ghost Artist',
+        'representative_song_id': 202,
+        'album_id': 502,
+        'pinned_at': 4000,
+      });
+
+      final exportedJson = await UserDataBackupService.exportToJson(
+        appDatabase: appDatabase,
+      );
+
+      // Wipe user data AND delete Missing Track from local songs
+      await SettingsScreen.resetUserData(appDatabase: appDatabase);
+      await db.delete('songs', where: 'media_store_id = ?', whereArgs: [202]);
+
+      final result = await UserDataBackupService.importFromJson(
+        exportedJson,
+        appDatabase: appDatabase,
+      );
+
+      expect(result.restoredPlays, 2);
+      expect(result.skippedPlays, 1);
+      expect(result.restoredSpacePins, 1);
+      expect(result.skippedSpacePins, 1);
+
+      final restoredHistory = await db.query('playback_history');
+      expect(restoredHistory.length, 2);
+      final restoredPins = await db.query('pinned_favorites');
+      expect(restoredPins.length, 1);
+      expect(restoredPins.first['title'], 'The Dark Side of the Moon');
     });
   });
 }

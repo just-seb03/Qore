@@ -22,6 +22,8 @@ import 'package:project_anima/core/search/recent_search_controller.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
+import 'package:project_anima/features/settings/components/user_data_options_sheet.dart';
+import 'package:project_anima/features/settings/services/user_data_backup_service.dart';
 import 'package:project_anima/main.dart';
 
 /// Windows Phone Metro Settings screen.
@@ -35,6 +37,12 @@ class SettingsScreen extends StatefulWidget {
   /// Optional custom reset user data callback for testing.
   final Future<void> Function()? onResetUserData;
 
+  /// Optional custom export user data callback for testing.
+  final Future<bool> Function(String jsonContent)? onExportUserData;
+
+  /// Optional custom import user data callback for testing.
+  final Future<String?> Function()? onImportUserData;
+
   /// Optional callback invoked instead of AnimaApp.restart in isolated tests.
   final VoidCallback? onUiRestartRequested;
 
@@ -43,6 +51,8 @@ class SettingsScreen extends StatefulWidget {
     this.appDatabase,
     this.onQuickRescan,
     this.onResetUserData,
+    this.onExportUserData,
+    this.onImportUserData,
     this.onUiRestartRequested,
   });
 
@@ -90,6 +100,102 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   bool _isScanning = false;
   bool _isResetting = false;
+  bool _isManagingData = false;
+
+  void _showSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: AppFonts.segoe(color: AppColors.onSurface),
+        ),
+        backgroundColor: AppColors.surfaceContainerHigh,
+      ),
+    );
+  }
+
+  Future<void> _handleExportUserData() async {
+    if (_isScanning || _isResetting || _isManagingData) return;
+    setState(() => _isManagingData = true);
+    final isSpanish = Localizations.localeOf(context).languageCode == 'es';
+    try {
+      final json = await UserDataBackupService.exportToJson(
+        appDatabase: widget.appDatabase,
+      );
+      final saved = widget.onExportUserData != null
+          ? await widget.onExportUserData!(json)
+          : await UserDataBackupService.exportWithSystemPicker(json);
+      if (!mounted) return;
+      setState(() => _isManagingData = false);
+      if (saved) {
+        _showSnackBar(
+          isSpanish
+              ? 'Datos exportados correctamente'
+              : 'User data exported successfully',
+        );
+      }
+    } catch (e) {
+      debugPrint('⚠️ [SettingsScreen] Error exporting user data: $e');
+      if (mounted) {
+        setState(() => _isManagingData = false);
+        _showSnackBar(
+          isSpanish
+              ? 'No se pudieron exportar los datos'
+              : 'Could not export user data',
+        );
+      }
+    }
+  }
+
+  Future<void> _handleImportUserData() async {
+    if (_isScanning || _isResetting || _isManagingData) return;
+    setState(() => _isManagingData = true);
+    final isSpanish = Localizations.localeOf(context).languageCode == 'es';
+    try {
+      final json = widget.onImportUserData != null
+          ? await widget.onImportUserData!()
+          : await UserDataBackupService.importWithSystemPicker();
+      if (json == null || json.trim().isEmpty) {
+        if (mounted) setState(() => _isManagingData = false);
+        return;
+      }
+      final result = await UserDataBackupService.importFromJson(
+        json,
+        appDatabase: widget.appDatabase,
+      );
+      if (!mounted) return;
+      setState(() => _isManagingData = false);
+      _showSnackBar(
+        isSpanish
+            ? 'Importados: ${result.restoredPlays} reprod., ${result.restoredSpacePins} Space'
+            : 'Imported: ${result.restoredPlays} plays, ${result.restoredSpacePins} Space',
+      );
+      if (result.totalRestored > 0) {
+        _triggerUiRestart();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [SettingsScreen] Error importing user data: $e');
+      if (mounted) {
+        setState(() => _isManagingData = false);
+        _showSnackBar(
+          isSpanish
+              ? 'Archivo de respaldo inválido'
+              : 'Invalid backup file',
+        );
+      }
+    }
+  }
+
+  void _openUserDataSheet() {
+    if (_isScanning || _isResetting || _isManagingData) return;
+    UserDataOptionsSheet.show(
+      context,
+      onImportData: _handleImportUserData,
+      onExportData: _handleExportUserData,
+      onClearData: _handleResetUserData,
+    );
+  }
 
   void _triggerUiRestart() {
     if (widget.onUiRestartRequested != null) {
@@ -389,17 +495,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             const SizedBox(height: 10.0),
                             _buildActionTile(
-                              key: const ValueKey('settings_reset_user_data'),
-                              icon: Icons.restart_alt_rounded,
+                              key: const ValueKey('settings_manage_user_data'),
+                              icon: Icons.storage_rounded,
                               title: isSpanish
-                                  ? 'Restaurar datos de usuario'
-                                  : 'Reset user data',
+                                  ? 'Gestionar datos'
+                                  : 'Manage data',
                               subtitle: isSpanish
-                                  ? 'Limpia historial, favoritos y playlists'
-                                  : 'Clear history, favorites, and playlists',
-                              isDestructive: true,
-                              isLoading: _isResetting,
-                              onTap: _handleResetUserData,
+                                  ? 'Importar, exportar o borrar estadísticas y Space'
+                                  : 'Import, export, or clear stats and Space',
+                              isLoading: _isResetting || _isManagingData,
+                              onTap: _openUserDataSheet,
                             ),
                             const SizedBox(height: 40.0),
                           ],
