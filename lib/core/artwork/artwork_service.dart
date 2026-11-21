@@ -53,6 +53,7 @@ class ArtworkService extends ChangeNotifier {
   final Map<int, String> _coverCache = {};
   final Map<String, String> _customArtistAvatarCache = {};
   final Map<String, String> _customArtistRoundCache = {};
+  final Map<String, int> _customArtistVersionCache = {};
   final Map<String, String> _customArtistSquareCache = {};
   final Map<String, int> _albumRepresentativeCache = {};
   final Map<String, List<_ArtworkQueueItem>> _albumPendingSongs = {};
@@ -376,6 +377,23 @@ class ArtworkService extends ChangeNotifier {
     return null;
   }
 
+  /// Returns the in-memory revision counter for an artist's custom photo so
+  /// widgets can invalidate `Image` keys immediately upon photo changes.
+  int getArtistAvatarVersion(String? artist) {
+    if (artist == null || artist.trim().isEmpty) return 0;
+    return _customArtistVersionCache[_normalizeArtistKey(artist)] ?? 0;
+  }
+
+  void _evictArtistImageCaches(List<String> paths) {
+    final imageCache = PaintingBinding.instance.imageCache;
+    for (final path in paths) {
+      FileImage(File(path)).evict();
+    }
+    // ResizeImage wraps FileImage with size-specific cache keys, so clear cached entries
+    // when an artist photo is replaced or removed to ensure immediate UI refresh.
+    imageCache.clear();
+  }
+
   /// Saves custom artist avatar to persistent disk storage in both 1:1 square format (for Space)
   /// and circular rasterized format (for avatars), and updates in-memory caches.
   Future<String> setCustomArtistAvatar(String artist, Uint8List imageBytes) async {
@@ -394,6 +412,9 @@ class ArtworkService extends ChangeNotifier {
     final roundPath = p.join(_artistsDir, '${key}_round.png');
     await File(roundPath).writeAsBytes(roundBytes, flush: true);
     _customArtistRoundCache[key] = roundPath;
+
+    _customArtistVersionCache[key] = (_customArtistVersionCache[key] ?? 0) + 1;
+    _evictArtistImageCaches([squarePath, standardPath, roundPath]);
 
     notifyListeners();
     return roundPath;
@@ -419,6 +440,8 @@ class ArtworkService extends ChangeNotifier {
         } catch (_) {}
       }
     }
+    _customArtistVersionCache[key] = (_customArtistVersionCache[key] ?? 0) + 1;
+    _evictArtistImageCaches(paths);
     notifyListeners();
   }
 

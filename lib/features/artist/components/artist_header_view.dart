@@ -74,9 +74,12 @@ class ArtistHeaderView extends StatelessWidget {
                               .getCustomArtistAvatar(artistName);
                       final hasCustomPhoto = customSquare != null &&
                           File(customSquare).existsSync();
+                      final int avatarVersion =
+                          ArtworkService.instance.getArtistAvatarVersion(artistName);
 
                       if (hasCustomPhoto) {
                         return Image(
+                          key: ValueKey('${customSquare}_v$avatarVersion'),
                           image: ResizeImage(
                             FileImage(File(customSquare)),
                             width: (avatarSize * 2.5).round(),

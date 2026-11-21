@@ -60,8 +60,10 @@ class ExploreMetroArtistTile extends StatelessWidget {
                     ? customImagePath
                     : null;
                 final customPath = directPath ??
-                    ArtworkService.instance.getCustomArtistAvatar(artist.name);
+                    ArtworkService.instance.getCustomArtistSquarePhoto(artist.name);
                 final hasCustomPhoto = customPath != null && File(customPath).existsSync();
+                final int avatarVersion =
+                    ArtworkService.instance.getArtistAvatarVersion(artist.name);
 
                 if (hasCustomPhoto) {
                   final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
@@ -70,8 +72,9 @@ class ExploreMetroArtistTile extends StatelessWidget {
                   return Stack(
                     fit: StackFit.expand,
                     children: [
-                      // 1. Full-bleed real artist photo
+                      // 1. Full-bleed real square artist photo
                       Image(
+                        key: ValueKey('${customPath}_v$avatarVersion'),
                         image: ResizeImage(
                           FileImage(File(customPath)),
                           width: pixelSize,
