@@ -1151,6 +1151,9 @@ void main() {
       );
       await tester.pump();
 
+      // Zero BackdropFilter blur overhead
+      expect(find.byType(BackdropFilter), findsNothing);
+
       // Top action buttons
       expect(find.byKey(const ValueKey('context_add_to_playlist_button')), findsOneWidget);
       expect(find.byKey(const ValueKey('context_toggle_favorite_button')), findsOneWidget);

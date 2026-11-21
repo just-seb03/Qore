@@ -276,6 +276,7 @@ void main() {
       expect(find.byIcon(Icons.explore_rounded), findsOneWidget); // Active explore
       expect(find.byIcon(Icons.person_outline_rounded), findsOneWidget); // Inactive profile
       expect(find.byIcon(Icons.favorite_border_rounded), findsOneWidget); // Inactive space
+      expect(find.byType(BackdropFilter), findsNothing);
     });
 
     testWidgets('AppBottomNav renders active profile icon when index is 4',

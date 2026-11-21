@@ -9,7 +9,6 @@
 library;
 
 import 'dart:io';
-import 'dart:ui';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -194,230 +193,227 @@ class SongContextSheet extends StatelessWidget {
   Widget build(BuildContext context) {
     final audioInfo = SongAudioInfo.fromSong(song);
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
-      child: Container(
-        padding: const EdgeInsets.only(bottom: 24.0),
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.zero,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // 1. Universal Dismiss Chevron
-            const SizedBox(height: 6.0),
-            ModalDismissIndicator(
-              onDismiss: () => Navigator.of(context).pop(),
-              size: 32.0,
-              color: AppColors.onSurfaceVariant,
-              animate: false,
-              padding: const EdgeInsets.symmetric(vertical: 6.0),
-            ),
+    return Container(
+      padding: const EdgeInsets.only(bottom: 24.0),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.zero,
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // 1. Universal Dismiss Chevron
+          const SizedBox(height: 6.0),
+          ModalDismissIndicator(
+            onDismiss: () => Navigator.of(context).pop(),
+            size: 32.0,
+            color: AppColors.onSurfaceVariant,
+            animate: false,
+            padding: const EdgeInsets.symmetric(vertical: 6.0),
+          ),
 
-            // 2. Track Title & Artist header
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
-              child: Column(
-                children: [
-                  Text(
-                    song.title,
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppFonts.light(
-                      fontSize: 21.0,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                  const SizedBox(height: 2.0),
-                  Text(
-                    song.artist ?? 'Artista desconocido',
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppFonts.segoe(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w300,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16.0),
-
-            // 3. Three Centered Action Buttons: Add to Playlist | Favorite | Delete
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
+          // 2. Track Title & Artist header
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 4.0),
+            child: Column(
               children: [
-                // Button 1: Add to playlist
-                _buildActionButton(
-                  key: const ValueKey('context_add_to_playlist_button'),
-                  icon: Icon(
-                    Icons.playlist_add_rounded,
+                Text(
+                  song.title,
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.light(
+                    fontSize: 21.0,
                     color: AppColors.onSurface,
                   ),
-                  label: 'Playlist',
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    SongPlaylistPickerSheet.show(
-                      context,
-                      song: song,
-                      playlistDao: playlistDao,
-                    );
-                  },
                 ),
-                const SizedBox(width: 24.0),
-
-                // Button 2: Toggle favorite
-                ListenableBuilder(
-                  listenable: FavoriteSongsDao.instance.favoritesRevision,
-                  builder: (context, _) {
-                    final isFav = FavoriteSongsDao.instance.isFavorite(song.mediaStoreId);
-                    return _buildActionButton(
-                      key: const ValueKey('context_toggle_favorite_button'),
-                      icon: Icon(
-                        isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                        color: isFav ? AppColors.accent : AppColors.onSurface,
-                      ),
-                      label: isFav ? 'Favorito' : 'Favorito',
-                      onTap: () {
-                        FavoriteSongsDao.instance.toggleFavorite(song);
-                        HapticFeedback.mediumImpact();
-                      },
-                    );
-                  },
-                ),
-                const SizedBox(width: 24.0),
-
-                // Button 3: Delete song
-                _buildActionButton(
-                  key: const ValueKey('context_delete_song_button'),
-                  icon: const Icon(
-                    Icons.delete_outline_rounded,
-                    color: Color(0xFFFF5252),
+                const SizedBox(height: 2.0),
+                Text(
+                  song.artist ?? 'Artista desconocido',
+                  textAlign: TextAlign.center,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.segoe(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w300,
+                    color: AppColors.onSurfaceVariant,
                   ),
-                  label: 'Eliminar',
-                  onTap: () async {
-                    final confirmed = await SongDeleteDialog.show(
-                      context,
-                      songTitle: song.title,
-                    );
-
-                    if (confirmed == true && context.mounted) {
-                      final effectiveSongDao = songDao ?? SongDao();
-                      await effectiveSongDao.deleteSong(song.mediaStoreId);
-
-                      try {
-                        final file = File(song.path);
-                        if (file.existsSync()) {
-                          await file.delete();
-                        }
-                      } catch (_) {}
-
-                      if (PlaybackController.instance.currentSong?.mediaStoreId ==
-                          song.mediaStoreId) {
-                        await PlaybackController.instance.skipToNext();
-                      }
-
-                      if (context.mounted) {
-                        Navigator.of(context).pop();
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Canción eliminada de la biblioteca',
-                              style: AppFonts.segoe(color: AppColors.onSurface),
-                            ),
-                            backgroundColor: AppColors.surfaceContainerHigh,
-                          ),
-                        );
-                      }
-                    }
-                  },
                 ),
               ],
             ),
-            const SizedBox(height: 18.0),
+          ),
+          const SizedBox(height: 16.0),
 
-            // 4. Audio Technical Information Card: Format | Quality (kHz) | Size
+          // 3. Three Centered Action Buttons: Add to Playlist | Favorite | Delete
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Button 1: Add to playlist
+              _buildActionButton(
+                key: const ValueKey('context_add_to_playlist_button'),
+                icon: Icon(
+                  Icons.playlist_add_rounded,
+                  color: AppColors.onSurface,
+                ),
+                label: 'Playlist',
+                onTap: () {
+                  Navigator.of(context).pop();
+                  SongPlaylistPickerSheet.show(
+                    context,
+                    song: song,
+                    playlistDao: playlistDao,
+                  );
+                },
+              ),
+              const SizedBox(width: 24.0),
+
+              // Button 2: Toggle favorite
+              ListenableBuilder(
+                listenable: FavoriteSongsDao.instance.favoritesRevision,
+                builder: (context, _) {
+                  final isFav = FavoriteSongsDao.instance.isFavorite(song.mediaStoreId);
+                  return _buildActionButton(
+                    key: const ValueKey('context_toggle_favorite_button'),
+                    icon: Icon(
+                      isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                      color: isFav ? AppColors.accent : AppColors.onSurface,
+                    ),
+                    label: isFav ? 'Favorito' : 'Favorito',
+                    onTap: () {
+                      FavoriteSongsDao.instance.toggleFavorite(song);
+                      HapticFeedback.mediumImpact();
+                    },
+                  );
+                },
+              ),
+              const SizedBox(width: 24.0),
+
+              // Button 3: Delete song
+              _buildActionButton(
+                key: const ValueKey('context_delete_song_button'),
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  color: Color(0xFFFF5252),
+                ),
+                label: 'Eliminar',
+                onTap: () async {
+                  final confirmed = await SongDeleteDialog.show(
+                    context,
+                    songTitle: song.title,
+                  );
+
+                  if (confirmed == true && context.mounted) {
+                    final effectiveSongDao = songDao ?? SongDao();
+                    await effectiveSongDao.deleteSong(song.mediaStoreId);
+
+                    try {
+                      final file = File(song.path);
+                      if (file.existsSync()) {
+                        await file.delete();
+                      }
+                    } catch (_) {}
+
+                    if (PlaybackController.instance.currentSong?.mediaStoreId ==
+                        song.mediaStoreId) {
+                      await PlaybackController.instance.skipToNext();
+                    }
+
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Canción eliminada de la biblioteca',
+                            style: AppFonts.segoe(color: AppColors.onSurface),
+                          ),
+                          backgroundColor: AppColors.surfaceContainerHigh,
+                        ),
+                      );
+                    }
+                  }
+                },
+              ),
+            ],
+          ),
+          const SizedBox(height: 18.0),
+
+          // 4. Audio Technical Information Card: Format | Quality (kHz) | Size
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20.0),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainer,
+                borderRadius: BorderRadius.zero,
+                border: Border.all(
+                  color: AppColors.outline.withValues(alpha: 0.25),
+                  width: 0.8,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildAudioStat('FORMATO', audioInfo.format),
+                  Container(
+                    width: 1.0,
+                    height: 28.0,
+                    color: AppColors.outline.withValues(alpha: 0.25),
+                  ),
+                  _buildAudioStat('CALIDAD', audioInfo.quality),
+                  Container(
+                    width: 1.0,
+                    height: 28.0,
+                    color: AppColors.outline.withValues(alpha: 0.25),
+                  ),
+                  _buildAudioStat('PESO', audioInfo.size),
+                ],
+              ),
+            ),
+          ),
+
+          // 5. Artists Section (Spotify-style list with square artist portrait on left)
+          if (song.artists.isNotEmpty) ...[
+            const SizedBox(height: 18.0),
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainer,
-                  borderRadius: BorderRadius.zero,
-                  border: Border.all(
-                    color: AppColors.outline.withValues(alpha: 0.25),
-                    width: 0.8,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'ARTISTAS',
+                  style: AppFonts.segoe(
+                    fontSize: 12.0,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.4,
+                    color: AppColors.onSurfaceVariant,
                   ),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    _buildAudioStat('FORMATO', audioInfo.format),
-                    Container(
-                      width: 1.0,
-                      height: 28.0,
-                      color: AppColors.outline.withValues(alpha: 0.25),
-                    ),
-                    _buildAudioStat('CALIDAD', audioInfo.quality),
-                    Container(
-                      width: 1.0,
-                      height: 28.0,
-                      color: AppColors.outline.withValues(alpha: 0.25),
-                    ),
-                    _buildAudioStat('PESO', audioInfo.size),
-                  ],
                 ),
               ),
             ),
-
-            // 5. Artists Section (Spotify-style list with square artist portrait on left)
-            if (song.artists.isNotEmpty) ...[
-              const SizedBox(height: 18.0),
-              Padding(
+            const SizedBox(height: 8.0),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxHeight: 190.0),
+              child: ListView.builder(
+                shrinkWrap: true,
+                physics: const BouncingScrollPhysics(),
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'ARTISTAS',
-                    style: AppFonts.segoe(
-                      fontSize: 12.0,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.4,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                  ),
-                ),
+                itemCount: song.artists.length,
+                itemBuilder: (context, index) {
+                  final artistName = song.artists[index];
+                  return _ContextArtistRow(
+                    artistName: artistName,
+                    onTap: () {
+                      Navigator.of(context).pop();
+                      Navigator.of(context).push(
+                        ArtistDetailScreen.route(artistName),
+                      );
+                    },
+                  );
+                },
               ),
-              const SizedBox(height: 8.0),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxHeight: 190.0),
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                  itemCount: song.artists.length,
-                  itemBuilder: (context, index) {
-                    final artistName = song.artists[index];
-                    return _ContextArtistRow(
-                      artistName: artistName,
-                      onTap: () {
-                        Navigator.of(context).pop();
-                        Navigator.of(context).push(
-                          ArtistDetailScreen.route(artistName),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
+            ),
           ],
-        ),
+        ],
       ),
     );
   }

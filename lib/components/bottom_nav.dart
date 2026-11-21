@@ -10,9 +10,7 @@
 /// - AppBottomNav: The primary reusable navigation widget with M3 Expressive destinations.
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
-import 'package:project_anima/components/film_grain.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -92,74 +90,66 @@ class AppBottomNav extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showMiniPlayer) const MiniPlayer(),
-        ClipRect(
-          child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: AppColors.bottomNavBackground.withValues(alpha: 0.85),
-                border: Border(
-                  top: BorderSide(
-                    color: AppColors.outlineVariant.withValues(alpha: 0.35),
-                    width: 0.8,
-                  ),
-                ),
-              ),
-              child: SafeArea(
-                top: false,
-            child: FilmGrain(
-              intensity: grainIntensity,
-              child: NavigationBar(
-                selectedIndex: currentIndex,
-                onDestinationSelected: (index) {
-                  if (onDestinationSelected != null) {
-                    onDestinationSelected!(index);
-                  } else {
-                    NavigationController.instance.navigateToTab(context, index);
-                  }
-                },
-                backgroundColor: Colors.transparent, // Handled by outer container
-                indicatorColor: AppColors.navIndicator,
-                elevation: 0,
-                destinations: [
-                  NavigationDestination(
-                    icon: const Icon(Icons.explore_outlined),
-                    selectedIcon: const Icon(Icons.explore_rounded),
-                    label: context.l10n.navigation.exploreTab,
-                    tooltip: context.l10n.navigation.exploreTabTooltip,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.search_rounded),
-                    selectedIcon: const Icon(Icons.search_rounded),
-                    label: context.l10n.navigation.searchTab,
-                    tooltip: context.l10n.navigation.searchTabTooltip,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.favorite_border_rounded),
-                    selectedIcon: const Icon(Icons.favorite_rounded),
-                    label: context.l10n.navigation.homeTab,
-                    tooltip: context.l10n.navigation.homeTabTooltip,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.video_library_outlined),
-                    selectedIcon: const Icon(Icons.video_library_rounded),
-                    label: context.l10n.navigation.libraryTab,
-                    tooltip: context.l10n.navigation.libraryTabTooltip,
-                  ),
-                  NavigationDestination(
-                    icon: const Icon(Icons.person_outline_rounded),
-                    selectedIcon: const Icon(Icons.person_rounded),
-                    label: context.l10n.navigation.profileTab,
-                    tooltip: context.l10n.navigation.profileTabTooltip,
-                  ),
-                ],
+        Container(
+          decoration: BoxDecoration(
+            color: AppColors.bottomNavBackground.withValues(alpha: 0.96),
+            border: Border(
+              top: BorderSide(
+                color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                width: 0.8,
               ),
             ),
           ),
+          child: SafeArea(
+            top: false,
+            child: NavigationBar(
+              selectedIndex: currentIndex,
+              onDestinationSelected: (index) {
+                if (onDestinationSelected != null) {
+                  onDestinationSelected!(index);
+                } else {
+                  NavigationController.instance.navigateToTab(context, index);
+                }
+              },
+              backgroundColor: Colors.transparent, // Handled by outer container
+              indicatorColor: AppColors.navIndicator,
+              elevation: 0,
+              destinations: [
+                NavigationDestination(
+                  icon: const Icon(Icons.explore_outlined),
+                  selectedIcon: const Icon(Icons.explore_rounded),
+                  label: context.l10n.navigation.exploreTab,
+                  tooltip: context.l10n.navigation.exploreTabTooltip,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.search_rounded),
+                  selectedIcon: const Icon(Icons.search_rounded),
+                  label: context.l10n.navigation.searchTab,
+                  tooltip: context.l10n.navigation.searchTabTooltip,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.favorite_border_rounded),
+                  selectedIcon: const Icon(Icons.favorite_rounded),
+                  label: context.l10n.navigation.homeTab,
+                  tooltip: context.l10n.navigation.homeTabTooltip,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.video_library_outlined),
+                  selectedIcon: const Icon(Icons.video_library_rounded),
+                  label: context.l10n.navigation.libraryTab,
+                  tooltip: context.l10n.navigation.libraryTabTooltip,
+                ),
+                NavigationDestination(
+                  icon: const Icon(Icons.person_outline_rounded),
+                  selectedIcon: const Icon(Icons.person_rounded),
+                  label: context.l10n.navigation.profileTab,
+                  tooltip: context.l10n.navigation.profileTabTooltip,
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
-    ),
-  ],
-);
-}
+      ],
+    );
+  }
 }
