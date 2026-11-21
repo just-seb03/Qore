@@ -8,7 +8,6 @@
 library;
 
 import 'package:flutter/material.dart';
-import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -30,23 +29,21 @@ class MetroFavoritesTile extends StatelessWidget {
     this.initialSongs,
   });
 
-  Future<void> _handleTap(BuildContext context) async {
-    final songs = initialSongs ?? await FavoriteSongsDao.instance.getAllFavorites();
-    if (!context.mounted) return;
-
+  void _handleTap(BuildContext context) {
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final favoritesPlaylist = Playlist(
-      id: -2,
+      id: PlaylistDetailScreen.favoritesPlaylistId,
       name: "Favorites",
       createdAt: nowMs,
       updatedAt: nowMs,
-      firstMediaStoreId: songs.isNotEmpty ? songs.first.mediaStoreId : null,
+      firstMediaStoreId:
+          initialSongs != null && initialSongs!.isNotEmpty ? initialSongs!.first.mediaStoreId : null,
     );
 
     Navigator.of(context).push(
       PlaylistDetailScreen.route(
         playlist: favoritesPlaylist,
-        initialSongs: songs,
+        initialSongs: initialSongs,
         isEditable: false,
         showHeroCover: false,
       ),

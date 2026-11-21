@@ -47,6 +47,53 @@ class FavoriteSongsDao {
     await ensureLoaded();
   }
 
+  /// Removes rows from `favorite_songs` whose underlying track is no longer present in `songs`.
+  /// When [onlyWhenLibraryNonEmpty] is true, skips pruning if `songs` has zero rows so
+  /// isolated unit tests that seed only `favorite_songs` retain their fixtures.
+  Future<int> pruneOrphanedFavorites({
+    DatabaseExecutor? executor,
+    bool notify = true,
+    bool onlyWhenLibraryNonEmpty = false,
+  }) async {
+    try {
+      final db = executor ?? await _dbProvider.database;
+      if (onlyWhenLibraryNonEmpty) {
+        final countRows = await db.rawQuery('SELECT COUNT(*) as cnt FROM songs');
+        final songCount = (countRows.first['cnt'] as int?) ?? 0;
+        if (songCount == 0) return 0;
+      }
+
+      final deleted = await db.rawDelete('''
+        DELETE FROM favorite_songs
+        WHERE media_store_id NOT IN (
+          SELECT media_store_id FROM songs WHERE media_store_id IS NOT NULL
+        )
+      ''');
+
+      if (deleted > 0) {
+        final remainingRows = await db.query(
+          'favorite_songs',
+          columns: ['media_store_id'],
+        );
+        _cachedFavoriteIds.clear();
+        for (final row in remainingRows) {
+          final id = row['media_store_id'] as int?;
+          if (id != null) {
+            _cachedFavoriteIds.add(id);
+          }
+        }
+        _isCacheLoaded = true;
+        if (notify) {
+          favoritesRevision.value++;
+        }
+      }
+      return deleted;
+    } catch (e) {
+      debugPrint('⚠️ [FavoriteSongsDao] Error pruning orphaned favorites: $e');
+      return 0;
+    }
+  }
+
   Future<void> _loadCache() async {
     try {
       final db = await _dbProvider.database;
@@ -90,6 +137,11 @@ class FavoriteSongsDao {
   Future<List<Song>> getAllFavorites() async {
     try {
       final db = await _dbProvider.database;
+      await pruneOrphanedFavorites(
+        executor: db,
+        notify: false,
+        onlyWhenLibraryNonEmpty: true,
+      );
       final rows = await db.query(
         'favorite_songs',
         orderBy: 'favorited_at DESC',

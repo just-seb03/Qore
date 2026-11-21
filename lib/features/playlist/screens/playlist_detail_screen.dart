@@ -13,6 +13,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
+import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
@@ -22,6 +23,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/navigation/app_route_tracker.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
+import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/player/components/mini_player.dart';
 import 'package:project_anima/features/playlist/components/playlist_detail_header.dart';
@@ -31,6 +33,15 @@ import 'package:project_anima/features/playlist/screens/playlist_tracks_edit_scr
 
 /// Full-screen playlist detail and playback screen.
 class PlaylistDetailScreen extends StatefulWidget {
+  /// Sentinel ID for the synthetic Today Selection / Daily Mix playlist.
+  static const int todaySelectionPlaylistId = -1;
+
+  /// Sentinel ID for the synthetic Recientes (recently played) playlist.
+  static const int recentsPlaylistId = -2;
+
+  /// Sentinel ID for the synthetic Favorites playlist.
+  static const int favoritesPlaylistId = -3;
+
   /// The playlist entity to display.
   final Playlist playlist;
 
@@ -127,6 +138,14 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   late final AnimationController _springController;
   Animation<double>? _springAnimation;
 
+  bool get _isRecentsPlaylist =>
+      _playlist.id == PlaylistDetailScreen.recentsPlaylistId;
+
+  bool get _isFavoritesPlaylist =>
+      _playlist.id == PlaylistDetailScreen.favoritesPlaylistId;
+
+  bool get _isUserPlaylist => _playlist.id != null && _playlist.id! > 0;
+
   @override
   void initState() {
     super.initState();
@@ -146,16 +165,24 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
       });
 
     PlaylistDao.playlistRevision.addListener(_onPlaylistRevisionChanged);
-    if (_playlist.id == -2) {
+    if (_isRecentsPlaylist) {
       SongDao.playbackHistoryRevision.addListener(_onPlaybackHistoryChanged);
+    }
+    if (_isFavoritesPlaylist) {
+      FavoriteSongsDao.instance.favoritesRevision.addListener(_onFavoritesRevisionChanged);
+      MusicIndexer.revision.addListener(_onIndexerRevisionChanged);
+    } else if (_isUserPlaylist) {
+      MusicIndexer.revision.addListener(_onIndexerRevisionChanged);
     }
 
     if (widget.initialSongs != null) {
       _songs = List.of(widget.initialSongs!);
       _isLoading = false;
-    } else if (_playlist.id == -2) {
+    } else if (_isFavoritesPlaylist) {
+      _loadFavoriteSongs();
+    } else if (_isRecentsPlaylist) {
       _loadRecentSongs();
-    } else if (_playlist.id != null) {
+    } else if (_isUserPlaylist) {
       _loadPlaylistSongs();
     } else {
       _isLoading = false;
@@ -236,20 +263,50 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   }
 
   void _onPlaylistRevisionChanged() {
-    if (mounted && _playlist.id != null && _playlist.id! > 0) {
+    if (mounted && _isUserPlaylist) {
       _loadPlaylistSongs();
     }
   }
 
   void _onPlaybackHistoryChanged() {
-    if (mounted && _playlist.id == -2) {
+    if (mounted && _isRecentsPlaylist) {
       _loadRecentSongs();
+    }
+  }
+
+  void _onFavoritesRevisionChanged() {
+    if (mounted && _isFavoritesPlaylist) {
+      _loadFavoriteSongs();
+    }
+  }
+
+  void _onIndexerRevisionChanged() {
+    if (!mounted) return;
+    if (_isFavoritesPlaylist) {
+      _loadFavoriteSongs();
+    } else if (_isUserPlaylist) {
+      _loadPlaylistSongs();
+    }
+  }
+
+  Future<void> _loadFavoriteSongs() async {
+    try {
+      final songs = await FavoriteSongsDao.instance.getAllFavorites();
+      if (mounted) {
+        setState(() {
+          _songs = songs;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('⚠️ [PlaylistDetailScreen] Error loading favorites: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   Future<void> _loadRecentSongs() async {
     try {
-      final songs = await SongDao().getRecentlyPlayedSongs(limit: 50);
+      final songs = await _songDao.getRecentlyPlayedSongs(limit: 50);
       if (mounted) {
         setState(() {
           _songs = songs;
@@ -258,14 +315,21 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
       }
     } catch (e) {
       debugPrint('⚠️ [PlaylistDetailScreen] Error reloading recent songs: $e');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   @override
   void dispose() {
     PlaylistDao.playlistRevision.removeListener(_onPlaylistRevisionChanged);
-    if (_playlist.id == -2) {
+    if (_isRecentsPlaylist) {
       SongDao.playbackHistoryRevision.removeListener(_onPlaybackHistoryChanged);
+    }
+    if (_isFavoritesPlaylist) {
+      FavoriteSongsDao.instance.favoritesRevision.removeListener(_onFavoritesRevisionChanged);
+      MusicIndexer.revision.removeListener(_onIndexerRevisionChanged);
+    } else if (_isUserPlaylist) {
+      MusicIndexer.revision.removeListener(_onIndexerRevisionChanged);
     }
     _springController.dispose();
     super.dispose();
@@ -386,191 +450,215 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
           Navigator.of(context).pop(_playlist);
         }
       },
-      child: ListenableBuilder(
-        listenable: PlaybackController.instance,
-        builder: (context, _) {
-        return AnimatedContainer(
-          duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
-          curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
-          color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
-          child: Scaffold(
-            backgroundColor: Colors.transparent,
-            bottomNavigationBar: const SafeArea(
-              top: false,
-              child: MiniPlayer(),
-            ),
-            body: SafeArea(
-              bottom: false,
-              child: Transform.translate(
-                offset: Offset(0.0, _dragOffset),
-                child: _isLoading
-                    ? Center(
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          color: AppColors.accent,
+      child: AnimatedContainer(
+        duration: Duration(milliseconds: _isFlashingRed ? 250 : 500),
+        curve: _isFlashingRed ? Curves.easeOutCubic : Curves.easeInCubic,
+        color: _isFlashingRed ? AppColors.pinnedRedBackground : AppColors.background,
+        child: Scaffold(
+          backgroundColor: Colors.transparent,
+          bottomNavigationBar: const SafeArea(
+            top: false,
+            child: MiniPlayer(),
+          ),
+          body: SafeArea(
+            bottom: false,
+            child: Transform.translate(
+              offset: Offset(0.0, _dragOffset),
+              child: _isLoading
+                  ? Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.5,
+                        color: AppColors.accent,
+                      ),
+                    )
+                  : CustomScrollView(
+                      physics: const BouncingScrollPhysics(),
+                      slivers: [
+                        SliverToBoxAdapter(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              // 1. Universal Animated Dismiss Chevron
+                              const SizedBox(height: 4.0),
+                              ModalDismissIndicator(
+                                onDismiss: _handleDismiss,
+                                onDragUpdate: _handleDragUpdate,
+                                onDragEnd: _handleDragEnd,
+                                size: 34.0,
+                                color: AppColors.onSurfaceVariant,
+                                animate: widget.animateBounce,
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 6.0,
+                                  horizontal: 36.0,
+                                ),
+                              ),
+                              const SizedBox(height: 8.0),
+
+                              // 2. Cohesive Playlist Header (isolated PlaybackController rebuild scope)
+                              ListenableBuilder(
+                                listenable: PlaybackController.instance,
+                                builder: (context, _) {
+                                  return PlaylistDetailHeader(
+                                    playlist: _playlist,
+                                    songCount: _songs.length,
+                                    totalDurationMs: totalMs,
+                                    isShuffleEnabled: PlaybackController.instance.isShuffleEnabled,
+                                    onPlay: _playFromStart,
+                                    onToggleShuffle: _toggleShuffle,
+                                    isPinned: _isPinned,
+                                    onToggleFavorite: widget.showHeroCover ? _togglePinned : null,
+                                    showHeroCover: widget.showHeroCover,
+                                    isEditable: widget.isEditable,
+                                    onEdit: widget.isEditable ? _editPlaylist : null,
+                                  );
+                                },
+                              ),
+                              const SizedBox(height: 24.0),
+
+                              // 3. Tracks Section Header
+                              _buildTracksHeader(),
+                              const SizedBox(height: 8.0),
+                            ],
+                          ),
                         ),
-                      )
-                    : SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            // 1. Universal Animated Dismiss Chevron
-                            const SizedBox(height: 4.0),
-                            ModalDismissIndicator(
-                              onDismiss: _handleDismiss,
-                              onDragUpdate: _handleDragUpdate,
-                              onDragEnd: _handleDragEnd,
-                              size: 34.0,
-                              color: AppColors.onSurfaceVariant,
-                              animate: widget.animateBounce,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 6.0,
-                                horizontal: 36.0,
+                        if (_songs.isEmpty)
+                          SliverToBoxAdapter(
+                            child: _buildEmptyTracksPlaceholder(),
+                          )
+                        else if (_songs.length <= 20)
+                          SliverToBoxAdapter(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  for (int index = 0; index < _songs.length; index++) ...[
+                                    if (index > 0) const SizedBox(height: 2.0),
+                                    PlaylistTrackTile(
+                                      key: ValueKey('playlist_track_tile_${_songs[index].mediaStoreId}_$index'),
+                                      song: _songs[index],
+                                      trackIndex: index + 1,
+                                      allPlaylistSongs: _songs,
+                                      playlistId: _playlist.id,
+                                    ),
+                                  ],
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 8.0),
-
-                            // 2. Cohesive Playlist Header: Artwork + Controls (Shuffle | Info | Play)
-                            PlaylistDetailHeader(
-                              playlist: _playlist,
-                              songCount: _songs.length,
-                              totalDurationMs: totalMs,
-                              isShuffleEnabled: PlaybackController.instance.isShuffleEnabled,
-                              onPlay: _playFromStart,
-                              onToggleShuffle: _toggleShuffle,
-                              isPinned: _isPinned,
-                              onToggleFavorite: widget.showHeroCover ? _togglePinned : null,
-                              showHeroCover: widget.showHeroCover,
-                              isEditable: widget.isEditable,
-                              onEdit: widget.isEditable ? _editPlaylist : null,
+                          )
+                        else
+                          SliverPadding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14.0),
+                            sliver: SliverList.builder(
+                              itemCount: _songs.length,
+                              itemBuilder: (context, index) {
+                                final song = _songs[index];
+                                return Padding(
+                                  padding: EdgeInsets.only(top: index > 0 ? 2.0 : 0.0),
+                                  child: PlaylistTrackTile(
+                                    key: ValueKey('playlist_track_tile_${song.mediaStoreId}_$index'),
+                                    song: song,
+                                    trackIndex: index + 1,
+                                    allPlaylistSongs: _songs,
+                                    playlistId: _playlist.id,
+                                  ),
+                                );
+                              },
                             ),
-                            const SizedBox(height: 24.0),
-
-                            // 3. Tracks Section
-                            _buildTracksSection(),
-
-                            // Spacing above bottom MiniPlayer
-                            const SizedBox(height: 28.0),
-                          ],
+                          ),
+                        // Spacing above bottom MiniPlayer
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 28.0),
                         ),
-                      ),
-              ),
+                      ],
+                    ),
             ),
-          ),
-        );
-      },
-    ),
-  );
-}
-
-  Widget _buildTracksSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Section Header with Edit Pencil on Right Margin
-        Padding(
-          padding: const EdgeInsets.only(left: 20.0, right: 16.0),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                context.l10n.playlist.tracksHeader,
-                style: AppFonts.segoe(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.4,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              if (widget.isEditable)
-                IconButton(
-                  key: const ValueKey('playlist_detail_edit_button'),
-                  icon: Icon(
-                    Icons.edit_outlined,
-                    size: 20.0,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                  onPressed: _editPlaylistTracks,
-                  tooltip: context.l10n.playlist.editPlaylistTooltip,
-                  splashRadius: 20.0,
-                  padding: EdgeInsets.zero,
-                  constraints: const BoxConstraints(),
-                ),
-            ],
           ),
         ),
-        const SizedBox(height: 8.0),
+      ),
+    );
+  }
 
-        if (_songs.isEmpty)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
-            child: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    context.l10n.playlist.emptyPlaylistTitle,
-                    textAlign: TextAlign.center,
-                    style: AppFonts.segoe(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.4,
-                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
-                    ),
-                  ),
-                  const SizedBox(height: 8.0),
-                  Text(
-                    context.l10n.playlist.emptyPlaylistSubtitle,
-                    textAlign: TextAlign.center,
-                    style: AppFonts.segoe(
-                      fontSize: 13.5,
-                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
-                    ),
-                  ),
-                  if (widget.isEditable) ...[
-                    const SizedBox(height: 16.0),
-                    OutlinedButton.icon(
-                      key: const ValueKey('playlist_detail_add_songs_button'),
-                      onPressed: _editPlaylistTracks,
-                      icon: const Icon(Icons.add_rounded, size: 18.0),
-                      label: Text(context.l10n.playlist.addSongsButton),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.onSurface,
-                        side: BorderSide(color: AppColors.outline),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.0),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          )
-        else
-          // Ordered Tracklist
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14.0),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (int index = 0; index < _songs.length; index++) ...[
-                  if (index > 0) const SizedBox(height: 2.0),
-                  PlaylistTrackTile(
-                    key: ValueKey('playlist_track_tile_${_songs[index].mediaStoreId}_$index'),
-                    song: _songs[index],
-                    trackIndex: index + 1,
-                    allPlaylistSongs: _songs,
-                    playlistId: _playlist.id,
-                  ),
-                ],
-              ],
+  Widget _buildTracksHeader() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 20.0, right: 16.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            context.l10n.playlist.tracksHeader,
+            style: AppFonts.segoe(
+              fontSize: 13.0,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.4,
+              color: AppColors.onSurfaceVariant,
             ),
           ),
-      ],
+          if (widget.isEditable)
+            IconButton(
+              key: const ValueKey('playlist_detail_edit_button'),
+              icon: Icon(
+                Icons.edit_outlined,
+                size: 20.0,
+                color: AppColors.onSurfaceVariant,
+              ),
+              onPressed: _editPlaylistTracks,
+              tooltip: context.l10n.playlist.editPlaylistTooltip,
+              splashRadius: 20.0,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyTracksPlaceholder() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 24.0),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              context.l10n.playlist.emptyPlaylistTitle,
+              textAlign: TextAlign.center,
+              style: AppFonts.segoe(
+                fontSize: 13.5,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.4,
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ),
+            const SizedBox(height: 8.0),
+            Text(
+              context.l10n.playlist.emptyPlaylistSubtitle,
+              textAlign: TextAlign.center,
+              style: AppFonts.segoe(
+                fontSize: 13.5,
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
+              ),
+            ),
+            if (widget.isEditable) ...[
+              const SizedBox(height: 16.0),
+              OutlinedButton.icon(
+                key: const ValueKey('playlist_detail_add_songs_button'),
+                onPressed: _editPlaylistTracks,
+                icon: const Icon(Icons.add_rounded, size: 18.0),
+                label: Text(context.l10n.playlist.addSongsButton),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.onSurface,
+                  side: BorderSide(color: AppColors.outline),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16.0),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
     );
   }
 }

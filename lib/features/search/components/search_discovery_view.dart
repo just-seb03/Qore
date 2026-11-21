@@ -219,7 +219,7 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final todayPlaylist = Playlist(
-      id: -1,
+      id: PlaylistDetailScreen.todaySelectionPlaylistId,
       name: context.l10n.search.todaySelectionTitle,
       createdAt: nowMs,
       updatedAt: nowMs,
@@ -243,7 +243,7 @@ class _SearchDiscoveryViewState extends State<SearchDiscoveryView> {
 
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final recentPlaylist = Playlist(
-      id: -2,
+      id: PlaylistDetailScreen.recentsPlaylistId,
       name: context.l10n.search.recentlyPlayedTitle,
       createdAt: nowMs,
       updatedAt: nowMs,

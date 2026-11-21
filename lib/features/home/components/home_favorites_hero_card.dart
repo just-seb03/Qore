@@ -30,7 +30,7 @@ class HomeFavoritesHeroCard extends StatelessWidget {
     this.onPlayTap,
   });
 
-  static const int _kFavoritesPlaylistId = -2;
+  static const int _kFavoritesPlaylistId = PlaylistDetailScreen.favoritesPlaylistId;
 
   static final TextStyle _titleStyle = AppFonts.segoe(
     fontSize: 22.0,

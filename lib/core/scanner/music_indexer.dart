@@ -14,7 +14,9 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
+import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/bpm_analyzer.dart';
@@ -356,6 +358,11 @@ class MusicIndexer {
       if (deltaCount == 0) {
         if (mockDeviceItems == null) {
           await PinnedFavoritesDao.instance.pruneOrphanedPins();
+          final prunedFavs = await FavoriteSongsDao.instance.pruneOrphanedFavorites();
+          final prunedPlSongs = await PlaylistDao().pruneOrphanedPlaylistSongs();
+          if (prunedFavs > 0 || prunedPlSongs > 0) {
+            revision.value++;
+          }
         }
         stopwatch.stop();
         final int totalSongs = cachedIds.length;
@@ -396,6 +403,10 @@ class MusicIndexer {
 
       if (deltaCount > 0) {
         revision.value++;
+      }
+      if (deletedIds.isNotEmpty) {
+        PlaylistDao.notifyPlaylistsChanged();
+        SongDao.notifyPlaybackHistoryChanged();
       }
       onProgress?.call('saving_tracks', itemsToScan.length, itemsToScan.length);
 

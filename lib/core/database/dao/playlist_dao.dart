@@ -396,4 +396,19 @@ class PlaylistDao {
     final count = (results.first['count'] as int?) ?? 0;
     return count > 0;
   }
+
+  /// Removes track rows from `playlist_songs` whose underlying track was deleted from `songs`.
+  Future<int> pruneOrphanedPlaylistSongs({bool notify = true}) async {
+    final db = await _appDatabase.database;
+    final deleted = await db.rawDelete('''
+      DELETE FROM playlist_songs
+      WHERE media_store_id NOT IN (
+        SELECT media_store_id FROM songs WHERE media_store_id IS NOT NULL
+      )
+    ''');
+    if (deleted > 0 && notify) {
+      notifyPlaylistsChanged();
+    }
+    return deleted;
+  }
 }

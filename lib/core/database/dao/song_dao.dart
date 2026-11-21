@@ -225,7 +225,7 @@ class SongDao {
     await db.transaction((txn) async {
       final batch = txn.batch();
 
-      // 1. Delete removed tracks and dependent favorite / playlist rows
+      // 1. Delete removed tracks and dependent favorite / playlist / history rows
       for (final mediaStoreId in toDelete) {
         batch.delete(
           'playlist_songs',
@@ -236,6 +236,10 @@ class SongDao {
           'favorite_songs',
           where: 'media_store_id = ?',
           whereArgs: [mediaStoreId],
+        );
+        batch.rawDelete(
+          'DELETE FROM playback_history WHERE song_id IN (SELECT id FROM songs WHERE media_store_id = ?)',
+          [mediaStoreId],
         );
         batch.delete(
           'songs',
