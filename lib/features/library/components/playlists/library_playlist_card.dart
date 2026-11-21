@@ -49,13 +49,6 @@ class LibraryPlaylistCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerHigh,
           borderRadius: BorderRadius.zero, // Zero rounding, sharp 90-degree corners
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.50),
-              blurRadius: 10.0,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         clipBehavior: Clip.antiAlias,
         child: Material(
@@ -69,14 +62,6 @@ class LibraryPlaylistCard extends StatelessWidget {
               title: playlist.name,
               coverPath: playlist.coverPath,
               representativeSongId: playlist.firstMediaStoreId,
-              fontFamily: playlist.fontFamily,
-              textAlignX: playlist.textAlignX,
-              textAlignY: playlist.textAlignY,
-              textColor: playlist.textColor,
-              textGradientColor: playlist.textGradientColor,
-              isInteractive: false,
-              fontSize: playlist.fontSize,
-              textEffect: playlist.textEffect,
             ),
           ),
         ),

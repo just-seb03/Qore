@@ -93,14 +93,6 @@ class MetroPlaylistTile extends StatelessWidget {
       title: playlistItem.title,
       coverPath: playlistItem.coverPath,
       representativeSongId: playlistItem.representativeSongId,
-      fontFamily: playlistItem.fontFamily,
-      textAlignX: playlistItem.textAlignX,
-      textAlignY: playlistItem.textAlignY,
-      textColor: playlistItem.textColor,
-      textGradientColor: playlistItem.textGradientColor,
-      isInteractive: false,
-      fontSize: playlistItem.fontSize,
-      textEffect: playlistItem.textEffect,
     );
   }
 }

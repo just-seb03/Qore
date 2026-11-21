@@ -1,17 +1,17 @@
 /// File: playlist_edit_screen.dart
-/// Description: Dedicated full-screen modal coordinator for creating and editing playlists.
-/// Features a Space-style 2:1 hero banner photo box with interactive draggable text, real-time
-/// parallel name input, 2-per-row Google Fonts typography selector (8 curated fonts), solid and
-/// dual-color gradient text color pickers, discard confirmation dialog, and floating Save action.
-/// Song addition fields have been removed to give optimal breathing room for typography and design.
+/// Description: Windows Phone Metro + Spotify-inspired coordinator for creating and editing playlists.
+/// Streamlined around the essentials: 2:1 Metro cover picker, playlist title input, and an
+/// instant virtualized song selector with in-memory search filtering.
 ///
 /// Components / Classes / Functions:
-/// - PlaylistEditScreen: Full-screen playlist editor widget.
+/// - PlaylistEditScreen: Full-screen Metro playlist creator and editor.
 library;
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
+import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
@@ -20,15 +20,11 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/fuzzy_search_engine.dart';
 import 'package:project_anima/core/theme/theme.dart';
-import 'package:project_anima/features/playlist/components/playlist_color_picker_dialog.dart';
+import 'package:project_anima/core/utils/duration_formatter.dart';
 import 'package:project_anima/features/playlist/components/playlist_discard_dialog.dart';
 import 'package:project_anima/features/playlist/components/playlist_text_banner.dart';
-import 'package:project_anima/features/playlist/utils/playlist_effect_helper.dart';
-import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 
-const int _kDefaultGradientColor2 = 0xFFFF007A; // Default gradient end color
-
-/// Screen widget for creating or editing user playlists.
+/// Full-screen Metro playlist creator and editor.
 class PlaylistEditScreen extends StatefulWidget {
   /// Existing playlist to edit, or null when creating a new playlist.
   final Playlist? initialPlaylist;
@@ -42,10 +38,10 @@ class PlaylistEditScreen extends StatefulWidget {
   /// Optional SongDao for dependency injection.
   final SongDao? songDao;
 
-  /// Optional FuzzySearchEngine for dependency injection.
+  /// Optional FuzzySearchEngine retained for caller/test compatibility.
   final FuzzySearchEngine? fuzzySearchEngine;
 
-  /// Whether to run continuous floating bounce animation on top dismiss arrow (defaults to true).
+  /// Whether to run continuous floating bounce animation on top dismiss arrow.
   final bool animateBounce;
 
   const PlaylistEditScreen({
@@ -96,47 +92,25 @@ class PlaylistEditScreen extends StatefulWidget {
 
 class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
   late final PlaylistDao _playlistDao;
+  late final SongDao _songDao;
 
   late final TextEditingController _nameController;
+  late final TextEditingController _songSearchController;
 
   String? _coverPath;
-  String? _selectedFontFamily;
-  double _textAlignX = 0.0;
-  double _textAlignY = 0.0;
-  int _textColor = 0xFFFFFFFF;
-  int? _textGradientColor;
-  bool _isGradientMode = false;
-  double _fontSize = 26.0;
-  String _textEffect = 'none';
-
   final List<Song> _playlistSongs = [];
+  final Set<int> _selectedMediaStoreIds = {};
+  List<Song> _allLibrarySongs = [];
+  List<Song> _filteredLibrarySongs = [];
+  bool _isLoadingLibrary = true;
   bool _isSaving = false;
-
-  static TextStyle get _nameHintStyle => AppFonts.segoe(
-    fontSize: 20.0,
-    fontWeight: FontWeight.w600,
-    color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
-    letterSpacing: -0.3,
-  );
-
-  static TextStyle get _sectionHeaderStyle => AppFonts.segoe(
-    fontSize: 13.0,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 1.4,
-    color: AppColors.onSurfaceVariant,
-  );
-
-  static TextStyle get _saveButtonStyle => AppFonts.segoe(
-    fontSize: 15.0,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 1.4,
-    color: AppColors.onSurface,
-  );
+  bool _tracksChanged = false;
 
   @override
   void initState() {
     super.initState();
     _playlistDao = widget.playlistDao ?? PlaylistDao();
+    _songDao = widget.songDao ?? SongDao();
 
     _nameController = TextEditingController(
       text: widget.initialPlaylist?.name ?? '',
@@ -144,21 +118,21 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
         if (mounted) setState(() {});
       });
 
+    _songSearchController = TextEditingController()
+      ..addListener(_filterLibrarySongs);
+
     _coverPath = widget.initialPlaylist?.coverPath;
-    _selectedFontFamily = widget.initialPlaylist?.fontFamily ?? availablePlaylistFonts.first.id;
-    _textAlignX = widget.initialPlaylist?.textAlignX ?? 0.0;
-    _textAlignY = widget.initialPlaylist?.textAlignY ?? 0.0;
-    _textColor = widget.initialPlaylist?.textColor ?? 0xFFFFFFFF;
-    _textGradientColor = widget.initialPlaylist?.textGradientColor;
-    _isGradientMode = _textGradientColor != null;
-    _fontSize = widget.initialPlaylist?.fontSize ?? 26.0;
-    _textEffect = widget.initialPlaylist?.textEffect ?? 'none';
 
     if (widget.initialSongs != null) {
       _playlistSongs.addAll(widget.initialSongs!);
+      for (final s in widget.initialSongs!) {
+        _selectedMediaStoreIds.add(s.mediaStoreId);
+      }
     } else if (widget.initialPlaylist?.id != null) {
       _loadExistingSongs(widget.initialPlaylist!.id!);
     }
+
+    _loadLibrarySongs();
   }
 
   Future<void> _loadExistingSongs(int playlistId) async {
@@ -166,18 +140,76 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
       final songs = await _playlistDao.getPlaylistSongs(playlistId);
       if (mounted) {
         setState(() {
-          _playlistSongs.clear();
-          _playlistSongs.addAll(songs);
+          _playlistSongs
+            ..clear()
+            ..addAll(songs);
+          _selectedMediaStoreIds
+            ..clear()
+            ..addAll(songs.map((s) => s.mediaStoreId));
         });
       }
     } catch (e) {
-      debugPrint('⚠️ [PlaylistEditScreen] Error loading songs: $e');
+      debugPrint('⚠️ [PlaylistEditScreen] Error loading playlist songs: $e');
+    }
+  }
+
+  Future<void> _loadLibrarySongs() async {
+    try {
+      final songs = widget.songDao != null
+          ? await _songDao.getAllSongs()
+          : await _songDao.getSearchDictionarySongs();
+      if (mounted) {
+        setState(() {
+          _allLibrarySongs = songs;
+          _isLoadingLibrary = false;
+        });
+        _filterLibrarySongs();
+      }
+    } catch (e) {
+      debugPrint('⚠️ [PlaylistEditScreen] Error loading library songs: $e');
+      if (mounted) {
+        setState(() => _isLoadingLibrary = false);
+      }
+    }
+  }
+
+  void _filterLibrarySongs() {
+    final query = _songSearchController.text.trim().toLowerCase();
+    final List<Song> nextFiltered;
+    if (query.isEmpty) {
+      // Keep selected songs surfaced first, followed by remaining library songs
+      final selected = <Song>[];
+      final unselected = <Song>[];
+      for (final song in _allLibrarySongs) {
+        if (_selectedMediaStoreIds.contains(song.mediaStoreId)) {
+          selected.add(song);
+        } else {
+          unselected.add(song);
+        }
+      }
+      nextFiltered = [...selected, ...unselected];
+    } else {
+      nextFiltered = _allLibrarySongs.where((s) {
+        final title = s.title.toLowerCase();
+        final artist = (s.artist ?? '').toLowerCase();
+        final album = (s.album ?? '').toLowerCase();
+        return title.contains(query) ||
+            artist.contains(query) ||
+            album.contains(query);
+      }).toList();
+    }
+
+    if (mounted) {
+      setState(() {
+        _filteredLibrarySongs = nextFiltered;
+      });
     }
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _songSearchController.dispose();
     super.dispose();
   }
 
@@ -186,12 +218,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     final currentName = _nameController.text.trim();
     if (currentName != initialName && currentName.isNotEmpty) return true;
     if (_coverPath != widget.initialPlaylist?.coverPath) return true;
-    if (_selectedFontFamily != widget.initialPlaylist?.fontFamily) return true;
-    if (_textAlignX != (widget.initialPlaylist?.textAlignX ?? 0.0)) return true;
-    if (_textAlignY != (widget.initialPlaylist?.textAlignY ?? 0.0)) return true;
-    if (_textColor != (widget.initialPlaylist?.textColor ?? 0xFFFFFFFF)) return true;
-    if (_textGradientColor != widget.initialPlaylist?.textGradientColor) return true;
-    if (_fontSize != (widget.initialPlaylist?.fontSize ?? 26.0)) return true;
+    if (_tracksChanged) return true;
     return false;
   }
 
@@ -212,9 +239,9 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
       final picker = ImagePicker();
       final XFile? file = await picker.pickImage(
         source: ImageSource.gallery,
-        imageQuality: 98,
-        maxWidth: 2560,
-        maxHeight: 1440,
+        imageQuality: 96,
+        maxWidth: 1600,
+        maxHeight: 900,
       );
       if (file != null && mounted) {
         setState(() {
@@ -234,6 +261,27 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     }
   }
 
+  void _clearCover() {
+    if (_coverPath == null) return;
+    setState(() {
+      _coverPath = null;
+    });
+  }
+
+  void _toggleSong(Song song) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      _tracksChanged = true;
+      if (_selectedMediaStoreIds.contains(song.mediaStoreId)) {
+        _selectedMediaStoreIds.remove(song.mediaStoreId);
+        _playlistSongs.removeWhere((s) => s.mediaStoreId == song.mediaStoreId);
+      } else {
+        _selectedMediaStoreIds.add(song.mediaStoreId);
+        _playlistSongs.add(song);
+      }
+    });
+  }
+
   Future<void> _savePlaylist() async {
     final name = _nameController.text.trim().isEmpty
         ? context.l10n.playlist.defaultPlaylistName
@@ -250,40 +298,21 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
           widget.initialPlaylist!.id!,
           name: name,
           coverPath: _coverPath,
-          fontFamily: _selectedFontFamily,
-          textAlignX: _textAlignX,
-          textAlignY: _textAlignY,
-          textColor: _textColor,
-          textGradientColor: _isGradientMode ? _textGradientColor : null,
-          fontSize: _fontSize,
-          textEffect: _textEffect,
-          clearGradient: !_isGradientMode,
+          clearGradient: true,
           songs: _playlistSongs,
         );
         savedPlaylist = widget.initialPlaylist!.copyWith(
           name: name,
           coverPath: _coverPath,
-          fontFamily: _selectedFontFamily,
-          textAlignX: _textAlignX,
-          textAlignY: _textAlignY,
-          textColor: _textColor,
-          textGradientColor: _isGradientMode ? _textGradientColor : null,
-          fontSize: _fontSize,
-          textEffect: _textEffect,
-          clearGradient: !_isGradientMode,
+          clearGradient: true,
           songCount: _playlistSongs.length,
+          firstMediaStoreId:
+              _playlistSongs.isNotEmpty ? _playlistSongs.first.mediaStoreId : null,
         );
       } else {
         savedPlaylist = await _playlistDao.createPlaylist(
           name,
           coverPath: _coverPath,
-          fontFamily: _selectedFontFamily,
-          textAlignX: _textAlignX,
-          textAlignY: _textAlignY,
-          textColor: _textColor,
-          textGradientColor: _isGradientMode ? _textGradientColor : null,
-          fontSize: _fontSize,
-          textEffect: _textEffect,
           songs: _playlistSongs,
         );
       }
@@ -316,6 +345,11 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final bool isEditing = widget.initialPlaylist?.id != null;
+    final int? repSongId = _playlistSongs.isNotEmpty
+        ? _playlistSongs.first.mediaStoreId
+        : widget.initialPlaylist?.firstMediaStoreId;
+
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) {
@@ -327,858 +361,457 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
         backgroundColor: AppColors.bottomNavBackground,
         body: SafeArea(
           bottom: false,
-          child: Stack(
-            children: [
-              // Main Screen Column: Fixed Top Preview + Scrollable Options
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // Top Exit Chevron Arrow (Fixed)
-                  ModalDismissIndicator(
-                    onDismiss: _handleDismiss,
-                    animate: widget.animateBounce,
-                    padding: const EdgeInsets.only(top: 8.0, bottom: 8.0),
-                  ),
-
-                  // Top 2:1 Hero Photo Box (Fixed at top)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Stack(
-                      children: [
-                        PlaylistTextBanner(
-                          title: _nameController.text,
-                          coverPath: _coverPath,
-                          representativeSongId: widget.initialPlaylist?.firstMediaStoreId,
-                          fontFamily: _selectedFontFamily,
-                          textAlignX: _textAlignX,
-                          textAlignY: _textAlignY,
-                          textColor: _textColor,
-                          textGradientColor: _isGradientMode ? _textGradientColor : null,
-                          fontSize: _fontSize,
-                          textEffect: _textEffect,
-                          isInteractive: true,
-                          showCameraBadge: true,
-                          onTap: _pickImage,
-                          onPositionChanged: (offset) {
-                            setState(() {
-                              _textAlignX = offset.dx;
-                              _textAlignY = offset.dy;
-                            });
-                          },
-                        ),
-                      ],
+          child: CustomScrollView(
+            physics: const BouncingScrollPhysics(),
+            slivers: [
+              // 1. Metro Top Header + Dismiss Indicator + Save Action
+              SliverToBoxAdapter(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    ModalDismissIndicator(
+                      onDismiss: _handleDismiss,
+                      animate: widget.animateBounce,
+                      padding: const EdgeInsets.only(top: 6.0, bottom: 4.0),
                     ),
-                  ),
-                  const SizedBox(height: 4.0),
-
-                  // "Cambiar foto" action button (Fixed under photo box)
-                  Center(
-                    child: TextButton.icon(
-                      onPressed: _pickImage,
-                      icon: const Icon(Icons.image_outlined, size: 15.0),
-                      label: Text(
-                        _coverPath != null
-                            ? context.l10n.playlist.changeCover
-                            : context.l10n.playlist.addCover,
-                        style: AppFonts.segoe(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w600,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: AppColors.onSurfaceVariant,
-                        visualDensity: VisualDensity.compact,
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 4.0),
-
-                  // Scrollable Options Menu with Top & Bottom Transparency
-                  Expanded(
-                    child: ShaderMask(
-                      shaderCallback: (Rect bounds) {
-                        return const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.black,
-                            Colors.black,
-                            Colors.transparent,
-                          ],
-                          stops: [0.0, 0.05, 0.94, 1.0],
-                        ).createShader(bounds);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: SingleChildScrollView(
-                        physics: const BouncingScrollPhysics(),
-                        padding: const EdgeInsets.only(top: 8.0, bottom: 120.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            // 1. Playlist Name Input Container
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 2.0),
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
-                                  borderRadius: BorderRadius.circular(16.0),
-                                  border: Border.all(
-                                    color: AppColors.outline.withValues(alpha: 0.4),
-                                    width: 1.0,
-                                  ),
-                                ),
-                                child: TextField(
-                                  controller: _nameController,
-                                  textAlign: TextAlign.center,
-                                  style: getPlaylistTitleFont(
-                                    _selectedFontFamily,
-                                    baseStyle: TextStyle(
-                                      fontSize: 20.0,
-                                      fontWeight: FontWeight.w700,
-                                      color: AppColors.onSurface,
-                                      letterSpacing: -0.3,
-                                    ),
-                                  ),
-                                  cursorColor: AppColors.accent,
-                                  decoration: InputDecoration(
-                                    hintText: context.l10n.playlist.playlistNameHint,
-                                    hintStyle: _nameHintStyle,
-                                    border: InputBorder.none,
-                                    isDense: true,
-                                    contentPadding: const EdgeInsets.symmetric(vertical: 10.0),
-                                  ),
-                                ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20.0, 2.0, 20.0, 14.0),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              isEditing
+                                  ? context.l10n.playlist.editPlaylistTitle
+                                  : context.l10n.playlist.createPlaylistTitle,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppFonts.light(
+                                fontSize: 30.0,
+                                letterSpacing: -0.4,
+                                color: AppColors.onBackground,
                               ),
                             ),
-                            const SizedBox(height: 18.0),
+                          ),
+                          const SizedBox(width: 12.0),
+                          _MetroSaveButton(
+                            key: const ValueKey('playlist_edit_save_button'),
+                            isSaving: _isSaving,
+                            label: context.l10n.playlist.saveAction,
+                            onPressed: _isSaving ? null : _savePlaylist,
+                          ),
+                        ],
+                      ),
+                    ),
 
-                            // 2. Typography Section (moved above color)
-                            _buildTypographySection(context),
-                            const SizedBox(height: 18.0),
-
-                            // 3. Color & Gradient Customization Section
-                            _buildColorSection(context),
-                            const SizedBox(height: 18.0),
-
-                            // 4. Text Visual Effects Section (under color system)
-                            _buildEffectsSection(context),
-                            const SizedBox(height: 18.0),
-
-                            // 5. Font Size Slider Section
-                            _buildFontSizeSection(context),
-                            const SizedBox(height: 30.0),
-                          ],
+                    // 2. 2:1 Metro Cover Banner
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: GestureDetector(
+                        onTap: _pickImage,
+                        child: PlaylistTextBanner(
+                          title: _nameController.text,
+                          coverPath: _coverPath,
+                          representativeSongId: repSongId,
+                          showCameraBadge: true,
+                          onTap: _pickImage,
                         ),
                       ),
                     ),
-                  ),
-                ],
-              ),
+                    const SizedBox(height: 8.0),
 
-              // 2. Floating Save Button
-              Positioned(
-                left: 24.0,
-                right: 24.0,
-                bottom: MediaQuery.paddingOf(context).bottom + 20.0,
-                child: Center(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.55),
-                          blurRadius: 18.0,
-                          spreadRadius: 1.0,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
+                    // Cover Actions Row
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Row(
+                        children: [
+                          _MetroOutlineAction(
+                            icon: Icons.image_outlined,
+                            label: _coverPath != null
+                                ? context.l10n.playlist.changeCover
+                                : context.l10n.playlist.addCover,
+                            onTap: _pickImage,
+                          ),
+                          if (_coverPath != null) ...[
+                            const SizedBox(width: 10.0),
+                            _MetroOutlineAction(
+                              icon: Icons.close_rounded,
+                              label: 'QUITAR',
+                              onTap: _clearCover,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
-                    child: FilledButton.icon(
-                      onPressed: _isSaving ? null : _savePlaylist,
-                      style: FilledButton.styleFrom(
-                        backgroundColor: AppColors.navIndicator,
-                        foregroundColor: AppColors.futuristicWhite,
-                        minimumSize: const Size(180.0, 50.0),
-                        padding: const EdgeInsets.symmetric(horizontal: 32.0, vertical: 14.0),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25.0),
-                          side: BorderSide(
-                            color: AppColors.outline.withValues(alpha: 0.5),
+                    const SizedBox(height: 16.0),
+
+                    // 3. Sharp Metro Name Input
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.zero,
+                          border: Border.all(
+                            color: AppColors.outline.withValues(alpha: 0.7),
                             width: 1.0,
                           ),
                         ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 2.0),
+                        child: TextField(
+                          key: const ValueKey('playlist_name_input'),
+                          controller: _nameController,
+                          style: AppFonts.segoe(
+                            fontSize: 18.0,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.onSurface,
+                          ),
+                          cursorColor: AppColors.accent,
+                          decoration: InputDecoration(
+                            hintText: context.l10n.playlist.playlistNameHint,
+                            hintStyle: AppFonts.segoe(
+                              fontSize: 17.0,
+                              color: AppColors.onSurfaceVariant.withValues(alpha: 0.55),
+                            ),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(vertical: 11.0),
+                          ),
+                        ),
                       ),
-                      icon: _isSaving
-                          ? SizedBox(
-                              width: 18.0,
-                              height: 18.0,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2.0,
-                                color: AppColors.accent,
+                    ),
+                    const SizedBox(height: 22.0),
+
+                    // 4. Spotify-style Quick Track Selector Header + Search Bar
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'CANCIONES',
+                            style: AppFonts.segoe(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 1.4,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                          ),
+                          Text(
+                            context.l10n.playlist.songCount(_playlistSongs.length),
+                            style: AppFonts.segoe(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.accent,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 10.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainer,
+                          borderRadius: BorderRadius.zero,
+                          border: Border.all(
+                            color: AppColors.outline.withValues(alpha: 0.55),
+                            width: 1.0,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.search_rounded,
+                              size: 19.0,
+                              color: AppColors.onSurfaceVariant,
+                            ),
+                            const SizedBox(width: 10.0),
+                            Expanded(
+                              child: TextField(
+                                key: const ValueKey('playlist_edit_song_search'),
+                                controller: _songSearchController,
+                                style: AppFonts.segoe(
+                                  fontSize: 14.5,
+                                  color: AppColors.onSurface,
+                                ),
+                                cursorColor: AppColors.accent,
+                                decoration: InputDecoration(
+                                  hintText: context.l10n.playlist.searchSongsPlaceholder,
+                                  hintStyle: AppFonts.segoe(
+                                    fontSize: 14.0,
+                                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.55),
+                                  ),
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding: const EdgeInsets.symmetric(vertical: 11.0),
+                                ),
                               ),
-                            )
-                          : const Icon(Icons.check_rounded, size: 20.0),
-                      label: Text(
-                        context.l10n.playlist.saveAction,
-                        style: _saveButtonStyle,
+                            ),
+                            if (_songSearchController.text.isNotEmpty)
+                              GestureDetector(
+                                onTap: () => _songSearchController.clear(),
+                                child: Icon(
+                                  Icons.close_rounded,
+                                  size: 18.0,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 10.0),
+                  ],
+                ),
+              ),
+
+              // 5. Virtualized Song Selector List
+              if (_isLoadingLibrary)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 32.0),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.0,
+                        color: AppColors.accent,
                       ),
                     ),
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  String _colorToHex(int colorVal) {
-    return (colorVal & 0x00FFFFFF).toRadixString(16).padLeft(6, '0').toUpperCase();
-  }
-
-  Future<void> _pickCustomColor({required bool isPrimary}) async {
-    final initial = isPrimary
-        ? Color(_textColor)
-        : Color(_textGradientColor ?? _kDefaultGradientColor2);
-    final title = isPrimary
-        ? (_isGradientMode ? 'COLOR INICIAL (1)' : 'PERSONALIZAR COLOR')
-        : 'COLOR FINAL (2)';
-
-    final picked = await PlaylistColorPickerDialog.show(
-      context,
-      initialColor: initial,
-      title: title,
-    );
-
-    if (picked != null && mounted) {
-      setState(() {
-        if (isPrimary) {
-          _textColor = picked.toARGB32();
-        } else {
-          _textGradientColor = picked.toARGB32();
-        }
-      });
-    }
-  }
-
-  Widget _buildTypographySection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            context.l10n.playlist.typographySection,
-            style: _sectionHeaderStyle,
-          ),
-          const SizedBox(height: 10.0),
-          Column(
-            children: [
-              for (int i = 0; i < availablePlaylistFonts.length; i += 2) ...[
-                if (i > 0) const SizedBox(height: 10.0),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AspectRatio(
-                        aspectRatio: 3.2,
-                        child: _buildFontTile(availablePlaylistFonts[i]),
+                )
+              else if (_filteredLibrarySongs.isEmpty)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+                    child: Text(
+                      _allLibrarySongs.isEmpty
+                          ? 'No hay canciones indexadas en tu biblioteca.'
+                          : 'Sin resultados para "${_songSearchController.text.trim()}".',
+                      textAlign: TextAlign.center,
+                      style: AppFonts.segoe(
+                        fontSize: 13.5,
+                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
                       ),
                     ),
-                    const SizedBox(width: 10.0),
-                    Expanded(
-                      child: i + 1 < availablePlaylistFonts.length
-                          ? AspectRatio(
-                              aspectRatio: 3.2,
-                              child: _buildFontTile(availablePlaylistFonts[i + 1]),
-                            )
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    20.0,
+                    0.0,
+                    20.0,
+                    MediaQuery.paddingOf(context).bottom + 36.0,
+                  ),
+                  sliver: SliverList.builder(
+                    itemCount: _filteredLibrarySongs.length,
+                    itemBuilder: (context, index) {
+                      final song = _filteredLibrarySongs[index];
+                      final isSelected =
+                          _selectedMediaStoreIds.contains(song.mediaStoreId);
+                      return _MetroPlaylistSongPickRow(
+                        key: ValueKey('playlist_pick_row_${song.mediaStoreId}'),
+                        song: song,
+                        isSelected: isSelected,
+                        onTap: () => _toggleSong(song),
+                      );
+                    },
+                  ),
                 ),
-              ],
             ],
           ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _buildFontTile(PlaylistFontOption font) {
-    final isSelected = (_selectedFontFamily ?? '').toLowerCase() == font.id.toLowerCase();
+class _MetroSaveButton extends StatelessWidget {
+  final bool isSaving;
+  final String label;
+  final VoidCallback? onPressed;
+
+  const _MetroSaveButton({
+    super.key,
+    required this.isSaving,
+    required this.label,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Material(
-      color: isSelected
-          ? AppColors.accent
-          : AppColors.surfaceContainerHigh.withValues(alpha: 0.65),
-      borderRadius: BorderRadius.circular(12.0),
+      color: AppColors.accent,
+      borderRadius: BorderRadius.zero,
       child: InkWell(
-        borderRadius: BorderRadius.circular(12.0),
-        onTap: () {
-          setState(() {
-            _selectedFontFamily = font.id;
-          });
-        },
+        onTap: onPressed,
         child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+          child: isSaving
+              ? SizedBox(
+                  width: 16.0,
+                  height: 16.0,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.0,
+                    color: AppColors.onAccent,
+                  ),
+                )
+              : Text(
+                  label.toUpperCase(),
+                  style: AppFonts.segoe(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1.3,
+                    color: AppColors.onAccent,
+                  ),
+                ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetroOutlineAction extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _MetroOutlineAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.surfaceContainer,
+      borderRadius: BorderRadius.zero,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
           decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12.0),
             border: Border.all(
-              color: isSelected
-                  ? AppColors.onAccent
-                  : AppColors.outline.withValues(alpha: 0.35),
-              width: isSelected ? 1.5 : 1.0,
+              color: AppColors.outline.withValues(alpha: 0.6),
+              width: 1.0,
             ),
           ),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Text(
-            font.displayName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: getPlaylistTitleFont(
-              font.id,
-              baseStyle: TextStyle(
-                fontSize: 13.5,
-                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                color: isSelected ? AppColors.onAccent : AppColors.onSurface,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildColorSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                'COLOR DEL TEXTO',
-                style: _sectionHeaderStyle,
-              ),
-              const Spacer(),
-              // Solid vs Gradient Mode Toggle
-              Container(
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerHigh.withValues(alpha: 0.6),
-                  borderRadius: BorderRadius.circular(16.0),
-                ),
-                padding: const EdgeInsets.all(2.0),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildToggleChip(
-                      label: 'SÓLIDO',
-                      isActive: !_isGradientMode,
-                      onTap: () {
-                        setState(() {
-                          _isGradientMode = false;
-                        });
-                      },
-                    ),
-                    _buildToggleChip(
-                      label: 'GRADIENTE',
-                      isActive: _isGradientMode,
-                      onTap: () {
-                        setState(() {
-                          _isGradientMode = true;
-                          _textGradientColor ??= _kDefaultGradientColor2;
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12.0),
-
-          // Palette Content
-          if (!_isGradientMode) ...[
-            // Solid Color Custom Picker Card
-            _buildSolidColorPickerCard(),
-          ] else ...[
-            // Gradient Dual Custom Pickers Card + Preview
-            _buildGradientColorPickersCard(),
-          ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSolidColorPickerCard() {
-    final currentColor = Color(_textColor);
-    final hexStr = _colorToHex(_textColor);
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 10.0),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(
-          color: AppColors.outline.withValues(alpha: 0.35),
-          width: 1.0,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 38.0,
-            height: 38.0,
-            decoration: BoxDecoration(
-              color: currentColor,
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white30, width: 2.0),
-              boxShadow: [
-                BoxShadow(
-                  color: currentColor.withValues(alpha: 0.45),
-                  blurRadius: 10.0,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 14.0),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              Icon(icon, size: 15.0, color: AppColors.onSurfaceVariant),
+              const SizedBox(width: 6.0),
               Text(
-                'COLOR ACTUAL',
+                label.toUpperCase(),
                 style: AppFonts.segoe(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 0.8,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 2.0),
-              Text(
-                '#$hexStr',
-                style: AppFonts.segoe(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.w800,
-                  letterSpacing: 1.2,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w600,
+                  letterSpacing: 1.0,
                   color: AppColors.onSurface,
                 ),
               ),
             ],
           ),
-          const Spacer(),
-          FilledButton.tonalIcon(
-            onPressed: () => _pickCustomColor(isPrimary: true),
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.surfaceContainerHighest,
-              foregroundColor: AppColors.onSurface,
-              padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 8.0),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12.0),
-                side: BorderSide(
-                  color: AppColors.outline.withValues(alpha: 0.4),
-                  width: 1.0,
-                ),
-              ),
-            ),
-            icon: const Icon(Icons.palette_outlined, size: 16.0),
-            label: Text(
-              'Personalizar',
-              style: AppFonts.segoe(
-                fontSize: 13.0,
-                fontWeight: FontWeight.w700,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildGradientColorPickersCard() {
-    final c1 = Color(_textColor);
-    final c2 = Color(_textGradientColor ?? _kDefaultGradientColor2);
-    final hex1 = _colorToHex(_textColor);
-    final hex2 = _colorToHex(_textGradientColor ?? _kDefaultGradientColor2);
-
-    return Container(
-      padding: const EdgeInsets.all(12.0),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.55),
-        borderRadius: BorderRadius.circular(16.0),
-        border: Border.all(
-          color: AppColors.outline.withValues(alpha: 0.35),
-          width: 1.0,
         ),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          // Live Gradient Preview Bar
-          Container(
-            height: 24.0,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.0),
-              gradient: LinearGradient(
-                colors: [c1, c2],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: c1.withValues(alpha: 0.35),
-                  blurRadius: 8.0,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12.0),
-
-          // Two Color Pickers side by side with Swap in the middle
-          Row(
-            children: [
-              // Color 1
-              Expanded(
-                child: InkWell(
-                  onTap: () => _pickCustomColor(isPrimary: true),
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHighest.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(12.0),
-                      border: Border.all(
-                        color: AppColors.outline.withValues(alpha: 0.3),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 24.0,
-                          height: 24.0,
-                          decoration: BoxDecoration(
-                            color: c1,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white24, width: 1.5),
-                          ),
-                        ),
-                        const SizedBox(width: 8.0),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'COLOR 1',
-                                style: AppFonts.segoe(
-                                  fontSize: 10.0,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.onSurfaceVariant,
-                                ),
-                              ),
-                              Text(
-                                '#$hex1',
-                                style: AppFonts.segoe(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.palette_outlined, size: 16.0, color: AppColors.onSurfaceVariant),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 6.0),
-
-              // Swap Button
-              IconButton(
-                icon: const Icon(Icons.swap_horiz_rounded, size: 20.0),
-                color: AppColors.accent,
-                tooltip: 'Invertir colores',
-                splashRadius: 18.0,
-                onPressed: () {
-                  setState(() {
-                    final temp = _textColor;
-                    _textColor = _textGradientColor ?? _kDefaultGradientColor2;
-                    _textGradientColor = temp;
-                  });
-                },
-              ),
-              const SizedBox(width: 6.0),
-
-              // Color 2
-              Expanded(
-                child: InkWell(
-                  onTap: () => _pickCustomColor(isPrimary: false),
-                  borderRadius: BorderRadius.circular(12.0),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHighest.withValues(alpha: 0.6),
-                      borderRadius: BorderRadius.circular(12.0),
-                      border: Border.all(
-                        color: AppColors.outline.withValues(alpha: 0.3),
-                        width: 1.0,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 24.0,
-                          height: 24.0,
-                          decoration: BoxDecoration(
-                            color: c2,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: Colors.white24, width: 1.5),
-                          ),
-                        ),
-                        const SizedBox(width: 8.0),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'COLOR 2',
-                                style: AppFonts.segoe(
-                                  fontSize: 10.0,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.onSurfaceVariant,
-                                ),
-                              ),
-                              Text(
-                                '#$hex2',
-                                style: AppFonts.segoe(
-                                  fontSize: 12.5,
-                                  fontWeight: FontWeight.w800,
-                                  color: AppColors.onSurface,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Icon(Icons.palette_outlined, size: 16.0, color: AppColors.onSurfaceVariant),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
     );
   }
+}
 
-  Widget _buildEffectsSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'EFECTOS DE TEXTO',
-            style: _sectionHeaderStyle,
+class _MetroPlaylistSongPickRow extends StatelessWidget {
+  final Song song;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MetroPlaylistSongPickRow({
+    super.key,
+    required this.song,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: isSelected
+          ? AppColors.surfaceContainerHigh.withValues(alpha: 0.75)
+          : Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+          decoration: BoxDecoration(
+            border: Border(
+              bottom: BorderSide(
+                color: AppColors.outlineVariant.withValues(alpha: 0.35),
+                width: 0.6,
+              ),
+            ),
           ),
-          const SizedBox(height: 10.0),
-          Column(
+          child: Row(
             children: [
-              for (int i = 0; i < availablePlaylistEffects.length; i += 2) ...[
-                if (i > 0) const SizedBox(height: 10.0),
-                Row(
+              AnimaArtworkImage(
+                mediaStoreId: song.mediaStoreId,
+                albumId: song.albumId,
+                width: 42.0,
+                height: 42.0,
+                borderRadius: 0.0,
+                fallbackIcon: Icons.music_note_rounded,
+                isThumbnail: true,
+              ),
+              const SizedBox(width: 12.0),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Expanded(
-                      child: AspectRatio(
-                        aspectRatio: 3.2,
-                        child: _buildEffectTile(availablePlaylistEffects[i]),
+                    Text(
+                      song.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.segoe(
+                        fontSize: 14.5,
+                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                        color: isSelected ? AppColors.accent : AppColors.onSurface,
                       ),
                     ),
-                    const SizedBox(width: 10.0),
-                    Expanded(
-                      child: i + 1 < availablePlaylistEffects.length
-                          ? AspectRatio(
-                              aspectRatio: 3.2,
-                              child: _buildEffectTile(availablePlaylistEffects[i + 1]),
-                            )
-                          : const SizedBox.shrink(),
+                    const SizedBox(height: 2.0),
+                    Text(
+                      '${song.artist ?? context.l10n.common.unknownArtist} · ${formatDurationMs(song.duration)}',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppFonts.segoe(
+                        fontSize: 12.0,
+                        color: AppColors.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
-              ],
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEffectTile(PlaylistEffectOption effect) {
-    final isSelected = _textEffect.toLowerCase() == effect.id.toLowerCase();
-    final effectShadows = getPlaylistTextEffectShadows(effect.id, textColor: _textColor);
-
-    return Material(
-      color: isSelected
-          ? AppColors.accent
-          : AppColors.surfaceContainerHigh.withValues(alpha: 0.65),
-      borderRadius: BorderRadius.circular(12.0),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12.0),
-        onTap: () {
-          setState(() {
-            _textEffect = effect.id;
-          });
-        },
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(12.0),
-            border: Border.all(
-              color: isSelected
-                  ? AppColors.onAccent
-                  : AppColors.outline.withValues(alpha: 0.35),
-              width: isSelected ? 1.5 : 1.0,
-            ),
-          ),
-          alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Text(
-            effect.displayName,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppFonts.segoe(
-              fontSize: 14.0,
-              fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
-              color: isSelected ? AppColors.onAccent : AppColors.onSurface,
-              shadows: isSelected ? null : effectShadows,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFontSizeSection(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'TAMAÑO DE LA LETRA',
-                style: _sectionHeaderStyle,
               ),
-              Text(
-                '${_fontSize.toInt()} px',
-                style: AppFonts.segoe(
-                  fontSize: 13.0,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.accent,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8.0),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHigh.withValues(alpha: 0.55),
-              borderRadius: BorderRadius.circular(14.0),
-              border: Border.all(
-                color: AppColors.outline.withValues(alpha: 0.35),
-                width: 1.0,
-              ),
-            ),
-            child: Row(
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.text_decrease_rounded, size: 20.0),
-                  color: AppColors.onSurfaceVariant,
-                  tooltip: 'Reducir tamaño',
-                  splashRadius: 18.0,
-                  onPressed: _fontSize > 14.0
-                      ? () {
-                          setState(() {
-                            _fontSize = (_fontSize - 2.0).clamp(14.0, 52.0);
-                          });
-                        }
-                      : null,
-                ),
-                Expanded(
-                  child: SliderTheme(
-                    data: SliderThemeData(
-                      activeTrackColor: AppColors.accent,
-                      inactiveTrackColor: AppColors.surfaceContainerHighest,
-                      thumbColor: AppColors.accent,
-                      overlayColor: AppColors.accent.withValues(alpha: 0.2),
-                      trackHeight: 4.0,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 8.0),
-                    ),
-                    child: Slider(
-                      value: _fontSize,
-                      min: 14.0,
-                      max: 52.0,
-                      divisions: 38,
-                      onChanged: (val) {
-                        setState(() {
-                          _fontSize = val;
-                        });
-                      },
-                    ),
+              const SizedBox(width: 10.0),
+              Container(
+                width: 28.0,
+                height: 28.0,
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.accent : Colors.transparent,
+                  borderRadius: BorderRadius.zero,
+                  border: Border.all(
+                    color: isSelected
+                        ? AppColors.accent
+                        : AppColors.outline.withValues(alpha: 0.8),
+                    width: 1.2,
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.text_increase_rounded, size: 20.0),
-                  color: AppColors.onSurfaceVariant,
-                  tooltip: 'Aumentar tamaño',
-                  splashRadius: 18.0,
-                  onPressed: _fontSize < 52.0
-                      ? () {
-                          setState(() {
-                            _fontSize = (_fontSize + 2.0).clamp(14.0, 52.0);
-                          });
-                        }
-                      : null,
+                child: Icon(
+                  isSelected ? Icons.check_rounded : Icons.add_rounded,
+                  size: 17.0,
+                  color: isSelected ? AppColors.onAccent : AppColors.onSurfaceVariant,
                 ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildToggleChip({
-    required String label,
-    required bool isActive,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 5.0),
-        decoration: BoxDecoration(
-          color: isActive ? AppColors.accent : Colors.transparent,
-          borderRadius: BorderRadius.circular(14.0),
-        ),
-        child: Text(
-          label,
-          style: AppFonts.segoe(
-            fontSize: 11.0,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 0.6,
-            color: isActive ? AppColors.onAccent : AppColors.onSurfaceVariant,
+              ),
+            ],
           ),
         ),
       ),

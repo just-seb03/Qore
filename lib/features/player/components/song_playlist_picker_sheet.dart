@@ -240,19 +240,11 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                                     child: Stack(
                                       fit: StackFit.expand,
                                       children: [
-                                        // 1. Space 2:1 Text Banner Artwork
+                                        // 1. Space 2:1 Metro Banner Artwork
                                         PlaylistTextBanner(
                                           title: playlist.name,
                                           coverPath: playlist.coverPath,
                                           representativeSongId: playlist.firstMediaStoreId,
-                                          fontFamily: playlist.fontFamily,
-                                          textAlignX: playlist.textAlignX,
-                                          textAlignY: playlist.textAlignY,
-                                          textColor: playlist.textColor,
-                                          textGradientColor: playlist.textGradientColor,
-                                          fontSize: playlist.fontSize,
-                                          textEffect: playlist.textEffect,
-                                          isInteractive: false,
                                         ),
 
                                         // 2. Darkening veil when already in playlist

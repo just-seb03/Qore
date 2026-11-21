@@ -15,7 +15,6 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/playlist/components/playlist_text_banner.dart';
-import 'package:project_anima/features/playlist/utils/playlist_font_helper.dart';
 
 /// Cohesive header for PlaylistDetailScreen displaying a 2:1 Space-styled banner with custom typography,
 /// metadata, and Shuffle toggle (left), Play (center), and Favorite Heart (right) icon action triggers.
@@ -79,14 +78,11 @@ class PlaylistDetailHeader extends StatelessWidget {
       durationStr: durationStr.isNotEmpty ? durationStr : null,
     );
 
-    final titleStyle = getPlaylistTitleFont(
-      playlist.fontFamily,
-      baseStyle: TextStyle(
-        fontSize: 24.0,
-        fontWeight: FontWeight.w700,
-        color: AppColors.onBackground,
-        letterSpacing: -0.3,
-      ),
+    final titleStyle = AppFonts.segoe(
+      fontSize: 24.0,
+      fontWeight: FontWeight.w700,
+      color: AppColors.onBackground,
+      letterSpacing: -0.3,
     );
 
     return Column(
@@ -116,14 +112,6 @@ class PlaylistDetailHeader extends StatelessWidget {
                   title: playlist.name,
                   coverPath: playlist.coverPath,
                   representativeSongId: playlist.firstMediaStoreId,
-                  fontFamily: playlist.fontFamily,
-                  textAlignX: playlist.textAlignX,
-                  textAlignY: playlist.textAlignY,
-                  textColor: playlist.textColor,
-                  textGradientColor: playlist.textGradientColor,
-                  fontSize: playlist.fontSize,
-                  textEffect: playlist.textEffect,
-                  isInteractive: false,
                 ),
               ),
             ),
