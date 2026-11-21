@@ -146,6 +146,12 @@ class AmbientParticlesPainter extends CustomPainter {
   final List<Color> _colors = List<Color>.filled(_triVertexCount, Colors.transparent);
   final Path _crestPath = Path();
 
+  int? _cachedRawColorArgb;
+  bool? _cachedIsDark;
+  Color _cachedBaseVeilColor = Colors.transparent;
+  Color _cachedCrestHighlightColor = Colors.transparent;
+  Color _cachedCrestEdgeColor = Colors.transparent;
+
   /// Three overlapping broad silk waves recreating the iconic PS3 XMB diagonal flow.
   static const List<_XmbRibbonSpec> _ribbons = [
     // 1. Broad diagonal atmospheric silk curtain sweeping upper-left to bottom-right
@@ -313,22 +319,31 @@ class AmbientParticlesPainter extends CustomPainter {
     final Offset dir = axis / axisLen;
     final Offset normal = Offset(-dir.dy, dir.dx);
 
-    // Resolve dynamic cover color and gently clamp luminance so dark or bright covers remain visible
+    // Resolve dynamic cover color and cache HSL/lerp derivations until color or brightness changes
     final Color rawColor = waveColorProvider?.call() ?? accentColor;
-    final HSLColor rawHsl = HSLColor.fromColor(rawColor);
-    final double clampedLightness = isDark
-        ? rawHsl.lightness.clamp(0.42, 0.68)
-        : rawHsl.lightness.clamp(0.35, 0.56);
-    final Color adaptedColor = rawHsl.withLightness(clampedLightness).toColor();
+    final int rawArgb = rawColor.toARGB32();
+    if (_cachedRawColorArgb != rawArgb || _cachedIsDark != isDark) {
+      final HSLColor rawHsl = HSLColor.fromColor(rawColor);
+      final double clampedLightness = isDark
+          ? rawHsl.lightness.clamp(0.42, 0.68)
+          : rawHsl.lightness.clamp(0.35, 0.56);
+      final Color adaptedColor = rawHsl.withLightness(clampedLightness).toColor();
 
-    final Color baseVeilColor = isDark
-        ? Color.lerp(adaptedColor, const Color(0xFF0E0E10), 0.14)!
-        : Color.lerp(adaptedColor, const Color(0xFF1F3B4D), 0.10)!;
-    final Color crestHighlightColor = isDark
-        ? Color.lerp(adaptedColor, Colors.white, 0.30)!
-        : Color.lerp(adaptedColor, const Color(0xFF1A252B), 0.18)!;
-    final Color crestEdgeColor =
-        Color.lerp(baseVeilColor, crestHighlightColor, 0.42)!;
+      _cachedBaseVeilColor = isDark
+          ? Color.lerp(adaptedColor, const Color(0xFF0E0E10), 0.14)!
+          : Color.lerp(adaptedColor, const Color(0xFF1F3B4D), 0.10)!;
+      _cachedCrestHighlightColor = isDark
+          ? Color.lerp(adaptedColor, Colors.white, 0.30)!
+          : Color.lerp(adaptedColor, const Color(0xFF1A252B), 0.18)!;
+      _cachedCrestEdgeColor =
+          Color.lerp(_cachedBaseVeilColor, _cachedCrestHighlightColor, 0.42)!;
+      _cachedRawColorArgb = rawArgb;
+      _cachedIsDark = isDark;
+    }
+
+    final Color baseVeilColor = _cachedBaseVeilColor;
+    final Color crestHighlightColor = _cachedCrestHighlightColor;
+    final Color crestEdgeColor = _cachedCrestEdgeColor;
 
     final double veilPeak = isDark ? spec.veilAlphaDark : spec.veilAlphaLight;
     final double crestPeak =

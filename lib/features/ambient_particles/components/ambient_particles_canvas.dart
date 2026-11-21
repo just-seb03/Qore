@@ -35,9 +35,14 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
     with SingleTickerProviderStateMixin {
   late final AmbientParticlesController _controller;
   late final AnimationController _animController;
-  DateTime _lastTickTime = DateTime.now();
+  final Stopwatch _frameClock = Stopwatch();
+  int _lastElapsedUs = 0;
   Size _lastKnownSize = Size.zero;
   bool _wasEnabled = true;
+
+  bool get _shouldAnimate => widget.mode == AmbientBackdropMode.silkWave
+      ? _controller.isSimulating
+      : _controller.isSimulatingParticles;
 
   @override
   void initState() {
@@ -94,9 +99,12 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
   }
 
   void _syncAnimationState() {
-    if (_controller.isSimulating) {
+    if (_shouldAnimate) {
       if (!_animController.isAnimating) {
-        _lastTickTime = DateTime.now();
+        _frameClock
+          ..reset()
+          ..start();
+        _lastElapsedUs = 0;
         final isAutomatedTest = WidgetsBinding.instance.runtimeType
             .toString()
             .contains('TestWidgetsFlutterBinding');
@@ -108,16 +116,16 @@ class _AmbientParticlesCanvasState extends State<AmbientParticlesCanvas>
       if (_animController.isAnimating) {
         _animController.stop();
       }
+      _frameClock.stop();
     }
   }
 
   void _handleAnimationTick() {
-    if (!_controller.isSimulating) return;
+    if (!_shouldAnimate) return;
 
-    final now = DateTime.now();
-    final double dt =
-        now.difference(_lastTickTime).inMicroseconds / 1000000.0;
-    _lastTickTime = now;
+    final int nowUs = _frameClock.elapsedMicroseconds;
+    final double dt = (nowUs - _lastElapsedUs) / 1000000.0;
+    _lastElapsedUs = nowUs;
 
     if (_lastKnownSize.width > 0 && _lastKnownSize.height > 0) {
       _controller.stepFrame(

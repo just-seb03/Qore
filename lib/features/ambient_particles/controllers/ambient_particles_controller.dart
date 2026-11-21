@@ -92,8 +92,14 @@ class AmbientParticlesController extends ChangeNotifier {
   /// Active list of simulated particles (cached unmodifiable view).
   List<AmbientParticle> get particles => _particlesView;
 
-  /// Whether the simulation is actively advancing physics.
+  /// Whether the simulation is actively advancing (particles or silk waves).
   bool get isSimulating => _isEnabled && !_isAppPaused;
+
+  /// Whether floating particle physics should advance (frozen when expanded player covers the screen).
+  bool get isSimulatingParticles => isSimulating && !_isExpandedPlayerVisible;
+
+  /// Whether expanded player silk waves should advance.
+  bool get isSimulatingWaves => isSimulating && _isExpandedPlayerVisible;
 
   /// Initializes or adjusts the particle population to fit the target screen [size].
   void initializeParticles(Size size) {
@@ -148,13 +154,15 @@ class AmbientParticlesController extends ChangeNotifier {
           Color.lerp(_smoothedWaveColor, _targetWaveColor, colorBlend) ?? _targetWaveColor;
     }
 
-    for (int i = 0; i < _particles.length; i++) {
-      _particles[i].update(
-        dt: safeDt,
-        width: width,
-        height: height,
-        speedMultiplier: effectiveSpeed,
-      );
+    if (isSimulatingParticles) {
+      for (int i = 0; i < _particles.length; i++) {
+        _particles[i].update(
+          dt: safeDt,
+          width: width,
+          height: height,
+          speedMultiplier: effectiveSpeed,
+        );
+      }
     }
 
     _waveTime += safeDt * 0.78 * effectiveSpeed;
