@@ -871,4 +871,8 @@ class ArtworkService extends ChangeNotifier {
     _processedQueueItems = 0;
     _initialized = false;
   }
+
+  /// Returns true while any listeners are attached to [ArtworkService].
+  @visibleForTesting
+  bool get debugHasListeners => hasListeners;
 }

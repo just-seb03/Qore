@@ -4,7 +4,7 @@
 /// zero-cost graceful placeholder, and reactive updates without screen-wide rebuilds.
 ///
 /// Components / Classes / Functions:
-/// - AnimaArtworkImage: Stateless reactive widget rendering thumbnails or full covers.
+/// - AnimaArtworkImage: Stateful reactive widget rendering thumbnails or full covers.
 library;
 
 import 'dart:io';
@@ -12,7 +12,7 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 
 /// Reusable artwork image widget enforcing Dual-Tier memory constraints and Frame 0 rendering.
-class AnimaArtworkImage extends StatelessWidget {
+class AnimaArtworkImage extends StatefulWidget {
   /// Unique identifier of the audio track (MediaStore ID).
   final int mediaStoreId;
 
@@ -187,66 +187,128 @@ class AnimaArtworkImage extends StatelessWidget {
   }
 
   @override
-  Widget build(BuildContext context) {
-    return ListenableBuilder(
-      listenable: ArtworkService.instance,
-      builder: (context, _) {
-        final String? path = resolveArtworkPath(
-          mediaStoreId: mediaStoreId,
-          albumId: albumId,
-          albumName: albumName,
-          artistName: artistName,
-          isThumbnail: isThumbnail,
-        );
+  State<AnimaArtworkImage> createState() => _AnimaArtworkImageState();
+}
 
-        if (path != null) {
-          final file = File(path);
-          final int cacheSize = resolveCacheSize(
-            width: width,
-            isThumbnail: isThumbnail,
-            screenWidth: MediaQuery.maybeSizeOf(context)?.width,
-            devicePixelRatio: MediaQuery.maybeDevicePixelRatioOf(context),
-          );
+class _AnimaArtworkImageState extends State<AnimaArtworkImage> {
+  String? _resolvedPath;
+  bool _isListening = false;
 
-          final imageWidget = Image.file(
-            file,
-            width: width,
-            height: height,
-            fit: fit,
-            gaplessPlayback: true,
-            filterQuality: FilterQuality.medium,
-            cacheWidth: cacheSize,
-            cacheHeight: cacheSize,
-            errorBuilder: (ctx, err, stack) => _buildFallback(context),
-          );
-
-          if (isCircular) {
-            return ClipOval(child: imageWidget);
-          }
-
-          if (borderRadius > 0.0) {
-            return ClipRRect(
-              borderRadius: BorderRadius.circular(borderRadius),
-              child: imageWidget,
-            );
-          }
-
-          return imageWidget;
-        }
-
-        return _buildFallback(context);
-      },
+  String? _resolvePath() {
+    return AnimaArtworkImage.resolveArtworkPath(
+      mediaStoreId: widget.mediaStoreId,
+      albumId: widget.albumId,
+      albumName: widget.albumName,
+      artistName: widget.artistName,
+      isThumbnail: widget.isThumbnail,
     );
   }
 
+  void _subscribe() {
+    if (_isListening) return;
+    _isListening = true;
+    ArtworkService.instance.addListener(_onArtworkUpdated);
+  }
+
+  void _unsubscribe() {
+    if (!_isListening) return;
+    _isListening = false;
+    ArtworkService.instance.removeListener(_onArtworkUpdated);
+  }
+
+  void _syncListener() {
+    if (_resolvedPath == null) {
+      _subscribe();
+    } else {
+      _unsubscribe();
+    }
+  }
+
+  void _onArtworkUpdated() {
+    if (!mounted) return;
+    final String? nextPath = _resolvePath();
+    if (nextPath != null && nextPath != _resolvedPath) {
+      _unsubscribe();
+      setState(() {
+        _resolvedPath = nextPath;
+      });
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    _resolvedPath = _resolvePath();
+    _syncListener();
+  }
+
+  @override
+  void didUpdateWidget(covariant AnimaArtworkImage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.mediaStoreId != oldWidget.mediaStoreId ||
+        widget.albumId != oldWidget.albumId ||
+        widget.albumName != oldWidget.albumName ||
+        widget.artistName != oldWidget.artistName ||
+        widget.isThumbnail != oldWidget.isThumbnail) {
+      _resolvedPath = _resolvePath();
+      _syncListener();
+    }
+  }
+
+  @override
+  void dispose() {
+    _unsubscribe();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String? path = _resolvedPath;
+    if (path == null) {
+      return _buildFallback(context);
+    }
+
+    final int cacheSize = AnimaArtworkImage.resolveCacheSize(
+      width: widget.width,
+      isThumbnail: widget.isThumbnail,
+      screenWidth: MediaQuery.maybeSizeOf(context)?.width,
+      devicePixelRatio: MediaQuery.maybeDevicePixelRatioOf(context),
+    );
+
+    final imageWidget = Image.file(
+      File(path),
+      width: widget.width,
+      height: widget.height,
+      fit: widget.fit,
+      gaplessPlayback: true,
+      filterQuality: FilterQuality.medium,
+      cacheWidth: cacheSize,
+      cacheHeight: cacheSize,
+      errorBuilder: (_, _, _) => _buildFallback(context),
+    );
+
+    if (widget.isCircular) {
+      return ClipOval(child: imageWidget);
+    }
+
+    if (widget.borderRadius > 0.0) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(widget.borderRadius),
+        child: imageWidget,
+      );
+    }
+
+    return imageWidget;
+  }
+
   Widget _buildFallback(BuildContext context) {
-    if (fallback != null) return fallback!;
+    if (widget.fallback != null) return widget.fallback!;
 
     final theme = Theme.of(context);
     final double effectiveWidth =
-        (width != null && width!.isFinite) ? width! : 48.0;
+        (widget.width != null && widget.width!.isFinite) ? widget.width! : 48.0;
     final iconSize = (effectiveWidth * 0.45).clamp(16.0, 64.0);
-    final icon = fallbackIcon ?? Icons.music_note_rounded;
+    final icon = widget.fallbackIcon ?? Icons.music_note_rounded;
 
     final containerChild = Center(
       child: Icon(
@@ -256,10 +318,10 @@ class AnimaArtworkImage extends StatelessWidget {
       ),
     );
 
-    if (isCircular) {
+    if (widget.isCircular) {
       return Container(
-        width: width,
-        height: height,
+        width: widget.width,
+        height: widget.height,
         decoration: BoxDecoration(
           color: theme.colorScheme.surfaceContainerHighest,
           shape: BoxShape.circle,
@@ -274,20 +336,21 @@ class AnimaArtworkImage extends StatelessWidget {
 
     final decoration = BoxDecoration(
       color: theme.colorScheme.surfaceContainerHighest,
-      borderRadius:
-          borderRadius > 0.0 ? BorderRadius.circular(borderRadius) : null,
+      borderRadius: widget.borderRadius > 0.0
+          ? BorderRadius.circular(widget.borderRadius)
+          : null,
       border: Border.all(
         color: Colors.white.withValues(alpha: 0.05),
         width: 0.5,
       ),
     );
 
-    if (borderRadius > 0.0) {
+    if (widget.borderRadius > 0.0) {
       return ClipRRect(
-        borderRadius: BorderRadius.circular(borderRadius),
+        borderRadius: BorderRadius.circular(widget.borderRadius),
         child: Container(
-          width: width,
-          height: height,
+          width: widget.width,
+          height: widget.height,
           decoration: decoration,
           child: containerChild,
         ),
@@ -295,8 +358,8 @@ class AnimaArtworkImage extends StatelessWidget {
     }
 
     return Container(
-      width: width,
-      height: height,
+      width: widget.width,
+      height: widget.height,
       decoration: decoration,
       child: containerChild,
     );

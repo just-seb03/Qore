@@ -399,6 +399,89 @@ void main() {
       expect(imageB.albumId, isNull);
       expect(imageA.mediaStoreId, isNot(equals(imageB.mediaStoreId)));
     });
+
+    testWidgets(
+      'AnimaArtworkImage only listens while cover path is unresolved and ignores unrelated updates',
+      (tester) async {
+        late Directory artworkDir;
+        late Directory coversDir;
+
+        await tester.runAsync(() async {
+          artworkDir = await Directory.systemTemp.createTemp('anima_art_listener_test_');
+          ArtworkService.instance.reset();
+          await ArtworkService.instance.initialize(baseDir: artworkDir, songDao: songDao);
+          coversDir = Directory(p.join(artworkDir.path, 'anima_artworks', 'covers'));
+          await File(p.join(coversDir.path, '801.jpg')).writeAsBytes([1, 2, 3]);
+          ArtworkService.instance.reset();
+          await ArtworkService.instance.initialize(baseDir: artworkDir, songDao: songDao);
+        });
+
+        addTearDown(() {
+          ArtworkService.instance.reset();
+          if (artworkDir.existsSync()) {
+            artworkDir.deleteSync(recursive: true);
+          }
+        });
+
+        // 1. Resolved artwork skips listening to ArtworkService altogether.
+        await tester.pumpWidget(
+          const MaterialApp(
+            home: Scaffold(
+              body: AnimaArtworkImage(
+                mediaStoreId: 801,
+                isThumbnail: false,
+              ),
+            ),
+          ),
+        );
+        expect(find.byType(Image), findsOneWidget);
+        expect(ArtworkService.instance.debugHasListeners, isFalse);
+
+        // 2. Switching to unresolved artwork attaches listener and renders fallback.
+        int fallbackBuilds = 0;
+        Widget buildUnresolved(int id) => MaterialApp(
+              home: Scaffold(
+                body: AnimaArtworkImage(
+                  mediaStoreId: id,
+                  isThumbnail: false,
+                  fallback: Builder(
+                    builder: (_) {
+                      fallbackBuilds++;
+                      return const Icon(Icons.music_note_rounded);
+                    },
+                  ),
+                ),
+              ),
+            );
+
+        await tester.pumpWidget(buildUnresolved(802));
+        expect(ArtworkService.instance.debugHasListeners, isTrue);
+        expect(fallbackBuilds, 1);
+
+        // Unrelated notification should not trigger a fallback rebuild.
+        ArtworkService.instance.evictSongs([99999]);
+        await tester.pump();
+        expect(fallbackBuilds, 1);
+        expect(ArtworkService.instance.debugHasListeners, isTrue);
+
+        // Once cover appears and service notifies, widget updates and detaches.
+        await tester.runAsync(() async {
+          await File(p.join(coversDir.path, '802.jpg')).writeAsBytes([4, 5, 6]);
+          ArtworkService.instance.reset();
+          await ArtworkService.instance.initialize(baseDir: artworkDir, songDao: songDao);
+        });
+        await tester.pump();
+
+        expect(find.byType(Image), findsOneWidget);
+        expect(ArtworkService.instance.debugHasListeners, isFalse);
+
+        // 3. Unmounting an unresolved widget also detaches its listener.
+        await tester.pumpWidget(buildUnresolved(803));
+        expect(ArtworkService.instance.debugHasListeners, isTrue);
+        await tester.pumpWidget(const MaterialApp(home: SizedBox.shrink()));
+        expect(ArtworkService.instance.debugHasListeners, isFalse);
+      },
+    );
   });
 
   group('LibraryArtistTile Styling Tests', () {
