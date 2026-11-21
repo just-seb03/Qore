@@ -113,6 +113,58 @@ void main() {
       await tester.pump(const Duration(milliseconds: 800));
       expect(find.text('BACK_RECT'), findsOneWidget);
     });
+
+    testWidgets('cancels local flips when TickerMode is disabled and flips via external trigger when enabled',
+        (tester) async {
+      final trigger = ValueNotifier<int?>(null);
+      addTearDown(trigger.dispose);
+
+      Widget buildTile({required bool tickerEnabled}) {
+        return MaterialApp(
+          home: Scaffold(
+            body: TickerMode(
+              enabled: tickerEnabled,
+              child: Center(
+                child: SizedBox(
+                  width: 150,
+                  height: 150,
+                  child: MetroLiveTile(
+                    flipTrigger: trigger,
+                    flipSlot: 2,
+                    front: const Text('COORD_FRONT'),
+                    back: const Text('COORD_BACK'),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      }
+
+      await tester.pumpWidget(buildTile(tickerEnabled: false));
+      trigger.value = 2;
+      await tester.pump(const Duration(milliseconds: 800));
+      // Must stay on front when TickerMode is disabled
+      expect(find.text('COORD_FRONT'), findsOneWidget);
+      expect(find.text('COORD_BACK'), findsNothing);
+
+      // Enable TickerMode and fire another slot trigger first (ignored)
+      await tester.pumpWidget(buildTile(tickerEnabled: true));
+      trigger.value = 1;
+      await tester.pump(const Duration(milliseconds: 800));
+      expect(find.text('COORD_FRONT'), findsOneWidget);
+
+      // Fire matching slot trigger (flips smoothly)
+      trigger.value = 2;
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(find.text('COORD_BACK'), findsOneWidget);
+
+      // Cleanly settle back to front
+      await tester.pump(const Duration(milliseconds: 600));
+      await tester.pump(const Duration(milliseconds: 700));
+      expect(find.text('COORD_FRONT'), findsOneWidget);
+    });
   });
 
   group('MetroFavoritesTile Widget Tests', () {

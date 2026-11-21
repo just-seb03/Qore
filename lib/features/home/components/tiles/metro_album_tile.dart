@@ -7,6 +7,7 @@
 /// - MetroAlbumTile: Square live tile presenting a pinned album with horizontal flip.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
@@ -23,6 +24,12 @@ class MetroAlbumTile extends StatelessWidget {
   /// Staggered initial delay for the flip animation.
   final Duration initialDelay;
 
+  /// Optional external flip coordinator trigger.
+  final ValueListenable<int?>? flipTrigger;
+
+  /// Optional tile slot matched against [flipTrigger].
+  final int? flipSlot;
+
   /// Optional tap callback override.
   final VoidCallback? onTap;
 
@@ -33,6 +40,8 @@ class MetroAlbumTile extends StatelessWidget {
     super.key,
     required this.album,
     this.initialDelay = const Duration(seconds: 30),
+    this.flipTrigger,
+    this.flipSlot,
     this.onTap,
     this.onLongPress,
   });
@@ -60,6 +69,8 @@ class MetroAlbumTile extends StatelessWidget {
         flipAxis: MetroFlipAxis.horizontal,
         initialDelay: initialDelay,
         interval: const Duration(seconds: 68),
+        flipTrigger: flipTrigger,
+        flipSlot: flipSlot,
         onTap: () => _handleTap(context),
         onLongPress: onLongPress,
         front: _buildFront(context),

@@ -8,6 +8,7 @@
 library;
 
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
@@ -24,6 +25,12 @@ class MetroArtistTile extends StatelessWidget {
   /// Staggered initial delay for the flip animation.
   final Duration initialDelay;
 
+  /// Optional external flip coordinator trigger.
+  final ValueListenable<int?>? flipTrigger;
+
+  /// Optional tile slot matched against [flipTrigger].
+  final int? flipSlot;
+
   /// Optional tap callback.
   final VoidCallback? onTap;
 
@@ -34,6 +41,8 @@ class MetroArtistTile extends StatelessWidget {
     super.key,
     required this.artist,
     this.initialDelay = const Duration(seconds: 40),
+    this.flipTrigger,
+    this.flipSlot,
     this.onTap,
     this.onLongPress,
   });
@@ -56,6 +65,8 @@ class MetroArtistTile extends StatelessWidget {
         flipAxis: MetroFlipAxis.horizontal,
         initialDelay: initialDelay,
         interval: const Duration(seconds: 75),
+        flipTrigger: flipTrigger,
+        flipSlot: flipSlot,
         onTap: () => _handleTap(context),
         onLongPress: onLongPress,
         front: _buildFront(context),

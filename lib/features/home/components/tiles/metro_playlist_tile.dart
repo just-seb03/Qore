@@ -9,6 +9,7 @@
 /// - MetroPlaylistTile: Rectangular live tile presenting a pinned playlist with vertical flip.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
@@ -25,6 +26,12 @@ class MetroPlaylistTile extends StatelessWidget {
   /// Staggered initial delay for the flip animation.
   final Duration initialDelay;
 
+  /// Optional external flip coordinator trigger.
+  final ValueListenable<int?>? flipTrigger;
+
+  /// Optional tile slot matched against [flipTrigger].
+  final int? flipSlot;
+
   /// Optional tap callback override.
   final VoidCallback? onTap;
 
@@ -35,6 +42,8 @@ class MetroPlaylistTile extends StatelessWidget {
     super.key,
     required this.playlistItem,
     this.initialDelay = const Duration(seconds: 48),
+    this.flipTrigger,
+    this.flipSlot,
     this.onTap,
     this.onLongPress,
   });
@@ -77,6 +86,8 @@ class MetroPlaylistTile extends StatelessWidget {
         flipAxis: MetroFlipAxis.vertical,
         initialDelay: initialDelay,
         interval: const Duration(seconds: 82),
+        flipTrigger: flipTrigger,
+        flipSlot: flipSlot,
         onTap: () => _handleTap(context),
         onLongPress: onLongPress,
         front: _buildFront(context),

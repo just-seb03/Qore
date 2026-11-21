@@ -7,6 +7,7 @@
 /// - MetroFavoritesTile: Square live tile presenting favorites with horizontal flip.
 library;
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -20,12 +21,20 @@ class MetroFavoritesTile extends StatelessWidget {
   /// Staggered initial delay for the flip animation.
   final Duration initialDelay;
 
+  /// Optional external flip coordinator trigger.
+  final ValueListenable<int?>? flipTrigger;
+
+  /// Optional tile slot matched against [flipTrigger].
+  final int? flipSlot;
+
   /// Optional pre-loaded favorite songs for testing.
   final List<Song>? initialSongs;
 
   const MetroFavoritesTile({
     super.key,
     this.initialDelay = const Duration(seconds: 16),
+    this.flipTrigger,
+    this.flipSlot,
     this.initialSongs,
   });
 
@@ -58,6 +67,8 @@ class MetroFavoritesTile extends StatelessWidget {
         flipAxis: MetroFlipAxis.horizontal,
         initialDelay: initialDelay,
         interval: const Duration(seconds: 55),
+        flipTrigger: flipTrigger,
+        flipSlot: flipSlot,
         onTap: () => _handleTap(context),
         front: _buildFront(context),
         back: const MetroTileGlassBack(

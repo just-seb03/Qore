@@ -11,6 +11,7 @@ library;
 
 import 'dart:async';
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 /// Axis of 3D rotation for the live tile.
@@ -48,6 +49,12 @@ class MetroLiveTile extends StatefulWidget {
   /// Global pause flag for live tile 3D animations.
   static final ValueNotifier<bool> isPaused = ValueNotifier<bool>(false);
 
+  /// Optional external flip coordinator trigger emitting the target [flipSlot].
+  final ValueListenable<int?>? flipTrigger;
+
+  /// Optional slot identifier matched against [flipTrigger].
+  final int? flipSlot;
+
   const MetroLiveTile({
     super.key,
     required this.front,
@@ -55,6 +62,8 @@ class MetroLiveTile extends StatefulWidget {
     this.flipAxis = MetroFlipAxis.horizontal,
     this.initialDelay = const Duration(seconds: 20),
     this.interval = const Duration(seconds: 60),
+    this.flipTrigger,
+    this.flipSlot,
     this.onTap,
     this.onLongPress,
   });
@@ -72,6 +81,10 @@ class _MetroLiveTileState extends State<MetroLiveTile>
   Timer? _pauseTimer;
   Completer<void>? _pauseCompleter;
   bool _isDisposed = false;
+  bool _isTickerEnabled = true;
+
+  bool get _usesExternalCoordinator =>
+      widget.flipTrigger != null && widget.flipSlot != null;
 
   @override
   void initState() {
@@ -86,25 +99,100 @@ class _MetroLiveTileState extends State<MetroLiveTile>
     );
 
     MetroLiveTile.isPaused.addListener(_onPausedChanged);
-    _scheduleFlips();
+    widget.flipTrigger?.addListener(_onExternalTrigger);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bool tickerEnabled = TickerMode.valuesOf(context).enabled;
+    _isTickerEnabled = tickerEnabled;
+    _syncSchedulingState();
+  }
+
+  @override
+  void didUpdateWidget(covariant MetroLiveTile oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.flipTrigger != oldWidget.flipTrigger) {
+      oldWidget.flipTrigger?.removeListener(_onExternalTrigger);
+      widget.flipTrigger?.addListener(_onExternalTrigger);
+    }
+    if (_usesExternalCoordinator) {
+      _cancelLocalTimers();
+    } else if (_staggerTimer == null && _periodicTimer == null) {
+      _syncSchedulingState();
+    }
   }
 
   void _onPausedChanged() {
     if (MetroLiveTile.isPaused.value && mounted && !_isDisposed) {
+      _cancelPauseTimer();
       if (_controller.value > 0.0) {
         _controller.reverse();
       }
     }
+    _syncSchedulingState();
+  }
+
+  void _onExternalTrigger() {
+    if (!_usesExternalCoordinator ||
+        !_isTickerEnabled ||
+        MetroLiveTile.isPaused.value ||
+        !mounted ||
+        _isDisposed) {
+      return;
+    }
+    if (widget.flipTrigger?.value == widget.flipSlot) {
+      _flipTwice();
+    }
+  }
+
+  void _syncSchedulingState() {
+    if (!_isTickerEnabled || MetroLiveTile.isPaused.value || _usesExternalCoordinator) {
+      _cancelLocalTimers();
+      if (!_isTickerEnabled) {
+        _cancelPauseTimer();
+        if (_controller.value > 0.0) {
+          _controller.reset();
+        }
+      }
+      return;
+    }
+
+    if (_staggerTimer == null && _periodicTimer == null) {
+      _scheduleFlips();
+    }
+  }
+
+  void _cancelLocalTimers() {
+    _staggerTimer?.cancel();
+    _staggerTimer = null;
+    _periodicTimer?.cancel();
+    _periodicTimer = null;
+  }
+
+  void _cancelPauseTimer() {
+    _pauseTimer?.cancel();
+    _pauseTimer = null;
+    if (_pauseCompleter != null && !_pauseCompleter!.isCompleted) {
+      _pauseCompleter!.complete();
+    }
   }
 
   void _scheduleFlips() {
+    _cancelLocalTimers();
     _staggerTimer = Timer(widget.initialDelay, () {
-      if (!mounted || _isDisposed) return;
+      _staggerTimer = null;
+      if (!mounted || _isDisposed || !_isTickerEnabled || _usesExternalCoordinator) {
+        return;
+      }
       if (!MetroLiveTile.isPaused.value) {
         _flipTwice();
       }
       _periodicTimer = Timer.periodic(widget.interval, (_) {
-        if (!mounted || _isDisposed) return;
+        if (!mounted || _isDisposed || !_isTickerEnabled || _usesExternalCoordinator) {
+          return;
+        }
         if (!MetroLiveTile.isPaused.value) {
           _flipTwice();
         }
@@ -113,11 +201,19 @@ class _MetroLiveTileState extends State<MetroLiveTile>
   }
 
   Future<void> _flipTwice() async {
-    if (!mounted || _isDisposed || _controller.isAnimating || MetroLiveTile.isPaused.value) return;
+    if (!mounted ||
+        _isDisposed ||
+        !_isTickerEnabled ||
+        _controller.isAnimating ||
+        MetroLiveTile.isPaused.value) {
+      return;
+    }
     try {
       // 1. First flip: rotate from front to back
       await _controller.forward();
-      if (!mounted || _isDisposed) return;
+      if (!mounted || _isDisposed || !_isTickerEnabled || MetroLiveTile.isPaused.value) {
+        return;
+      }
 
       // 2. Pause on the back to show entity icon (half a second: 500ms)
       _pauseCompleter = Completer<void>();
@@ -127,7 +223,9 @@ class _MetroLiveTileState extends State<MetroLiveTile>
         }
       });
       await _pauseCompleter!.future;
-      if (!mounted || _isDisposed) return;
+      if (!mounted || _isDisposed || !_isTickerEnabled || MetroLiveTile.isPaused.value) {
+        return;
+      }
 
       // 3. Second flip: rotate back to front
       await _controller.reverse();
@@ -138,12 +236,9 @@ class _MetroLiveTileState extends State<MetroLiveTile>
   void dispose() {
     _isDisposed = true;
     MetroLiveTile.isPaused.removeListener(_onPausedChanged);
-    _staggerTimer?.cancel();
-    _periodicTimer?.cancel();
-    _pauseTimer?.cancel();
-    if (_pauseCompleter != null && !_pauseCompleter!.isCompleted) {
-      _pauseCompleter!.complete();
-    }
+    widget.flipTrigger?.removeListener(_onExternalTrigger);
+    _cancelLocalTimers();
+    _cancelPauseTimer();
     _controller.dispose();
     super.dispose();
   }

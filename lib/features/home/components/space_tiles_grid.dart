@@ -8,12 +8,14 @@
 /// - SpaceTilesGrid: Stateful grid coordinating Windows Phone Metro live tiles.
 library;
 
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/home/components/metro_live_tile.dart';
 import 'package:project_anima/features/home/components/tiles/metro_album_tile.dart';
 import 'package:project_anima/features/home/components/tiles/metro_artist_tile.dart';
 import 'package:project_anima/features/home/components/tiles/metro_favorites_tile.dart';
@@ -57,6 +59,12 @@ class SpaceTilesGrid extends StatefulWidget {
 }
 
 class _SpaceTilesGridState extends State<SpaceTilesGrid> {
+  final ValueNotifier<int?> _flipTargetNotifier = ValueNotifier<int?>(null);
+  Timer? _schedulerTimer;
+  int _nextFlipCursor = 0;
+  int _totalSlots = 1;
+  bool _isTickerEnabled = true;
+
   List<PinnedFavorite>? _pinnedItems;
   bool _isLoading = true;
 
@@ -76,6 +84,14 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
     }
     PinnedFavoritesDao.revision.addListener(_onRevisionChanged);
     MusicIndexer.revision.addListener(_onRevisionChanged);
+    MetroLiveTile.isPaused.addListener(_syncSchedulerTimer);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _isTickerEnabled = TickerMode.valuesOf(context).enabled;
+    _syncSchedulerTimer();
   }
 
   @override
@@ -87,14 +103,47 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
         _pinnedItems = widget.initialPinnedItems;
         _isLoading = false;
       });
+      _syncSchedulerTimer();
     }
   }
 
   @override
   void dispose() {
+    _schedulerTimer?.cancel();
+    _flipTargetNotifier.dispose();
     PinnedFavoritesDao.revision.removeListener(_onRevisionChanged);
     MusicIndexer.revision.removeListener(_onRevisionChanged);
+    MetroLiveTile.isPaused.removeListener(_syncSchedulerTimer);
     super.dispose();
+  }
+
+  void _syncSchedulerTimer() {
+    final bool shouldSchedule =
+        !_isLoading && _isTickerEnabled && !MetroLiveTile.isPaused.value;
+    if (!shouldSchedule) {
+      _schedulerTimer?.cancel();
+      _schedulerTimer = null;
+      return;
+    }
+
+    _schedulerTimer ??= Timer.periodic(
+      const Duration(seconds: 12),
+      (_) => _triggerNextTileFlip(),
+    );
+  }
+
+  void _triggerNextTileFlip() {
+    if (!mounted ||
+        _isLoading ||
+        !_isTickerEnabled ||
+        MetroLiveTile.isPaused.value ||
+        _totalSlots <= 0) {
+      return;
+    }
+    final int targetSlot = _nextFlipCursor % _totalSlots;
+    _nextFlipCursor++;
+    _flipTargetNotifier.value = null;
+    _flipTargetNotifier.value = targetSlot;
   }
 
   void _onRevisionChanged() {
@@ -111,12 +160,14 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
         _pinnedItems = items;
         _isLoading = false;
       });
+      _syncSchedulerTimer();
     } catch (_) {
       if (!mounted) return;
       setState(() {
         _pinnedItems = [];
         _isLoading = false;
       });
+      _syncSchedulerTimer();
     }
   }
 
@@ -210,7 +261,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
     return rows;
   }
 
-  Widget _buildSquareTile(PinnedFavorite item, int index) {
+  Widget _buildSquareTile(PinnedFavorite item, int index, {int? flipSlot}) {
     final staggerDelay = Duration(seconds: 22 + (index % 6) * 10);
 
     if (item.isAlbum) {
@@ -218,6 +269,8 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
         key: ValueKey('metro_album_${item.id ?? item.itemKey}'),
         album: item,
         initialDelay: staggerDelay,
+        flipTrigger: flipSlot != null ? _flipTargetNotifier : null,
+        flipSlot: flipSlot,
         onLongPress: () => _confirmUnpin(item),
       );
     }
@@ -227,6 +280,8 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
         key: ValueKey('metro_artist_${item.id ?? item.itemKey}'),
         artist: item,
         initialDelay: staggerDelay,
+        flipTrigger: flipSlot != null ? _flipTargetNotifier : null,
+        flipSlot: flipSlot,
         onLongPress: () => _confirmUnpin(item),
       );
     }
@@ -242,6 +297,17 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
 
     final items = _pinnedItems ?? [];
     final rows = _packRows(items);
+    final List<int> rowStartSlot = List<int>.filled(rows.length, 0);
+    int slotCursor = 0;
+    for (int i = 0; i < rows.length; i++) {
+      rowStartSlot[i] = slotCursor;
+      slotCursor += switch (rows[i]) {
+        _MetroTopRowItem(:final rightItem) => rightItem != null ? 2 : 1,
+        _MetroPlaylistRowItem() => 1,
+        _MetroPairRowItem(:final second) => second != null ? 2 : 1,
+      };
+    }
+    _totalSlots = slotCursor;
 
     return MediaQuery.removePadding(
       context: context,
@@ -255,6 +321,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
         itemCount: rows.length,
         itemBuilder: (context, index) {
           final row = rows[index];
+          final int baseSlot = rowStartSlot[index];
           return switch (row) {
             _MetroTopRowItem(:final rightItem) => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -262,11 +329,13 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
                   Expanded(
                     child: MetroFavoritesTile(
                       initialSongs: widget.initialFavoriteSongs,
+                      flipTrigger: _flipTargetNotifier,
+                      flipSlot: baseSlot,
                     ),
                   ),
                   Expanded(
                     child: rightItem != null
-                        ? _buildSquareTile(rightItem, 0)
+                        ? _buildSquareTile(rightItem, 0, flipSlot: baseSlot + 1)
                         : const SizedBox.shrink(),
                   ),
                 ],
@@ -275,17 +344,19 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
                 key: ValueKey('metro_playlist_${playlist.id ?? playlist.itemKey}'),
                 playlistItem: playlist,
                 initialDelay: Duration(seconds: 36 + (index % 5) * 12),
+                flipTrigger: _flipTargetNotifier,
+                flipSlot: baseSlot,
                 onLongPress: () => _confirmUnpin(playlist),
               ),
             _MetroPairRowItem(:final first, :final second) => Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
-                    child: _buildSquareTile(first, index),
+                    child: _buildSquareTile(first, index, flipSlot: baseSlot),
                   ),
                   Expanded(
                     child: second != null
-                        ? _buildSquareTile(second, index + 1)
+                        ? _buildSquareTile(second, index + 1, flipSlot: baseSlot + 1)
                         : const SizedBox.shrink(),
                   ),
                 ],
