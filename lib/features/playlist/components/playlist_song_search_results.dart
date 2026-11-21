@@ -54,75 +54,92 @@ class PlaylistSongSearchResults extends StatelessWidget {
       );
     }
 
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHigh.withValues(alpha: 0.7),
-        borderRadius: BorderRadius.circular(12.0),
-        border: Border.all(
-          color: AppColors.outline.withValues(alpha: 0.25),
-          width: 0.8,
-        ),
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16.0, 4.0, 16.0, 40.0),
+      physics: const BouncingScrollPhysics(),
+      itemCount: results.length,
+      separatorBuilder: (context, index) => Divider(
+        color: AppColors.outlineVariant.withValues(alpha: 0.25),
+        height: 1.0,
+        indent: 64.0,
       ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (int index = 0; index < results.length; index++) ...[
-            if (index > 0)
-              Divider(
-                color: AppColors.outlineVariant.withValues(alpha: 0.3),
-                height: 1.0,
-                indent: 64.0,
-              ),
-            Builder(
-              builder: (context) {
-                final song = results[index];
-                final bool isAlreadyAdded = addedSongIds.contains(song.mediaStoreId);
+      itemBuilder: (context, index) {
+        final song = results[index];
+        final bool isAlreadyAdded = addedSongIds.contains(song.mediaStoreId);
 
-                return Material(
-                  color: Colors.transparent,
-                  child: ListTile(
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 2.0),
-                    leading: AnimaArtworkImage(
-                      mediaStoreId: song.mediaStoreId,
-                      albumId: song.albumId,
-                      width: 44.0,
-                      height: 44.0,
-                      borderRadius: 0.0,
-                      fallbackIcon: Icons.music_note_rounded,
-                      isThumbnail: true,
-                    ),
-                    title: Text(
-                      song.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _titleStyle,
-                    ),
-                    subtitle: Text(
-                      song.artist ?? context.l10n.common.unknownArtist,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: _artistStyle,
-                    ),
-                    trailing: IconButton(
-                      icon: Icon(
-                        isAlreadyAdded ? Icons.check_circle_rounded : Icons.add_circle_outline_rounded,
-                        color: isAlreadyAdded ? AppColors.accent : AppColors.onSurfaceVariant,
-                        size: 24.0,
-                      ),
-                      onPressed: () => onSongAdd(song),
-                      tooltip: isAlreadyAdded
-                          ? context.l10n.playlist.alreadyAddedTooltip
-                          : context.l10n.playlist.addToPlaylistTooltip,
-                    ),
-                    onTap: () => onSongAdd(song),
+        return Material(
+          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.65),
+          child: InkWell(
+            onTap: () => onSongAdd(song),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
+              child: Row(
+                children: [
+                  AnimaArtworkImage(
+                    mediaStoreId: song.mediaStoreId,
+                    albumId: song.albumId,
+                    width: 44.0,
+                    height: 44.0,
+                    borderRadius: 0.0,
+                    fallbackIcon: Icons.music_note_rounded,
+                    isThumbnail: true,
                   ),
-                );
-              },
+                  const SizedBox(width: 12.0),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          song.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: _titleStyle,
+                        ),
+                        const SizedBox(height: 2.0),
+                        Text(
+                          song.artist ?? context.l10n.common.unknownArtist,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: _artistStyle,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 8.0),
+                  Tooltip(
+                    message: isAlreadyAdded
+                        ? context.l10n.playlist.alreadyAddedTooltip
+                        : context.l10n.playlist.addToPlaylistTooltip,
+                    child: Container(
+                      width: 32.0,
+                      height: 32.0,
+                      decoration: BoxDecoration(
+                        color: isAlreadyAdded
+                            ? AppColors.accent
+                            : AppColors.surfaceContainerHighest,
+                        border: Border.all(
+                          color: isAlreadyAdded
+                              ? AppColors.accent
+                              : AppColors.outline.withValues(alpha: 0.4),
+                          width: 1.0,
+                        ),
+                      ),
+                      child: Icon(
+                        isAlreadyAdded ? Icons.check_rounded : Icons.add_rounded,
+                        color: isAlreadyAdded
+                            ? AppColors.onAccent
+                            : AppColors.onSurface,
+                        size: 18.0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ],
-        ],
-      ),
+          ),
+        );
+      },
     );
   }
 }

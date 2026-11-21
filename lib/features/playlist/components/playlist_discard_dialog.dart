@@ -49,7 +49,7 @@ class PlaylistDiscardDialog extends StatelessWidget {
     return AlertDialog(
       backgroundColor: AppColors.surfaceContainerHigh,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.0),
+        borderRadius: BorderRadius.zero,
         side: BorderSide(
           color: AppColors.outline.withValues(alpha: 0.4),
           width: 0.8,
@@ -91,8 +91,8 @@ class PlaylistDiscardDialog extends StatelessWidget {
           style: FilledButton.styleFrom(
             backgroundColor: const Color(0xFFE53935),
             foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.0),
+            shape: const RoundedRectangleBorder(
+              borderRadius: BorderRadius.zero,
             ),
           ),
           child: Text(l10n.discardAction, style: _actionStyle),

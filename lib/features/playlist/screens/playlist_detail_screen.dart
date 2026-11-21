@@ -650,8 +650,8 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                 style: OutlinedButton.styleFrom(
                   foregroundColor: AppColors.onSurface,
                   side: BorderSide(color: AppColors.outline),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16.0),
+                  shape: const RoundedRectangleBorder(
+                    borderRadius: BorderRadius.zero,
                   ),
                 ),
               ),

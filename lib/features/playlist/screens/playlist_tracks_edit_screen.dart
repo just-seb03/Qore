@@ -345,12 +345,12 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                         key: const ValueKey('playlist_tracks_save_button'),
                         onPressed: _isSaving ? null : _saveTracks,
                         icon: _isSaving
-                            ? const SizedBox(
+                            ? SizedBox(
                                 width: 14.0,
                                 height: 14.0,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.0,
-                                  color: Colors.white,
+                                  color: AppColors.onAccent,
                                 ),
                               )
                             : const Icon(Icons.check_rounded, size: 18.0),
@@ -363,10 +363,10 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                         ),
                         style: FilledButton.styleFrom(
                           backgroundColor: AppColors.accent,
-                          foregroundColor: Colors.white,
+                          foregroundColor: AppColors.onAccent,
                           padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12.0),
+                          shape: const RoundedRectangleBorder(
+                            borderRadius: BorderRadius.zero,
                           ),
                         ),
                       ),
@@ -381,7 +381,7 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                   child: Container(
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(12.0),
+                      borderRadius: BorderRadius.zero,
                       border: Border.all(
                         color: AppColors.outline.withValues(alpha: 0.35),
                         width: 0.8,
@@ -445,16 +445,10 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                                     color: AppColors.accent,
                                   ),
                                 )
-                              : ListView(
-                                  padding: const EdgeInsets.only(bottom: 40.0),
-                                  physics: const BouncingScrollPhysics(),
-                                  children: [
-                                    PlaylistSongSearchResults(
-                                      results: _searchResults,
-                                      addedSongIds: _songs.map((s) => s.mediaStoreId).toSet(),
-                                      onSongAdd: _addSong,
-                                    ),
-                                  ],
+                              : PlaylistSongSearchResults(
+                                  results: _searchResults,
+                                  addedSongIds: _songs.map((s) => s.mediaStoreId).toSet(),
+                                  onSongAdd: _addSong,
                                 )
                           : PlaylistReorderableSongList(
                               songs: _songs,

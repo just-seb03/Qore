@@ -51,7 +51,7 @@ class PlaylistDeleteDialog extends StatelessWidget {
     return AlertDialog(
       backgroundColor: AppColors.surfaceContainerHigh,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24.0),
+        borderRadius: BorderRadius.zero,
         side: BorderSide(
           color: AppColors.outline.withValues(alpha: 0.4),
           width: 0.8,
