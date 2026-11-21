@@ -95,6 +95,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
 
   late final PlaylistDao _playlistDao;
   late final SongDao _songDao;
+  late final FuzzySearchEngine _fuzzySearchEngine;
 
   late final TextEditingController _nameController;
   late final TextEditingController _songSearchController;
@@ -102,17 +103,18 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
   String? _coverPath;
   final List<Song> _playlistSongs = [];
   final Set<int> _selectedMediaStoreIds = {};
-  List<Song> _allLibrarySongs = [];
   List<Song> _searchResults = [];
   bool _isLoadingLibrary = true;
   bool _isSaving = false;
   bool _tracksChanged = false;
+  int _searchGeneration = 0;
 
   @override
   void initState() {
     super.initState();
     _playlistDao = widget.playlistDao ?? PlaylistDao();
     _songDao = widget.songDao ?? SongDao();
+    _fuzzySearchEngine = widget.fuzzySearchEngine ?? FuzzySearchEngine(songDao: _songDao);
 
     _nameController = TextEditingController(
       text: widget.initialPlaylist?.name ?? '',
@@ -158,9 +160,9 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
       final songs = widget.songDao != null
           ? await _songDao.getAllSongs()
           : await _songDao.getSearchDictionarySongs();
+      _fuzzySearchEngine.setSongsForSearch(songs);
       if (mounted) {
         setState(() {
-          _allLibrarySongs = songs;
           _isLoadingLibrary = false;
         });
         _onSearchChanged();
@@ -173,8 +175,10 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     }
   }
 
-  void _onSearchChanged() {
-    final query = _songSearchController.text.trim().toLowerCase();
+  Future<void> _onSearchChanged() async {
+    final query = _songSearchController.text.trim();
+    final int generation = ++_searchGeneration;
+
     if (query.isEmpty) {
       if (mounted) {
         setState(() {
@@ -184,32 +188,13 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
       return;
     }
 
-    final exactPrefix = <Song>[];
-    final containsMatch = <Song>[];
-    for (final song in _allLibrarySongs) {
-      final title = song.title.toLowerCase();
-      final artist = (song.artist ?? '').toLowerCase();
-      final album = (song.album ?? '').toLowerCase();
-      if (title.startsWith(query) || artist.startsWith(query)) {
-        exactPrefix.add(song);
-      } else if (title.contains(query) ||
-          artist.contains(query) ||
-          album.contains(query)) {
-        containsMatch.add(song);
-      }
-      if (exactPrefix.length + containsMatch.length >= _maxSearchResults * 2) {
-        break;
-      }
-    }
-
-    final combined = [...exactPrefix, ...containsMatch];
-    final capped = combined.length > _maxSearchResults
-        ? combined.sublist(0, _maxSearchResults)
-        : combined;
-
-    if (mounted) {
+    final results = await _fuzzySearchEngine.searchSongsOnly(
+      query,
+      limit: _maxSearchResults,
+    );
+    if (mounted && generation == _searchGeneration) {
       setState(() {
-        _searchResults = capped;
+        _searchResults = results;
       });
     }
   }

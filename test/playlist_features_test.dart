@@ -626,15 +626,15 @@ void main() {
       expect(find.byKey(const ValueKey('playlist_pick_row_301')), findsNothing);
       expect(find.byKey(const ValueKey('playlist_pick_row_302')), findsNothing);
 
-      // Filter songs via AppSearchBar
+      // Filter songs via AppSearchBar (typo-tolerant fuzzy search)
       await tester.enterText(
         find.descendant(
           of: find.byKey(const ValueKey('playlist_edit_song_search')),
           matching: find.byType(TextField),
         ),
-        'Starboy',
+        'Strboy',
       );
-      await tester.pump();
+      await tester.pumpAndSettle();
 
       expect(find.byKey(const ValueKey('playlist_pick_row_301')), findsOneWidget);
       expect(find.byKey(const ValueKey('playlist_pick_row_302')), findsNothing);

@@ -55,26 +55,40 @@ class FuzzySearchEngine {
               ))
           .toList();
 
-      _songEntries = songs.map((s) {
-        final split = s.artists;
-        final effectiveArtist = (s.albumArtist != null && s.albumArtist!.trim().isNotEmpty)
-            ? s.albumArtist!.trim()
-            : (s.artist ?? '');
-
-        return _SearchSongEntry(
-          song: s,
-          titleTarget: _NormalizedTarget.from(s.title),
-          singleArtistTarget: s.artist != null ? _NormalizedTarget.from(s.artist!) : null,
-          splitArtistTargets: split.map((a) => _NormalizedTarget.from(a)).toList(),
-          albumTarget: s.album != null ? _NormalizedTarget.from(s.album!) : null,
-          effectiveAlbumArtistLower: effectiveArtist.toLowerCase(),
-        );
-      }).toList();
+      _songEntries = _buildSongEntries(songs);
 
       _isDictionaryLoaded = true;
     } catch (_) {
       // Gracefully ignore error and allow query-level fallback
     }
+  }
+
+  /// Populates only the song dictionary from an explicit song list (useful for
+  /// song-only pickers like PlaylistEditScreen without loading artists/albums).
+  void setSongsForSearch(List<Song> songs) {
+    _songEntries = _buildSongEntries(songs);
+    _isDictionaryLoaded = true;
+  }
+
+  List<_SearchSongEntry> _buildSongEntries(List<Song> songs) {
+    return songs.map((s) {
+      final split = s.artists;
+      final effectiveArtist =
+          (s.albumArtist != null && s.albumArtist!.trim().isNotEmpty)
+              ? s.albumArtist!.trim()
+              : (s.artist ?? '');
+
+      return _SearchSongEntry(
+        song: s,
+        titleTarget: _NormalizedTarget.from(s.title),
+        singleArtistTarget:
+            s.artist != null ? _NormalizedTarget.from(s.artist!) : null,
+        splitArtistTargets:
+            split.map((a) => _NormalizedTarget.from(a)).toList(),
+        albumTarget: s.album != null ? _NormalizedTarget.from(s.album!) : null,
+        effectiveAlbumArtistLower: effectiveArtist.toLowerCase(),
+      );
+    }).toList();
   }
 
   // Reusable 4096-element Int32 buffer (16KB) eliminating heap allocations during real-time typing
@@ -214,6 +228,54 @@ class FuzzySearchEngine {
     return math.max(compactScore, tokenAvgScore);
   }
 
+  /// Typo-tolerant fuzzy search returning only matching [Song] items ranked by relevance.
+  Future<List<Song>> searchSongsOnly(String rawQuery, {int limit = 50}) async {
+    final nQuery = _NormalizedQuery.from(rawQuery);
+    if (nQuery.normalized.isEmpty) return const [];
+
+    if (!_isDictionaryLoaded) {
+      await reloadDictionary();
+    }
+
+    const double minRelevanceThreshold = 0.45;
+    final scored = _evaluateSongs(nQuery, minRelevanceThreshold);
+    final capped = scored.length > limit ? scored.sublist(0, limit) : scored;
+    return capped.map((s) => s.item).toList();
+  }
+
+  List<_ScoredItem<Song>> _evaluateSongs(
+    _NormalizedQuery nQuery,
+    double minRelevanceThreshold,
+  ) {
+    final List<_ScoredItem<Song>> scoredSongs = [];
+    for (final entry in _songEntries) {
+      final titleScore = _computeFuzzyScoreFast(nQuery, entry.titleTarget);
+      double artistScore = 0.0;
+      if (entry.splitArtistTargets.isNotEmpty) {
+        for (final a in entry.splitArtistTargets) {
+          final s = _computeFuzzyScoreFast(nQuery, a);
+          if (s > artistScore) artistScore = s;
+        }
+      } else if (entry.singleArtistTarget != null) {
+        artistScore = _computeFuzzyScoreFast(nQuery, entry.singleArtistTarget!);
+      }
+      final albumScore = entry.albumTarget != null
+          ? _computeFuzzyScoreFast(nQuery, entry.albumTarget!)
+          : 0.0;
+
+      final score = math.max(
+        titleScore,
+        math.max(artistScore * 0.85, albumScore * 0.75),
+      );
+
+      if (score >= minRelevanceThreshold) {
+        scoredSongs.add(_ScoredItem(entry.song, score));
+      }
+    }
+    scoredSongs.sort((a, b) => b.score.compareTo(a.score));
+    return scoredSongs;
+  }
+
   /// Executes advanced fuzzy search across cached dictionary items and returns
   /// categorized results with Spotify-style dynamic hierarchy.
   Future<SearchResultsGroup> search(String rawQuery, {int songLimit = 5}) async {
@@ -268,37 +330,10 @@ class FuzzySearchEngine {
     scoredAlbums.sort((a, b) => b.score.compareTo(a.score));
 
     // 3. Evaluate Songs
-    Song? bestSong;
-    double bestSongScore = 0.0;
-    final List<_ScoredItem<Song>> scoredSongs = [];
-
-    for (final entry in _songEntries) {
-      final titleScore = _computeFuzzyScoreFast(nQuery, entry.titleTarget);
-      double artistScore = 0.0;
-      if (entry.splitArtistTargets.isNotEmpty) {
-        for (final a in entry.splitArtistTargets) {
-          final s = _computeFuzzyScoreFast(nQuery, a);
-          if (s > artistScore) artistScore = s;
-        }
-      } else if (entry.singleArtistTarget != null) {
-        artistScore = _computeFuzzyScoreFast(nQuery, entry.singleArtistTarget!);
-      }
-      final albumScore = entry.albumTarget != null
-          ? _computeFuzzyScoreFast(nQuery, entry.albumTarget!)
-          : 0.0;
-
-      // Title match takes precedence, but artist/album matches also contribute
-      final score = math.max(titleScore, math.max(artistScore * 0.85, albumScore * 0.75));
-
-      if (score >= minRelevanceThreshold) {
-        scoredSongs.add(_ScoredItem(entry.song, score));
-        if (score > bestSongScore) {
-          bestSongScore = score;
-          bestSong = entry.song;
-        }
-      }
-    }
-    scoredSongs.sort((a, b) => b.score.compareTo(a.score));
+    final scoredSongs = _evaluateSongs(nQuery, minRelevanceThreshold);
+    final Song? bestSong = scoredSongs.isNotEmpty ? scoredSongs.first.item : null;
+    final double bestSongScore =
+        scoredSongs.isNotEmpty ? scoredSongs.first.score : 0.0;
 
     // If completely no fuzzy match found in dictionary, return empty
     if (scoredArtists.isEmpty && scoredAlbums.isEmpty && scoredSongs.isEmpty) {
