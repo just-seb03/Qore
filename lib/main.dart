@@ -199,7 +199,7 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
         ]),
         builder: (context, _) {
           return MaterialApp(
-          title: 'Project Anima',
+          title: 'Qore',
           debugShowCheckedModeBanner: false,
           navigatorObservers: [AppRouteTracker.instance],
           theme: ThemeController.instance.currentThemeData,

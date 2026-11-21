@@ -373,7 +373,7 @@ void main() {
 
       // Only centered progress bar and bottom subtle brand title
       expect(find.byType(StartupProgressBar), findsOneWidget);
-      expect(find.text('project_anima'), findsOneWidget);
+      expect(find.text('Qore'), findsOneWidget);
       expect(find.byType(StartupCelebrationStars), findsOneWidget);
 
       // Advance through celebration duration
@@ -521,7 +521,7 @@ void main() {
 
       // Mounts loading view directly
       expect(find.byType(StartupLoadingView), findsOneWidget);
-      expect(find.text('project_anima'), findsOneWidget);
+      expect(find.text('Qore'), findsOneWidget);
 
       // Settle scanning sequence
       await tester.pump(const Duration(milliseconds: 300));

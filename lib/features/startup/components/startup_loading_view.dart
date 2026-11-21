@@ -91,14 +91,14 @@ class _StartupLoadingViewState extends State<StartupLoadingView> {
             ),
           ),
 
-          // 2. Center-bottom subtle brand label: project_anima in Inconsolata
+          // 2. Center-bottom subtle brand label: Qore
           SafeArea(
             child: Align(
               alignment: Alignment.bottomCenter,
               child: Padding(
                 padding: const EdgeInsets.only(bottom: 24.0),
                 child: Text(
-                  'project_anima',
+                  'Qore',
                   style: AppFonts.segoe(
                     fontSize: 12.0,
                     fontWeight: FontWeight.w500,
