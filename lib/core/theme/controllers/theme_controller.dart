@@ -31,6 +31,7 @@ class ThemeController extends ChangeNotifier with WidgetsBindingObserver {
 
   String _activeFamily = 'monochrome';
   bool _isDarkMode = true;
+  bool _hasManualBrightnessOverride = false;
   bool _initialized = false;
   bool _observerRegistered = false;
 
@@ -67,7 +68,9 @@ class ThemeController extends ChangeNotifier with WidgetsBindingObserver {
 
   @override
   void didChangePlatformBrightness() {
-    syncWithSystemBrightness();
+    if (!_hasManualBrightnessOverride) {
+      syncWithSystemBrightness();
+    }
   }
 
   /// Synchronizes active dark/light mode with the device platform brightness.
@@ -116,8 +119,9 @@ class ThemeController extends ChangeNotifier with WidgetsBindingObserver {
       final savedDark = await dao.getIsDarkMode();
       if (savedDark != null) {
         _isDarkMode = savedDark;
-      }
-      if (syncWithSystem) {
+        _hasManualBrightnessOverride = true;
+        _updateSystemUIOverlay(_isDarkMode);
+      } else if (syncWithSystem) {
         syncWithSystemBrightness();
       }
       _initialized = true;
@@ -152,10 +156,13 @@ class ThemeController extends ChangeNotifier with WidgetsBindingObserver {
       }
       AppMetadataDao.instance.setThemeFamily(family);
     }
-    if (isDark != null && _isDarkMode != isDark) {
-      _isDarkMode = isDark;
-      changed = true;
+    if (isDark != null) {
+      _hasManualBrightnessOverride = true;
       AppMetadataDao.instance.setIsDarkMode(isDark);
+      if (_isDarkMode != isDark) {
+        _isDarkMode = isDark;
+        changed = true;
+      }
     }
     if (changed) {
       notifyListeners();
@@ -164,17 +171,20 @@ class ThemeController extends ChangeNotifier with WidgetsBindingObserver {
 
   /// Updates the brightness mode between Dark and Light.
   void setDarkMode(bool isDark) {
+    _hasManualBrightnessOverride = true;
+    AppMetadataDao.instance.setIsDarkMode(isDark);
     _updateSystemUIOverlay(isDark);
     if (_isDarkMode != isDark) {
       _isDarkMode = isDark;
-      AppMetadataDao.instance.setIsDarkMode(isDark);
       notifyListeners();
     }
   }
 
   /// Toggles between Dark and Light mode.
   void toggleBrightness() {
+    _hasManualBrightnessOverride = true;
     _isDarkMode = !_isDarkMode;
+    _updateSystemUIOverlay(_isDarkMode);
     AppMetadataDao.instance.setIsDarkMode(_isDarkMode);
     notifyListeners();
   }
