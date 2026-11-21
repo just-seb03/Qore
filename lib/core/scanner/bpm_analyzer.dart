@@ -8,10 +8,20 @@
 library;
 
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/services.dart';
+
+/// Pure-Dart isolate worker verifying existence and reading embedded BPM tags.
+({bool exists, double? tagBpm}) _probeAudioFileForBpmIsolate(String path) {
+  final file = File(path);
+  if (!file.existsSync()) {
+    return (exists: false, tagBpm: null);
+  }
+  return (exists: true, tagBpm: BpmAnalyzer.extractEmbeddedBpmTag(file));
+}
 
 /// Analyzes song tempo (BPM) from metadata tags or decoded audio PCM waveforms,
 /// and converts raw BPM values into smooth octave-equivalent wave speeds.
@@ -29,18 +39,18 @@ abstract final class BpmAnalyzer {
   static const double maxVisualBpm = 180.0;
   static const double baselineVisualBpm = 115.0;
 
-  /// Resolves BPM using embedded tags first, falling back to platform PCM audio analysis.
+  /// Resolves BPM using embedded tags first (in a background isolate),
+  /// falling back to platform PCM audio analysis or windowed WAV decoding.
   static Future<double?> analyzeAudioFile(
     String path, {
     int durationMs = 0,
   }) async {
     if (path.isEmpty) return null;
-    final file = File(path);
-    if (!file.existsSync()) return null;
 
-    // 1. Fast path (<1ms): embedded TBPM / BPM / TEMPO metadata tag
-    final tagBpm = extractEmbeddedBpmTag(file);
-    if (tagBpm != null) return tagBpm;
+    // 1. Fast path inside background isolate: file existence + embedded TBPM / BPM / TEMPO tag
+    final probe = await Isolate.run(() => _probeAudioFileForBpmIsolate(path));
+    if (!probe.exists) return null;
+    if (probe.tagBpm != null) return probe.tagBpm;
 
     // 2. Android native MediaExtractor + MediaCodec fast PCM decode + beat estimation
     if (Platform.isAndroid) {
@@ -55,9 +65,9 @@ abstract final class BpmAnalyzer {
       }
     }
 
-    // 3. Desktop/fallback pure-Dart WAV PCM waveform analysis
+    // 3. Desktop/fallback pure-Dart WAV PCM waveform analysis off the UI isolate
     if (path.toLowerCase().endsWith('.wav')) {
-      return analyzeWavPcm(file);
+      return Isolate.run(() => analyzeWavPcm(File(path)));
     }
 
     return null;
@@ -87,16 +97,21 @@ abstract final class BpmAnalyzer {
     return null;
   }
 
-  /// Decodes a standard RIFF/WAVE PCM file into ~10ms RMS energy frames and estimates BPM.
+  /// Decodes a standard RIFF/WAVE PCM file into ~10ms RMS energy frames and estimates BPM
+  /// using bounded [RandomAccessFile] reads instead of loading the entire audio file.
   static double? analyzeWavPcm(File file, {int maxSeconds = 22}) {
+    RandomAccessFile? raf;
     try {
-      final bytes = file.readAsBytesSync();
-      if (bytes.lengthInBytes < 44) return null;
+      raf = file.openSync(mode: FileMode.read);
+      final int fileLength = raf.lengthSync();
+      if (fileLength < 44) return null;
 
-      final data = ByteData.sublistView(bytes);
+      final header = raf.readSync(12);
+      if (header.lengthInBytes < 12) return null;
+      final headerData = ByteData.sublistView(header);
       // Verify "RIFF" and "WAVE"
-      if (data.getUint32(0, Endian.big) != 0x52494646 ||
-          data.getUint32(8, Endian.big) != 0x57415645) {
+      if (headerData.getUint32(0, Endian.big) != 0x52494646 ||
+          headerData.getUint32(8, Endian.big) != 0x57415645) {
         return null;
       }
 
@@ -108,20 +123,28 @@ abstract final class BpmAnalyzer {
       int? dataStart;
       int dataSize = 0;
 
-      while (offset + 8 <= bytes.lengthInBytes) {
-        final chunkId = data.getUint32(offset, Endian.big);
-        final chunkSize = data.getUint32(offset + 4, Endian.little);
+      while (offset + 8 <= fileLength) {
+        raf.setPositionSync(offset);
+        final chunkHdr = raf.readSync(8);
+        if (chunkHdr.lengthInBytes < 8) break;
+        final chunkHdrData = ByteData.sublistView(chunkHdr);
+        final chunkId = chunkHdrData.getUint32(0, Endian.big);
+        final chunkSize = chunkHdrData.getUint32(4, Endian.little);
         final bodyStart = offset + 8;
-        if (chunkId == 0x666D7420 && bodyStart + 16 <= bytes.lengthInBytes) {
+
+        if (chunkId == 0x666D7420 && chunkSize >= 16 && bodyStart + 16 <= fileLength) {
           // "fmt "
-          audioFormat = data.getUint16(bodyStart, Endian.little);
-          channels = data.getUint16(bodyStart + 2, Endian.little);
-          sampleRate = data.getUint32(bodyStart + 4, Endian.little);
-          bitsPerSample = data.getUint16(bodyStart + 14, Endian.little);
+          final fmtBytes = raf.readSync(16);
+          if (fmtBytes.lengthInBytes < 16) return null;
+          final fmtData = ByteData.sublistView(fmtBytes);
+          audioFormat = fmtData.getUint16(0, Endian.little);
+          channels = fmtData.getUint16(2, Endian.little);
+          sampleRate = fmtData.getUint32(4, Endian.little);
+          bitsPerSample = fmtData.getUint16(14, Endian.little);
         } else if (chunkId == 0x64617461) {
           // "data"
           dataStart = bodyStart;
-          dataSize = math.min(chunkSize, bytes.lengthInBytes - bodyStart);
+          dataSize = math.min(chunkSize, fileLength - bodyStart);
           break;
         }
         offset = bodyStart + chunkSize + (chunkSize.isOdd ? 1 : 0);
@@ -144,22 +167,30 @@ abstract final class BpmAnalyzer {
           ? (totalFrames * 0.25).round()
           : 0;
       final framesToRead = math.min(maxWindowFrames, totalFrames - startFrame);
+      if (framesToRead <= 0) return null;
 
+      final int bytesToRead = framesToRead * bytesPerFrame;
+      raf.setPositionSync(dataStart + startFrame * bytesPerFrame);
+      final pcmBytes = raf.readSync(bytesToRead);
+      final int actualFrames = pcmBytes.lengthInBytes ~/ bytesPerFrame;
+      if (actualFrames <= 0) return null;
+
+      final pcmData = ByteData.sublistView(pcmBytes);
       const double frameRateHz = 100.0; // 10ms RMS windows
       final int samplesPerHop = math.max(1, (sampleRate / frameRateHz).round());
       final List<double> energies = [];
 
       double accSq = 0.0;
       int hopCount = 0;
-      int bytePos = dataStart + startFrame * bytesPerFrame;
+      int bytePos = 0;
 
-      for (int f = 0; f < framesToRead; f++) {
+      for (int f = 0; f < actualFrames; f++) {
         double monoSample = 0.0;
         for (int c = 0; c < channels; c++) {
           if (bitsPerSample == 16) {
-            monoSample += data.getInt16(bytePos, Endian.little) / 32768.0;
+            monoSample += pcmData.getInt16(bytePos, Endian.little) / 32768.0;
           } else {
-            monoSample += (bytes[bytePos] - 128) / 128.0;
+            monoSample += (pcmBytes[bytePos] - 128) / 128.0;
           }
           bytePos += bytesPerSample;
         }
@@ -177,6 +208,10 @@ abstract final class BpmAnalyzer {
       return estimateBpmFromOnsetEnvelope(energies, frameRateHz: frameRateHz);
     } catch (_) {
       return null;
+    } finally {
+      try {
+        raf?.closeSync();
+      } catch (_) {}
     }
   }
 

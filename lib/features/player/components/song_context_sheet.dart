@@ -9,6 +9,7 @@
 library;
 
 import 'dart:io';
+import 'dart:isolate';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -24,6 +25,57 @@ import 'package:project_anima/features/artist/screens/artist_detail_screen.dart'
 import 'package:project_anima/features/player/components/song_delete_dialog.dart';
 import 'package:project_anima/features/player/components/song_playlist_picker_sheet.dart';
 
+String _formatExtension(String path) {
+  String ext = 'MP3';
+  if (path.contains('.')) {
+    final candidate = path.split('.').last.toUpperCase().trim();
+    if (candidate.isNotEmpty && candidate.length <= 5) {
+      ext = candidate;
+    }
+  }
+  return ext;
+}
+
+String _formatBytes(int? bytes) {
+  if (bytes == null || bytes <= 0) return '—';
+  if (bytes < 1024 * 1024) {
+    return '${(bytes / 1024).toStringAsFixed(1)} KB';
+  }
+  return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
+}
+
+/// Pure-Dart isolate worker reading file size and audio sample rate off the UI thread.
+({String format, String quality, String size}) _extractAudioInfoIsolate(
+  String path,
+  int? cachedBytes,
+) {
+  final ext = _formatExtension(path);
+
+  int? bytes = cachedBytes;
+  if (bytes == null || bytes <= 0) {
+    try {
+      final f = File(path);
+      if (f.existsSync()) {
+        bytes = f.lengthSync();
+      }
+    } catch (_) {}
+  }
+
+  String qualityStr = '44.1 kHz';
+  try {
+    final f = File(path);
+    if (f.existsSync()) {
+      final metadata = readMetadata(f, getImage: false);
+      final sampleRate = metadata.sampleRate;
+      if (sampleRate != null && sampleRate > 0) {
+        qualityStr = '${(sampleRate / 1000).toStringAsFixed(1)} kHz';
+      }
+    }
+  } catch (_) {}
+
+  return (format: ext, quality: qualityStr, size: _formatBytes(bytes));
+}
+
 /// Audio metadata statistics extracted for a track.
 class SongAudioInfo {
   final String format;
@@ -36,61 +88,51 @@ class SongAudioInfo {
     required this.size,
   });
 
-  /// Factory inspecting the song filesystem and tags to extract audio technical metrics.
-  static SongAudioInfo fromSong(Song song) {
-    // 1. Audio Format / Extension
-    String ext = 'MP3';
-    if (song.path.contains('.')) {
-      final candidate = song.path.split('.').last.toUpperCase().trim();
-      if (candidate.isNotEmpty && candidate.length <= 5) {
-        ext = candidate;
-      }
-    }
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is SongAudioInfo &&
+          other.format == format &&
+          other.quality == quality &&
+          other.size == size;
 
-    // 2. File Size
-    int? bytes = song.size;
-    if (bytes == null || bytes <= 0) {
-      try {
-        final f = File(song.path);
-        if (f.existsSync()) {
-          bytes = f.lengthSync();
-        }
-      } catch (_) {}
-    }
-    String sizeStr = '—';
-    if (bytes != null && bytes > 0) {
-      if (bytes < 1024 * 1024) {
-        sizeStr = '${(bytes / 1024).toStringAsFixed(1)} KB';
-      } else {
-        sizeStr = '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
-      }
-    }
+  @override
+  int get hashCode => Object.hash(format, quality, size);
 
-    // 3. Audio Quality / kHz sample rate
-    String qualityStr = '44.1 kHz';
-    int? sampleRate;
-    try {
-      final f = File(song.path);
-      if (f.existsSync()) {
-        final metadata = readMetadata(f, getImage: false);
-        sampleRate = metadata.sampleRate;
-      }
-    } catch (_) {}
-
-    if (sampleRate != null && sampleRate > 0) {
-      qualityStr = '${(sampleRate / 1000).toStringAsFixed(1)} kHz';
-    }
-
+  /// Synchronous zero-I/O initial summary derived purely from in-memory [Song] fields.
+  static SongAudioInfo initialFromSong(Song song) {
     return SongAudioInfo(
-      format: ext,
-      quality: qualityStr,
-      size: sizeStr,
+      format: _formatExtension(song.path),
+      quality: '44.1 kHz',
+      size: _formatBytes(song.size),
+    );
+  }
+
+  /// Synchronous factory inspecting the song filesystem and tags (for non-UI callers).
+  static SongAudioInfo fromSong(Song song) {
+    final raw = _extractAudioInfoIsolate(song.path, song.size);
+    return SongAudioInfo(
+      format: raw.format,
+      quality: raw.quality,
+      size: raw.size,
+    );
+  }
+
+  /// Reads audio file size and sample rate tags inside a background [Isolate.run].
+  static Future<SongAudioInfo> loadAsync(Song song) async {
+    final raw = await Isolate.run(
+      () => _extractAudioInfoIsolate(song.path, song.size),
+    );
+    return SongAudioInfo(
+      format: raw.format,
+      quality: raw.quality,
+      size: raw.size,
     );
   }
 }
 
 /// Contextual bottom sheet presentation widget for the active song.
-class SongContextSheet extends StatelessWidget {
+class SongContextSheet extends StatefulWidget {
   final Song song;
   final SongDao? songDao;
   final PlaylistDao? playlistDao;
@@ -121,6 +163,40 @@ class SongContextSheet extends StatelessWidget {
         playlistDao: playlistDao,
       ),
     );
+  }
+
+  @override
+  State<SongContextSheet> createState() => _SongContextSheetState();
+}
+
+class _SongContextSheetState extends State<SongContextSheet> {
+  late SongAudioInfo _audioInfo;
+
+  @override
+  void initState() {
+    super.initState();
+    _audioInfo = SongAudioInfo.initialFromSong(widget.song);
+    _loadMetadataAsync();
+  }
+
+  @override
+  void didUpdateWidget(covariant SongContextSheet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.song != oldWidget.song) {
+      _audioInfo = SongAudioInfo.initialFromSong(widget.song);
+      _loadMetadataAsync();
+    }
+  }
+
+  Future<void> _loadMetadataAsync() async {
+    try {
+      final loaded = await SongAudioInfo.loadAsync(widget.song);
+      if (mounted && loaded != _audioInfo) {
+        setState(() {
+          _audioInfo = loaded;
+        });
+      }
+    } catch (_) {}
   }
 
   Widget _buildActionButton({
@@ -191,7 +267,10 @@ class SongContextSheet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final audioInfo = SongAudioInfo.fromSong(song);
+    final song = widget.song;
+    final audioInfo = _audioInfo;
+    final effectiveSongDao = widget.songDao;
+    final playlistDao = widget.playlistDao;
 
     return Container(
       padding: const EdgeInsets.only(bottom: 24.0),
@@ -304,8 +383,8 @@ class SongContextSheet extends StatelessWidget {
                   );
 
                   if (confirmed == true && context.mounted) {
-                    final effectiveSongDao = songDao ?? SongDao();
-                    await effectiveSongDao.deleteSong(song.mediaStoreId);
+                    final resolvedSongDao = effectiveSongDao ?? SongDao();
+                    await resolvedSongDao.deleteSong(song.mediaStoreId);
 
                     try {
                       final file = File(song.path);

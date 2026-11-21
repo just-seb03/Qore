@@ -13,12 +13,14 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
 import 'package:path/path.dart' as p;
 import 'package:project_anima/core/artwork/artwork_color_extractor.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/bpm_analyzer.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
+import 'package:project_anima/features/player/components/song_context_sheet.dart';
 import 'package:project_anima/features/player/screens/player_screen.dart';
 
 Uint8List _buildClickWavBytes({
@@ -230,6 +232,64 @@ void main() {
       expect(after?.bpm, isNotNull);
       expect(after!.bpm!, closeTo(124.0, 2.5));
       expect(await songDao.isBpmBackfilled(), isTrue);
+    });
+
+    test('ArtworkColorExtractor.getDominantColorForSong extracts cover color inside Isolate.run and caches it', () async {
+      final artBase = await Directory.systemTemp.createTemp('color_isolate_test_');
+      addTearDown(() {
+        ArtworkService.instance.reset();
+        ArtworkColorExtractor.clearCache();
+        if (artBase.existsSync()) artBase.deleteSync(recursive: true);
+      });
+
+      ArtworkColorExtractor.clearCache();
+      ArtworkService.instance.reset();
+      await ArtworkService.instance.initialize(baseDir: artBase, songDao: songDao);
+
+      final thumbFile = File(p.join(artBase.path, 'anima_artworks', 'thumbnails', '888.png'));
+      final canvasImg = img.Image(width: 32, height: 32);
+      img.fill(canvasImg, color: img.ColorRgba8(24, 160, 220, 255));
+      await thumbFile.writeAsBytes(img.encodePng(canvasImg));
+
+      ArtworkService.instance.reset();
+      await ArtworkService.instance.initialize(baseDir: artBase, songDao: songDao);
+
+      final song = Song(
+        mediaStoreId: 888,
+        title: 'Ocean Teal',
+        artist: 'Isolate',
+        album: 'Wave',
+        duration: 180000,
+        path: p.join(tempDir.path, 'ocean.mp3'),
+        dateModified: 1700000000,
+      );
+
+      final color = await ArtworkColorExtractor.getDominantColorForSong(song);
+      expect((color.b * 255).round(), greaterThan(180));
+      expect(ArtworkColorExtractor.getCachedColorForSong(song), equals(color));
+    });
+
+    test('SongAudioInfo.initialFromSong and loadAsync resolve metadata cleanly via Isolate.run', () async {
+      final wavFile = File(p.join(tempDir.path, 'meta_probe.wav'));
+      await wavFile.writeAsBytes(_buildClickWavBytes(bpm: 120.0, seconds: 4));
+
+      final song = Song(
+        mediaStoreId: 991,
+        title: 'Meta Probe',
+        artist: 'Tester',
+        album: 'Specs',
+        duration: 4000,
+        path: wavFile.path,
+        dateModified: 1700000000,
+      );
+
+      final initial = SongAudioInfo.initialFromSong(song);
+      expect(initial.format, 'WAV');
+      expect(initial.size, '—');
+
+      final loaded = await SongAudioInfo.loadAsync(song);
+      expect(loaded.format, 'WAV');
+      expect(loaded.size, isNot('—'));
     });
   });
 

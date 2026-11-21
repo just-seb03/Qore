@@ -7,6 +7,7 @@
 library;
 
 import 'dart:io';
+import 'dart:isolate';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
@@ -19,6 +20,93 @@ class _ColorBucket {
   double sumR = 0.0;
   double sumG = 0.0;
   double sumB = 0.0;
+}
+
+/// Pure-Dart isolate worker decoding cover bytes and computing the dominant ARGB integer.
+int? _extractDominantArgbFromFileIsolate(String path) {
+  try {
+    final file = File(path);
+    if (!file.existsSync()) return null;
+    final bytes = file.readAsBytesSync();
+    return _extractDominantArgbFromBytes(bytes);
+  } catch (_) {
+    return null;
+  }
+}
+
+/// Pure-Dart quantized chroma-weighted dominant color extractor returning ARGB int.
+int? _extractDominantArgbFromBytes(Uint8List bytes) {
+  if (bytes.isEmpty) return null;
+  final decoded = img.decodeImage(bytes);
+  if (decoded == null || decoded.width <= 0 || decoded.height <= 0) {
+    return null;
+  }
+
+  const int targetGrid = 24;
+  final int stepX = math.max(1, decoded.width ~/ targetGrid);
+  final int stepY = math.max(1, decoded.height ~/ targetGrid);
+
+  // Quantize RGB into 5x5x5 buckets so slight JPEG compression shifts aggregate cleanly
+  final Map<int, _ColorBucket> colorBuckets = {};
+  final Map<int, _ColorBucket> allBuckets = {};
+
+  for (int y = 0; y < decoded.height; y += stepY) {
+    for (int x = 0; x < decoded.width; x += stepX) {
+      final pixel = decoded.getPixel(x, y);
+      if (pixel.a < 128) continue;
+
+      final int r = pixel.r.toInt().clamp(0, 255);
+      final int g = pixel.g.toInt().clamp(0, 255);
+      final int b = pixel.b.toInt().clamp(0, 255);
+
+      final double maxC = math.max(r, math.max(g, b)) / 255.0;
+      final double minC = math.min(r, math.min(g, b)) / 255.0;
+      final double sat = maxC > 1e-4 ? (maxC - minC) / maxC : 0.0;
+      final double lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
+
+      final int br = r >> 5;
+      final int bg = g >> 5;
+      final int bb = b >> 5;
+      final int key = (br << 10) | (bg << 5) | bb;
+
+      // Track full-image fallback bucket in case cover is monochrome B&W
+      final allBucket = allBuckets.putIfAbsent(key, () => _ColorBucket());
+      final double baseWeight = (lum > 0.08 && lum < 0.94) ? 1.0 : 0.25;
+      allBucket.weight += baseWeight;
+      allBucket.sumR += r * baseWeight;
+      allBucket.sumG += g * baseWeight;
+      allBucket.sumB += b * baseWeight;
+
+      // Skip near-black or near-white neutral borders when selecting vivid main cover hue
+      if (lum < 0.06 || (lum > 0.94 && sat < 0.10)) continue;
+
+      final double midLumBoost = 1.0 - 0.35 * (lum - 0.5).abs();
+      final double chromaWeight = (0.25 + 3.0 * sat * sat) * midLumBoost;
+
+      final bucket = colorBuckets.putIfAbsent(key, () => _ColorBucket());
+      bucket.weight += chromaWeight;
+      bucket.sumR += r * chromaWeight;
+      bucket.sumG += g * chromaWeight;
+      bucket.sumB += b * chromaWeight;
+    }
+  }
+
+  final Map<int, _ColorBucket> source =
+      colorBuckets.isNotEmpty ? colorBuckets : allBuckets;
+  if (source.isEmpty) return null;
+
+  _ColorBucket? best;
+  for (final bucket in source.values) {
+    if (best == null || bucket.weight > best.weight) {
+      best = bucket;
+    }
+  }
+  if (best == null || best.weight <= 0.0) return null;
+
+  final int r = (best.sumR / best.weight).round().clamp(0, 255);
+  final int g = (best.sumG / best.weight).round().clamp(0, 255);
+  final int b = (best.sumB / best.weight).round().clamp(0, 255);
+  return (0xFF << 24) | (r << 16) | (g << 8) | b;
 }
 
 /// Extracts and caches the primary/dominant visual color from track album covers.
@@ -35,7 +123,7 @@ abstract final class ArtworkColorExtractor {
     return _colorCache[path];
   }
 
-  /// Resolves the dominant cover color for [song], caching by file path.
+  /// Resolves the dominant cover color for [song] in a background isolate, caching by file path.
   /// Returns [defaultWaveColor] when the track has no artwork or decoding fails.
   static Future<Color> getDominantColorForSong(Song song) async {
     final path = _resolveArtworkPath(song);
@@ -45,11 +133,11 @@ abstract final class ArtworkColorExtractor {
     if (cached != null) return cached;
 
     try {
-      final file = File(path);
-      if (!await file.exists()) return defaultWaveColor;
-      final bytes = await file.readAsBytes();
-      final extracted = extractDominantColorFromBytes(bytes);
-      if (extracted == null) return defaultWaveColor;
+      final int? argb = await Isolate.run(
+        () => _extractDominantArgbFromFileIsolate(path),
+      );
+      if (argb == null) return defaultWaveColor;
+      final extracted = Color(argb);
 
       if (_colorCache.length >= _maxCacheEntries) {
         _colorCache.remove(_colorCache.keys.first);
@@ -64,77 +152,8 @@ abstract final class ArtworkColorExtractor {
   /// Extracts a balanced dominant color from encoded PNG/JPEG/WebP image bytes.
   /// Samples pixels across a compact grid and weights colorful regions over flat dark/white borders.
   static Color? extractDominantColorFromBytes(Uint8List bytes) {
-    if (bytes.isEmpty) return null;
-    final decoded = img.decodeImage(bytes);
-    if (decoded == null || decoded.width <= 0 || decoded.height <= 0) {
-      return null;
-    }
-
-    const int targetGrid = 24;
-    final int stepX = math.max(1, decoded.width ~/ targetGrid);
-    final int stepY = math.max(1, decoded.height ~/ targetGrid);
-
-    // Quantize RGB into 5x5x5 buckets so slight JPEG compression shifts aggregate cleanly
-    final Map<int, _ColorBucket> colorBuckets = {};
-    final Map<int, _ColorBucket> allBuckets = {};
-
-    for (int y = 0; y < decoded.height; y += stepY) {
-      for (int x = 0; x < decoded.width; x += stepX) {
-        final pixel = decoded.getPixel(x, y);
-        if (pixel.a < 128) continue;
-
-        final int r = pixel.r.toInt().clamp(0, 255);
-        final int g = pixel.g.toInt().clamp(0, 255);
-        final int b = pixel.b.toInt().clamp(0, 255);
-
-        final double maxC = math.max(r, math.max(g, b)) / 255.0;
-        final double minC = math.min(r, math.min(g, b)) / 255.0;
-        final double sat = maxC > 1e-4 ? (maxC - minC) / maxC : 0.0;
-        final double lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0;
-
-        final int br = r >> 5;
-        final int bg = g >> 5;
-        final int bb = b >> 5;
-        final int key = (br << 10) | (bg << 5) | bb;
-
-        // Track full-image fallback bucket in case cover is monochrome B&W
-        final allBucket = allBuckets.putIfAbsent(key, () => _ColorBucket());
-        final double baseWeight = (lum > 0.08 && lum < 0.94) ? 1.0 : 0.25;
-        allBucket.weight += baseWeight;
-        allBucket.sumR += r * baseWeight;
-        allBucket.sumG += g * baseWeight;
-        allBucket.sumB += b * baseWeight;
-
-        // Skip near-black or near-white neutral borders when selecting vivid main cover hue
-        if (lum < 0.06 || (lum > 0.94 && sat < 0.10)) continue;
-
-        final double midLumBoost = 1.0 - 0.35 * (lum - 0.5).abs();
-        final double chromaWeight = (0.25 + 3.0 * sat * sat) * midLumBoost;
-
-        final bucket = colorBuckets.putIfAbsent(key, () => _ColorBucket());
-        bucket.weight += chromaWeight;
-        bucket.sumR += r * chromaWeight;
-        bucket.sumG += g * chromaWeight;
-        bucket.sumB += b * chromaWeight;
-      }
-    }
-
-    final Map<int, _ColorBucket> source =
-        colorBuckets.isNotEmpty ? colorBuckets : allBuckets;
-    if (source.isEmpty) return null;
-
-    _ColorBucket? best;
-    for (final bucket in source.values) {
-      if (best == null || bucket.weight > best.weight) {
-        best = bucket;
-      }
-    }
-    if (best == null || best.weight <= 0.0) return null;
-
-    final int r = (best.sumR / best.weight).round().clamp(0, 255);
-    final int g = (best.sumG / best.weight).round().clamp(0, 255);
-    final int b = (best.sumB / best.weight).round().clamp(0, 255);
-    return Color.fromARGB(255, r, g, b);
+    final int? argb = _extractDominantArgbFromBytes(bytes);
+    return argb != null ? Color(argb) : null;
   }
 
   static String? _resolveArtworkPath(Song song) {
