@@ -389,9 +389,10 @@ class ArtworkService extends ChangeNotifier {
     for (final path in paths) {
       FileImage(File(path)).evict();
     }
-    // ResizeImage wraps FileImage with size-specific cache keys, so clear cached entries
-    // when an artist photo is replaced or removed to ensure immediate UI refresh.
+    // ResizeImage wraps FileImage with size-specific cache keys and live streams
+    // remain pinned while ArtistHeaderView is mounted underneath the crop route.
     imageCache.clear();
+    imageCache.clearLiveImages();
   }
 
   /// Saves custom artist avatar to persistent disk storage in both 1:1 square format (for Space)
