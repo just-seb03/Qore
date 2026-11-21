@@ -32,6 +32,23 @@ class PlaybackSessionDao {
     }
   }
 
+  /// Updates only the numeric playback position without re-encoding the full queue JSON.
+  Future<void> updatePositionOnly(int positionMs, {DateTime? updatedAt}) async {
+    try {
+      final db = await _appDatabase.database;
+      await db.update(
+        'playback_session',
+        {
+          'position_ms': positionMs,
+          'updated_at': (updatedAt ?? DateTime.now()).millisecondsSinceEpoch,
+        },
+        where: 'id = 1',
+      );
+    } catch (e) {
+      debugPrint('PlaybackSessionDao error updating position: $e');
+    }
+  }
+
   /// Retrieves the last recorded playback session, or null if none exists.
   Future<PlaybackSession?> getLastSession() async {
     try {

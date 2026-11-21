@@ -44,6 +44,7 @@ class PlaybackPersistenceCoordinator {
   Timer? _throttledTimer;
   int _lastPersistedPositionMs = -1;
   int? _lastPersistedSongId;
+  bool _hasSavedFullSession = false;
 
   PlaybackPersistenceCoordinator({
     PlaybackSessionDao? sessionDao,
@@ -52,7 +53,7 @@ class PlaybackPersistenceCoordinator {
         _songDao = songDao ?? SongDao();
 
   /// Starts periodic background persistence timer.
-  /// Checks every 3 seconds and only writes if track changed or position advanced >= 2s.
+  /// Checks every 12 seconds and writes only `position_ms` when the track/queue hasn't changed.
   void startThrottledPersister({
     required bool Function() isPlaying,
     required Song? Function() getCurrentSong,
@@ -63,7 +64,7 @@ class PlaybackPersistenceCoordinator {
     required LoopMode Function() getLoopMode,
   }) {
     _throttledTimer?.cancel();
-    _throttledTimer = Timer.periodic(const Duration(seconds: 3), (_) {
+    _throttledTimer = Timer.periodic(const Duration(seconds: 12), (_) {
       if (!isPlaying()) return;
       final currentSong = getCurrentSong();
       if (currentSong == null) return;
@@ -72,9 +73,10 @@ class PlaybackPersistenceCoordinator {
       final posDelta = (currentPos.inMilliseconds - _lastPersistedPositionMs).abs();
       final songChanged = _lastPersistedSongId != currentSong.mediaStoreId;
 
-      if (posDelta >= 2000 || songChanged) {
+      if (songChanged || !_hasSavedFullSession) {
         _lastPersistedPositionMs = currentPos.inMilliseconds;
         _lastPersistedSongId = currentSong.mediaStoreId;
+        _hasSavedFullSession = true;
 
         _sessionDao.saveSession(PlaybackSession(
           songMediaStoreId: currentSong.mediaStoreId,
@@ -86,6 +88,9 @@ class PlaybackPersistenceCoordinator {
           loopMode: getLoopMode(),
           updatedAt: DateTime.now(),
         ));
+      } else if (posDelta >= 2000) {
+        _lastPersistedPositionMs = currentPos.inMilliseconds;
+        _sessionDao.updatePositionOnly(currentPos.inMilliseconds);
       }
     });
   }
@@ -110,6 +115,7 @@ class PlaybackPersistenceCoordinator {
 
     _lastPersistedPositionMs = position.inMilliseconds;
     _lastPersistedSongId = currentSong.mediaStoreId;
+    _hasSavedFullSession = true;
 
     await _sessionDao.saveSession(PlaybackSession(
       songMediaStoreId: currentSong.mediaStoreId,
@@ -177,6 +183,7 @@ class PlaybackPersistenceCoordinator {
 
       _lastPersistedPositionMs = safePosition.inMilliseconds;
       _lastPersistedSongId = activeSong.mediaStoreId;
+      _hasSavedFullSession = true;
 
       return PlaybackSessionRestorationData(
         song: activeSong,
@@ -194,6 +201,7 @@ class PlaybackPersistenceCoordinator {
 
   /// Clears the saved session from disk.
   Future<void> clearSession() async {
+    _hasSavedFullSession = false;
     await _sessionDao.clearSession();
   }
 
