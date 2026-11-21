@@ -134,11 +134,15 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _loadProfileStats() async {
     try {
       final results = await Future.wait([
-        _songDao.getTotalPlaybackTimeMs(),
-        _songDao.getTopPlayedArtists(limit: 3),
-        _songDao.getTopPlayedAlbums(limit: 3),
-        _songDao.getTopSongsGlobal(limit: 5),
-        _songDao.getFavoriteGenre(),
+        _songDao.getTotalPlaybackTimeMs().catchError((_) => 0),
+        _songDao
+            .getTopPlayedArtists(limit: 3)
+            .catchError((_) => const <ArtistDiscoveryItem>[]),
+        _songDao
+            .getTopPlayedAlbums(limit: 3)
+            .catchError((_) => const <AlbumDiscoveryItem>[]),
+        _songDao.getTopSongsGlobal(limit: 5).catchError((_) => const <Song>[]),
+        _songDao.getFavoriteGenre().catchError((_) => null),
       ]);
 
       if (!mounted) return;

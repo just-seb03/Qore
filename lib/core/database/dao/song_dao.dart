@@ -6,6 +6,8 @@
 /// - SongDao: Data access class managing queries and atomic transactions for songs.
 library;
 
+import 'dart:io';
+import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
@@ -1806,26 +1808,64 @@ class SongDao {
     return top.isEmpty ? null : top.first;
   }
 
-  /// Retrieves the user's most played genre across playback history, if any.
+  /// Retrieves the user's most played genre across playback history by inspecting
+  /// audio tag metadata for the most played tracks, returning null if unavailable.
   Future<String?> getFavoriteGenre() async {
-    final db = await _appDatabase.database;
-    final List<Map<String, dynamic>> results = await db.rawQuery(
-      '''
-      SELECT TRIM(s.genre) AS genre
-      FROM playback_history ph
-      INNER JOIN songs s ON s.id = ph.song_id
-      WHERE s.genre IS NOT NULL
-        AND TRIM(s.genre) != ''
-        AND TRIM(s.genre) != '<Desconocido>'
-        AND TRIM(s.genre) != 'Unknown'
-      GROUP BY TRIM(s.genre) COLLATE NOCASE
-      ORDER BY COUNT(ph.id) DESC, MAX(ph.played_at) DESC
-      LIMIT 1;
-      ''',
-    );
-    if (results.isEmpty) return null;
-    final genre = results.first['genre'] as String?;
-    return (genre == null || genre.trim().isEmpty) ? null : genre.trim();
+    try {
+      final db = await _appDatabase.database;
+      final List<Map<String, dynamic>> rows = await db.rawQuery(
+        '''
+        SELECT s.path AS path, COUNT(ph.id) AS plays
+        FROM playback_history ph
+        INNER JOIN songs s ON s.id = ph.song_id
+        WHERE s.path IS NOT NULL AND TRIM(s.path) != ''
+        GROUP BY s.id
+        ORDER BY plays DESC, MAX(ph.played_at) DESC
+        LIMIT 25;
+        ''',
+      );
+      if (rows.isEmpty) return null;
+
+      final Map<String, int> genreScores = {};
+      final Map<String, String> displayNames = {};
+
+      for (final row in rows) {
+        final path = row['path'] as String?;
+        final plays = (row['plays'] as num?)?.toInt() ?? 1;
+        if (path == null || path.isEmpty) continue;
+        try {
+          final file = File(path);
+          if (!file.existsSync()) continue;
+          final metadata = readMetadata(file, getImage: false);
+          for (final rawGenre in metadata.genres) {
+            final clean = rawGenre.trim();
+            if (clean.isEmpty ||
+                clean == '<Desconocido>' ||
+                clean.toLowerCase() == 'unknown') {
+              continue;
+            }
+            final normalized = clean.toLowerCase();
+            genreScores[normalized] = (genreScores[normalized] ?? 0) + plays;
+            displayNames.putIfAbsent(normalized, () => clean);
+          }
+        } catch (_) {
+          // Skip unreadable files gracefully
+        }
+      }
+
+      if (genreScores.isEmpty) return null;
+      String? bestKey;
+      int bestScore = -1;
+      for (final entry in genreScores.entries) {
+        if (entry.value > bestScore) {
+          bestScore = entry.value;
+          bestKey = entry.key;
+        }
+      }
+      return bestKey != null ? displayNames[bestKey] : null;
+    } catch (_) {
+      return null;
+    }
   }
 
   /// Deletes a song from SQLite across songs, playlist_songs, favorite_songs, playback_history, and Space pins.
