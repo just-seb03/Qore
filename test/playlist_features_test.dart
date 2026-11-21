@@ -1434,6 +1434,58 @@ void main() {
       expect(find.byKey(const ValueKey('song_pill_playlist_201')), findsNothing);
     });
 
+    testWidgets('Collapsed SongOptionsPill mounts without AnimatedSize and restores 0 tickers on close', (tester) async {
+      SongOptionsPillCoordinator.instance.reset();
+
+      final songA = Song(
+        mediaStoreId: 301,
+        title: 'Row A',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 180000,
+        path: '/a.mp3',
+        dateAdded: 1,
+        dateModified: 1,
+      );
+      final songB = Song(
+        mediaStoreId: 302,
+        title: 'Row B',
+        artist: 'Artist',
+        album: 'Album',
+        duration: 190000,
+        path: '/b.mp3',
+        dateAdded: 1,
+        dateModified: 1,
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: Column(
+              children: [
+                SongOptionsPill(song: songA, durationText: '3:00'),
+                SongOptionsPill(song: songB, durationText: '3:10'),
+              ],
+            ),
+          ),
+        ),
+      );
+
+      // Collapsed rows mount without any AnimatedSize ticker overhead
+      expect(find.byType(AnimatedSize), findsNothing);
+
+      // Expanding songA mounts AnimatedSize strictly on songA
+      await tester.tap(find.byKey(const ValueKey('song_options_button_301')));
+      await tester.pump();
+      expect(find.byType(AnimatedSize), findsOneWidget);
+      await tester.pumpAndSettle();
+
+      // Closing songA tears AnimatedSize back down after animation settles
+      await tester.tap(find.byKey(const ValueKey('song_options_button_301')));
+      await tester.pumpAndSettle();
+      expect(find.byType(AnimatedSize), findsNothing);
+    });
+
     test('Playlist track tile renders unrounded sharp cover (borderRadius: 0.0)', () {
       final tile = PlaylistTrackTile(
         song: testSong,
