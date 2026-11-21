@@ -10,6 +10,38 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/audio_playback_buffer.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 
+class _FakeWindowAudioPlayer implements AudioPlayer {
+  int? setAudioSourceInitialIndex;
+  int? lastSeekIndex;
+  final List<int> seekedIndices = [];
+
+  @override
+  Future<Duration?> setAudioSource(
+    AudioSource source, {
+    bool preload = true,
+    int? initialIndex,
+    Duration? initialPosition,
+  }) async {
+    setAudioSourceInitialIndex = initialIndex;
+    lastSeekIndex = initialIndex;
+    return null;
+  }
+
+  @override
+  Future<void> seek(Duration? position, {int? index}) async {
+    if (index != null) {
+      lastSeekIndex = index;
+      seekedIndices.add(index);
+    }
+  }
+
+  @override
+  Future<void> dispose() async {}
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
@@ -96,6 +128,50 @@ void main() {
       expect(buffer.bufferedSongs, isEmpty);
 
       player.dispose();
+    });
+
+    test('loadQueue uses bounded window for >150 tracks, extends forward, and re-centers on far seek', () async {
+      final player = _FakeWindowAudioPlayer();
+      final buffer = AudioPlaybackBuffer(player: player);
+
+      final largeQueue = List<Song>.generate(
+        500,
+        (i) => Song(
+          id: i + 1,
+          mediaStoreId: 1000 + i,
+          title: 'Track $i',
+          artist: 'Artist',
+          album: 'Large Album',
+          duration: 180000,
+          path: '/music/t$i.mp3',
+          dateModified: 1700000000 + i,
+        ),
+      );
+
+      await buffer.loadQueue(largeQueue, initialIndex: 300);
+
+      expect(buffer.length, 500);
+      expect(buffer.windowStart, 300 - AudioPlaybackBuffer.windowBackPadding);
+      expect(buffer.windowLength, AudioPlaybackBuffer.largeQueueThreshold);
+      expect(player.setAudioSourceInitialIndex, AudioPlaybackBuffer.windowBackPadding);
+      expect(buffer.toLogicalIndex(player.setAudioSourceInitialIndex), 300);
+
+      // Seeking within active window translates directly without re-creating source
+      await buffer.seekToIndex(320);
+      expect(player.seekedIndices.last, 320 - buffer.windowStart);
+      expect(buffer.windowStart, 300 - AudioPlaybackBuffer.windowBackPadding);
+
+      // Seeking near tail edge expands window forward dynamically
+      final int initialWindowEnd = buffer.windowStart + buffer.windowLength;
+      await buffer.seekToIndex(initialWindowEnd - 5);
+      await Future<void>.delayed(Duration.zero);
+      expect(buffer.windowLength, greaterThan(AudioPlaybackBuffer.largeQueueThreshold));
+
+      // Seeking far outside window re-centers cleanly
+      await buffer.seekToIndex(10);
+      expect(buffer.windowStart, 0);
+      expect(buffer.windowLength, AudioPlaybackBuffer.largeQueueThreshold);
+      expect(player.setAudioSourceInitialIndex, 10);
     });
   });
 

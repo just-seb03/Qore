@@ -470,8 +470,9 @@ class PlaybackController extends ChangeNotifier {
 
     _currentIndexSubscription = _player.currentIndexStream.listen((index) {
       if (_isSyncingBuffer) return;
-      if (index != null && index >= 0 && index < _queue.length) {
-        _onTrackTransition(index);
+      final logicalIndex = _audioBuffer.toLogicalIndex(index);
+      if (logicalIndex != null && logicalIndex >= 0 && logicalIndex < _queue.length) {
+        _onTrackTransition(logicalIndex);
       }
     });
   }
@@ -479,6 +480,7 @@ class PlaybackController extends ChangeNotifier {
   /// Handles seamless 0ms track transition emitted by the audio buffer engine.
   void _onTrackTransition(int index) {
     if (index < 0 || index >= _queue.length) return;
+    unawaited(_audioBuffer.ensureWindowForIndex(index));
     if (_currentIndex == index && _currentSong?.mediaStoreId == _queue[index].mediaStoreId) {
       return;
     }
@@ -732,7 +734,7 @@ class PlaybackController extends ChangeNotifier {
         initialIndex: _currentIndex,
         initialPosition: Duration.zero,
       );
-      if (_player.currentIndex != _currentIndex) {
+      if (_audioBuffer.toLogicalIndex(_player.currentIndex) != _currentIndex) {
         await _audioBuffer.seekToIndex(_currentIndex);
       }
       unawaited(_player.play());
