@@ -29,7 +29,6 @@ import 'package:project_anima/features/player/components/mini_player.dart';
 import 'package:project_anima/features/playlist/components/playlist_detail_header.dart';
 import 'package:project_anima/features/playlist/components/playlist_track_tile.dart';
 import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
-import 'package:project_anima/features/playlist/screens/playlist_tracks_edit_screen.dart';
 
 /// Full-screen playlist detail and playback screen.
 class PlaylistDetailScreen extends StatefulWidget {
@@ -419,26 +418,6 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
     }
   }
 
-  Future<void> _editPlaylistTracks() async {
-    final updatedSongs = await Navigator.of(context).push<List<Song>?>(
-      PlaylistTracksEditScreen.route(
-        playlist: _playlist,
-        initialSongs: _songs,
-        playlistDao: _playlistDao,
-        songDao: _songDao,
-        animateBounce: widget.animateBounce,
-      ),
-    );
-
-    if (updatedSongs != null && mounted) {
-      setState(() {
-        _songs = List.of(updatedSongs);
-        _isLoading = true;
-      });
-      await _loadPlaylistSongs();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final totalMs = _songs.fold<int>(0, (sum, s) => sum + s.duration);
@@ -603,7 +582,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
                 size: 20.0,
                 color: AppColors.onSurfaceVariant,
               ),
-              onPressed: _editPlaylistTracks,
+              onPressed: _editPlaylist,
               tooltip: context.l10n.playlist.editPlaylistTooltip,
               splashRadius: 20.0,
               padding: EdgeInsets.zero,
@@ -644,7 +623,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
               const SizedBox(height: 16.0),
               OutlinedButton.icon(
                 key: const ValueKey('playlist_detail_add_songs_button'),
-                onPressed: _editPlaylistTracks,
+                onPressed: _editPlaylist,
                 icon: const Icon(Icons.add_rounded, size: 18.0),
                 label: Text(context.l10n.playlist.addSongsButton),
                 style: OutlinedButton.styleFrom(

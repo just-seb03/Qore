@@ -28,7 +28,6 @@ import 'package:project_anima/features/playlist/screens/playlist_detail_screen.d
 import 'package:project_anima/features/playlist/screens/playlist_edit_screen.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/features/playlist/components/playlist_delete_dialog.dart';
-import 'package:project_anima/features/playlist/screens/playlist_tracks_edit_screen.dart';
 import 'package:project_anima/features/player/components/player_metadata_view.dart';
 import 'package:project_anima/features/player/components/song_context_sheet.dart';
 import 'package:project_anima/features/player/components/song_delete_dialog.dart';
@@ -852,7 +851,7 @@ void main() {
       );
     });
 
-    testWidgets('tapping hero banner in PlaylistDetailScreen triggers PlaylistEditScreen navigation', (tester) async {
+    testWidgets('tapping edit pencil in tracks section opens PlaylistEditScreen and tapping banner does nothing', (tester) async {
       const playlist = Playlist(
         id: 42,
         name: 'Chill Vibes',
@@ -884,58 +883,29 @@ void main() {
       );
       await tester.pump();
 
-      // Tap hero banner trigger
-      await tester.tap(find.byKey(const ValueKey('playlist_detail_banner_edit_trigger')));
+      // Tapping hero banner does NOT open editor
+      await tester.tap(find.byType(PlaylistTextBanner));
       await tester.pumpAndSettle();
-
-      // PlaylistEditScreen is mounted
-      expect(find.byType(PlaylistEditScreen), findsOneWidget);
-    });
-
-    testWidgets('tapping edit pencil in tracks section opens PlaylistTracksEditScreen', (tester) async {
-      const playlist = Playlist(
-        id: 42,
-        name: 'Chill Vibes',
-        songCount: 1,
-        totalDuration: 150000,
-        createdAt: 100,
-        updatedAt: 100,
-      );
-
-      final s1 = Song(
-        mediaStoreId: 501,
-        title: 'Song One',
-        artist: 'Artist One',
-        duration: 150000,
-        path: '/one.mp3',
-        dateModified: 100,
-      );
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: PlaylistDetailScreen(
-            playlist: playlist,
-            initialSongs: [s1],
-            playlistDao: FakePlaylistDao(playlistSongs: [s1]),
-            songDao: FakeSongDao([s1]),
-            animateBounce: false,
-          ),
-        ),
-      );
-      await tester.pump();
+      expect(find.byType(PlaylistEditScreen), findsNothing);
 
       // Tap pencil icon next to TRACKS
       await tester.tap(find.byKey(const ValueKey('playlist_detail_edit_button')));
       await tester.pumpAndSettle();
 
-      // PlaylistTracksEditScreen is mounted
-      expect(find.byType(PlaylistTracksEditScreen), findsOneWidget);
-      expect(find.text('EDITAR CANCIONES'), findsOneWidget);
+      // PlaylistEditScreen is mounted
+      expect(find.byType(PlaylistEditScreen), findsOneWidget);
     });
   });
 
-  group('PlaylistTracksEditScreen and Deletion Confirmation Tests', () {
-    testWidgets('PlaylistTracksEditScreen renders drag handles, cover thumbnails, native trash icon, and handles remove and save', (tester) async {
+  group('PlaylistEditScreen Inline Reorder and Deletion Confirmation Tests', () {
+    testWidgets('PlaylistEditScreen renders inline drag handles without song count and handles remove and save', (tester) async {
+      tester.view.physicalSize = const Size(800, 1400);
+      tester.view.devicePixelRatio = 1.0;
+      addTearDown(() {
+        tester.view.resetPhysicalSize();
+        tester.view.resetDevicePixelRatio();
+      });
+
       const playlist = Playlist(
         id: 42,
         name: 'Workout Mix',
@@ -966,8 +936,8 @@ void main() {
 
       await tester.pumpWidget(
         MaterialApp(
-          home: PlaylistTracksEditScreen(
-            playlist: playlist,
+          home: PlaylistEditScreen(
+            initialPlaylist: playlist,
             initialSongs: [s1, s2],
             playlistDao: fakePlaylistDao,
             songDao: FakeSongDao([s1, s2]),
@@ -977,28 +947,24 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('EDITAR CANCIONES'), findsOneWidget);
       expect(find.text('Track Alpha'), findsOneWidget);
       expect(find.text('Track Beta'), findsOneWidget);
 
-      // Artwork covers on the left
-      expect(find.byType(AnimaArtworkImage), findsNWidgets(2));
+      // No numeric song count header shown
+      expect(find.textContaining('CANCIONES ('), findsNothing);
 
-      // Native trash icons to discard tracks
-      expect(find.byIcon(Icons.delete_outline_rounded), findsNWidgets(2));
-
-      // Drag handles
+      // Inline drag handles for reordering
       expect(find.byIcon(Icons.drag_indicator_rounded), findsNWidgets(2));
 
-      // Remove Track Alpha using trash icon
-      await tester.tap(find.byIcon(Icons.delete_outline_rounded).first);
+      // Remove Track Alpha using row close button
+      await tester.tap(find.byIcon(Icons.close_rounded).first);
       await tester.pump();
 
       expect(find.text('Track Alpha'), findsNothing);
       expect(find.text('Track Beta'), findsOneWidget);
 
-      // Save tracks
-      await tester.tap(find.byKey(const ValueKey('playlist_tracks_save_button')));
+      // Save via full-width bottom button
+      await tester.tap(find.byKey(const ValueKey('playlist_edit_save_button')));
       await tester.pumpAndSettle();
 
       expect(fakePlaylistDao.playlistSongs.length, 1);

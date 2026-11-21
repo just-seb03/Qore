@@ -1,7 +1,7 @@
 /// File: playlist_edit_screen.dart
 /// Description: Windows Phone Metro + Spotify-inspired coordinator for creating and editing playlists.
-/// Clean layout: Metro header + Save, playlist name on top, photo-only 2:1 cover picker,
-/// shared Metro AppSearchBar, and a focused song list showing only added tracks or matching search results.
+/// Clean layout: Metro title, playlist name on top, photo-only 2:1 cover picker,
+/// shared Metro AppSearchBar, inline reorderable track list, and full-width bottom Save button.
 ///
 /// Components / Classes / Functions:
 /// - PlaylistEditScreen: Full-screen Metro playlist creator and editor.
@@ -290,6 +290,15 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     });
   }
 
+  void _reorderSong(int oldIndex, int newIndex) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      final moved = _playlistSongs.removeAt(oldIndex);
+      _playlistSongs.insert(newIndex, moved);
+      _tracksChanged = true;
+    });
+  }
+
   Future<void> _savePlaylist() async {
     final name = _nameController.text.trim().isEmpty
         ? context.l10n.playlist.defaultPlaylistName
@@ -355,7 +364,6 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
   Widget build(BuildContext context) {
     final bool isEditing = widget.initialPlaylist?.id != null;
     final bool hasQuery = _songSearchController.text.trim().isNotEmpty;
-    final List<Song> visibleSongs = hasQuery ? _searchResults : _playlistSongs;
     final int? repSongId = _playlistSongs.isNotEmpty
         ? _playlistSongs.first.mediaStoreId
         : widget.initialPlaylist?.firstMediaStoreId;
@@ -369,6 +377,18 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
       },
       child: Scaffold(
         backgroundColor: AppColors.bottomNavBackground,
+        bottomNavigationBar: SafeArea(
+          top: false,
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20.0, 10.0, 20.0, 14.0),
+            child: _MetroSaveButton(
+              key: const ValueKey('playlist_edit_save_button'),
+              isSaving: _isSaving,
+              label: context.l10n.playlist.saveAction,
+              onPressed: _isSaving ? null : _savePlaylist,
+            ),
+          ),
+        ),
         body: SafeArea(
           bottom: false,
           child: CustomScrollView(
@@ -386,31 +406,17 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                     ),
                     Padding(
                       padding: const EdgeInsets.fromLTRB(20.0, 2.0, 20.0, 12.0),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              isEditing
-                                  ? context.l10n.playlist.editPlaylistTitle
-                                  : context.l10n.playlist.createPlaylistTitle,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppFonts.light(
-                                fontSize: 28.0,
-                                letterSpacing: -0.4,
-                                color: AppColors.onBackground,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 12.0),
-                          _MetroSaveButton(
-                            key: const ValueKey('playlist_edit_save_button'),
-                            isSaving: _isSaving,
-                            label: context.l10n.playlist.saveAction,
-                            onPressed: _isSaving ? null : _savePlaylist,
-                          ),
-                        ],
+                      child: Text(
+                        isEditing
+                            ? context.l10n.playlist.editPlaylistTitle
+                            : context.l10n.playlist.createPlaylistTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppFonts.light(
+                          fontSize: 28.0,
+                          letterSpacing: -0.4,
+                          color: AppColors.onBackground,
+                        ),
                       ),
                     ),
 
@@ -471,41 +477,12 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                       hintText: context.l10n.playlist.searchSongsPlaceholder,
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                     ),
-
-                    if (_playlistSongs.isNotEmpty || hasQuery)
-                      Padding(
-                        padding: const EdgeInsets.fromLTRB(20.0, 14.0, 20.0, 6.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              hasQuery
-                                  ? 'RESULTADOS (${_searchResults.length})'
-                                  : 'CANCIONES (${_playlistSongs.length})',
-                              style: AppFonts.segoe(
-                                fontSize: 12.0,
-                                fontWeight: FontWeight.w700,
-                                letterSpacing: 1.3,
-                                color: AppColors.onSurfaceVariant,
-                              ),
-                            ),
-                            if (hasQuery && _playlistSongs.isNotEmpty)
-                              Text(
-                                context.l10n.playlist.songCount(_playlistSongs.length),
-                                style: AppFonts.segoe(
-                                  fontSize: 12.0,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.accent,
-                                ),
-                              ),
-                          ],
-                        ),
-                      ),
+                    const SizedBox(height: 10.0),
                   ],
                 ),
               ),
 
-              // 5. Focused List: only search results when searching, or added tracks when idle
+              // 5. Focused List: Search results when typing, or inline reorderable tracks when idle
               if (_isLoadingLibrary && hasQuery)
                 SliverToBoxAdapter(
                   child: Padding(
@@ -518,14 +495,45 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                     ),
                   ),
                 )
-              else if (visibleSongs.isEmpty)
+              else if (hasQuery)
+                if (_searchResults.isEmpty)
+                  SliverToBoxAdapter(
+                    child: Padding(
+                      padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 36.0),
+                      child: Text(
+                        'Sin resultados para "${_songSearchController.text.trim()}".',
+                        textAlign: TextAlign.center,
+                        style: AppFonts.segoe(
+                          fontSize: 13.5,
+                          color: AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+                        ),
+                      ),
+                    ),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20.0, 2.0, 20.0, 20.0),
+                    sliver: SliverList.builder(
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        final song = _searchResults[index];
+                        final isSelected =
+                            _selectedMediaStoreIds.contains(song.mediaStoreId);
+                        return PlaylistSongPickRow(
+                          key: ValueKey('playlist_pick_row_${song.mediaStoreId}'),
+                          song: song,
+                          isSelected: isSelected,
+                          onTap: () => _toggleSong(song),
+                        );
+                      },
+                    ),
+                  )
+              else if (_playlistSongs.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 36.0),
                     child: Text(
-                      hasQuery
-                          ? 'Sin resultados para "${_songSearchController.text.trim()}".'
-                          : 'Busca canciones arriba para añadirlas a tu playlist.',
+                      'Busca canciones arriba para añadirlas a tu playlist.',
                       textAlign: TextAlign.center,
                       style: AppFonts.segoe(
                         fontSize: 13.5,
@@ -536,22 +544,17 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                 )
               else
                 SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    20.0,
-                    2.0,
-                    20.0,
-                    MediaQuery.paddingOf(context).bottom + 36.0,
-                  ),
-                  sliver: SliverList.builder(
-                    itemCount: visibleSongs.length,
+                  padding: const EdgeInsets.fromLTRB(20.0, 2.0, 20.0, 20.0),
+                  sliver: SliverReorderableList(
+                    itemCount: _playlistSongs.length,
+                    onReorderItem: _reorderSong,
                     itemBuilder: (context, index) {
-                      final song = visibleSongs[index];
-                      final isSelected =
-                          _selectedMediaStoreIds.contains(song.mediaStoreId);
+                      final song = _playlistSongs[index];
                       return PlaylistSongPickRow(
-                        key: ValueKey('playlist_pick_row_${song.mediaStoreId}'),
+                        key: ValueKey('playlist_reorder_row_${song.mediaStoreId}'),
                         song: song,
-                        isSelected: isSelected,
+                        isSelected: true,
+                        reorderIndex: index,
                         onTap: () => _toggleSong(song),
                       );
                     },
@@ -579,33 +582,34 @@ class _MetroSaveButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.accent,
-      borderRadius: BorderRadius.zero,
-      child: InkWell(
-        onTap: onPressed,
-        child: Container(
-          height: 36.0,
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          alignment: Alignment.center,
-          child: isSaving
-              ? SizedBox(
-                  width: 14.0,
-                  height: 14.0,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.0,
-                    color: AppColors.onAccent,
+    return SizedBox(
+      width: double.infinity,
+      height: 48.0,
+      child: Material(
+        color: AppColors.accent,
+        borderRadius: BorderRadius.zero,
+        child: InkWell(
+          onTap: onPressed,
+          child: Center(
+            child: isSaving
+                ? SizedBox(
+                    width: 18.0,
+                    height: 18.0,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2.0,
+                      color: AppColors.onAccent,
+                    ),
+                  )
+                : Text(
+                    label.toUpperCase(),
+                    style: AppFonts.segoe(
+                      fontSize: 14.0,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: AppColors.onAccent,
+                    ),
                   ),
-                )
-              : Text(
-                  label.toUpperCase(),
-                  style: AppFonts.segoe(
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 1.0,
-                    color: AppColors.onAccent,
-                  ),
-                ),
+          ),
         ),
       ),
     );

@@ -90,29 +90,25 @@ class PlaylistDetailHeader extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         if (showHeroCover) ...[
-          // 1. Space-styled 2:1 Rectangular Hero Banner (sharp unrounded corners)
+          // 1. Space-styled 2:1 Rectangular Hero Banner (non-interactive; edit via pencil button)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            child: GestureDetector(
-              key: const ValueKey('playlist_detail_banner_edit_trigger'),
-              onTap: isEditable ? onEdit : null,
-              child: Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.zero,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.65),
-                      blurRadius: 28.0,
-                      spreadRadius: 1.0,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: PlaylistTextBanner(
-                  title: playlist.name,
-                  coverPath: playlist.coverPath,
-                  representativeSongId: playlist.firstMediaStoreId,
-                ),
+            child: Container(
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.zero,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.65),
+                    blurRadius: 28.0,
+                    spreadRadius: 1.0,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: PlaylistTextBanner(
+                title: playlist.name,
+                coverPath: playlist.coverPath,
+                representativeSongId: playlist.firstMediaStoreId,
               ),
             ),
           ),

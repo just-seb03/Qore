@@ -1,9 +1,10 @@
 /// File: playlist_song_pick_row.dart
-/// Description: Compact Metro song row for adding or removing tracks in playlist
-/// creation and editing flows.
+/// Description: Compact Metro song row for adding, removing, or reordering tracks
+/// directly inside playlist creation and editing flows.
 ///
 /// Components / Classes / Functions:
-/// - PlaylistSongPickRow: Stateless song row with sharp artwork and Metro toggle box.
+/// - PlaylistSongPickRow: Stateless song row with sharp artwork, optional drag handle,
+///   and Metro action button.
 library;
 
 import 'package:flutter/material.dart';
@@ -19,11 +20,16 @@ class PlaylistSongPickRow extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
+  /// When non-null, renders a drag handle on the left for reordering and a remove
+  /// icon button on the right (used in the playlist's active track list).
+  final int? reorderIndex;
+
   const PlaylistSongPickRow({
     super.key,
     required this.song,
     required this.isSelected,
     required this.onTap,
+    this.reorderIndex,
   });
 
   @override
@@ -32,12 +38,16 @@ class PlaylistSongPickRow extends StatelessWidget {
         ? context.l10n.common.unknownArtist
         : song.artist!;
 
+    final bool isReorderMode = reorderIndex != null;
+
     return Material(
-      color: isSelected
-          ? AppColors.accent.withValues(alpha: 0.12)
-          : Colors.transparent,
+      color: isReorderMode
+          ? AppColors.bottomNavBackground
+          : (isSelected
+              ? AppColors.accent.withValues(alpha: 0.12)
+              : Colors.transparent),
       child: InkWell(
-        onTap: onTap,
+        onTap: isReorderMode ? null : onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 4.0),
           decoration: BoxDecoration(
@@ -50,6 +60,18 @@ class PlaylistSongPickRow extends StatelessWidget {
           ),
           child: Row(
             children: [
+              if (isReorderMode)
+                ReorderableDragStartListener(
+                  index: reorderIndex!,
+                  child: Padding(
+                    padding: const EdgeInsets.only(right: 10.0, top: 6.0, bottom: 6.0),
+                    child: Icon(
+                      Icons.drag_indicator_rounded,
+                      size: 20.0,
+                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                    ),
+                  ),
+                ),
               AnimaArtworkImage(
                 mediaStoreId: song.mediaStoreId,
                 albumId: song.albumId,
@@ -89,27 +111,49 @@ class PlaylistSongPickRow extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 10.0),
-              Container(
-                width: 30.0,
-                height: 30.0,
-                decoration: BoxDecoration(
-                  color: isSelected
-                      ? AppColors.accent
-                      : AppColors.surfaceContainerHigh,
-                  borderRadius: BorderRadius.zero,
-                  border: Border.all(
+              if (isReorderMode)
+                InkWell(
+                  onTap: onTap,
+                  child: Container(
+                    width: 30.0,
+                    height: 30.0,
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerHigh,
+                      borderRadius: BorderRadius.zero,
+                      border: Border.all(
+                        color: AppColors.outline.withValues(alpha: 0.45),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Icon(
+                      Icons.close_rounded,
+                      size: 16.0,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  width: 30.0,
+                  height: 30.0,
+                  decoration: BoxDecoration(
                     color: isSelected
                         ? AppColors.accent
-                        : AppColors.outline.withValues(alpha: 0.5),
-                    width: 1.0,
+                        : AppColors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.zero,
+                    border: Border.all(
+                      color: isSelected
+                          ? AppColors.accent
+                          : AppColors.outline.withValues(alpha: 0.5),
+                      width: 1.0,
+                    ),
+                  ),
+                  child: Icon(
+                    isSelected ? Icons.check_rounded : Icons.add_rounded,
+                    size: 17.0,
+                    color: isSelected ? AppColors.onAccent : AppColors.onSurface,
                   ),
                 ),
-                child: Icon(
-                  isSelected ? Icons.check_rounded : Icons.add_rounded,
-                  size: 17.0,
-                  color: isSelected ? AppColors.onAccent : AppColors.onSurface,
-                ),
-              ),
             ],
           ),
         ),
