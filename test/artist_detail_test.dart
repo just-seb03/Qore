@@ -305,9 +305,9 @@ void main() {
       );
 
       expect(find.text('Daft Punk'), findsOneWidget);
-      expect(find.byIcon(Icons.edit_rounded), findsOneWidget);
+      expect(find.byIcon(Icons.edit_rounded), findsNothing);
 
-      await tester.tap(find.byIcon(Icons.edit_rounded));
+      await tester.tap(find.byKey(const ValueKey('artist_avatar_tap_target')));
       await tester.pump();
 
       expect(editTapped, isTrue);

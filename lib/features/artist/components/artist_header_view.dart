@@ -43,14 +43,19 @@ class ArtistHeaderView extends StatelessWidget {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Authentic Metro Sharp Square Artist Portrait with Sharp Edit Badge
-          Stack(
-            alignment: Alignment.bottomRight,
-            children: [
-              // 1. Square Artist Portrait (Metro People tile rule: sharp square, never circular)
-              SizedBox(
-                width: avatarSize,
-                height: avatarSize,
+          // Authentic Metro Sharp Square Artist Portrait (tap portrait directly to edit/add/remove)
+          SizedBox(
+            width: avatarSize,
+            height: avatarSize,
+            child: Material(
+              color: AppColors.surfaceContainerHigh,
+              borderRadius: BorderRadius.zero,
+              child: InkWell(
+                key: const ValueKey('artist_avatar_tap_target'),
+                onTap: onEditTap,
+                splashColor: AppColors.accent.withValues(alpha: 0.2),
+                highlightColor: Colors.transparent,
+                borderRadius: BorderRadius.zero,
                 child: Container(
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.zero,
@@ -98,35 +103,7 @@ class ArtistHeaderView extends StatelessWidget {
                   ),
                 ),
               ),
-
-              // 2. Sharp Square Metro Edit Button (Tile badge)
-              Material(
-                color: AppColors.surfaceContainerHighest,
-                child: InkWell(
-                  onTap: onEditTap,
-                  splashColor: AppColors.accent.withValues(alpha: 0.2),
-                  highlightColor: Colors.transparent,
-                  borderRadius: BorderRadius.zero,
-                  child: Container(
-                    width: 36.0,
-                    height: 36.0,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHighest,
-                      borderRadius: BorderRadius.zero,
-                      border: Border.all(
-                        color: AppColors.bottomNavBackground,
-                        width: 2.0,
-                      ),
-                    ),
-                    child: Icon(
-                      Icons.edit_rounded,
-                      size: 18.0,
-                      color: AppColors.onSurface,
-                    ),
-                  ),
-                ),
-              ),
-            ],
+            ),
           ),
           const SizedBox(height: 14.0),
 

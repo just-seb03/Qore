@@ -1,16 +1,16 @@
 /// File: artist_photo_options_sheet.dart
-/// Description: Material Design 3 Expressive bottom sheet modal providing options
-/// to change or remove a personalized artist avatar image.
+/// Description: Windows Phone Metro bottom sheet modal providing clean options
+/// to change or remove a personalized artist square photo without red highlights or top divider lines.
 ///
 /// Components / Classes / Functions:
-/// - ArtistPhotoOptionsSheet: Modal sheet widget for artist photo customization.
+/// - ArtistPhotoOptionsSheet: Metro modal sheet widget for artist photo customization.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
-/// Modal bottom sheet widget presenting photo customization options.
+/// Metro modal bottom sheet widget presenting photo customization options.
 class ArtistPhotoOptionsSheet extends StatelessWidget {
   /// Callback invoked when the user selects the change photo option.
   final VoidCallback onChangePhoto;
@@ -32,7 +32,7 @@ class ArtistPhotoOptionsSheet extends StatelessWidget {
   }) {
     return showModalBottomSheet<void>(
       context: context,
-      backgroundColor: AppColors.bottomNavBackground,
+      backgroundColor: AppColors.surfaceContainerHigh,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.zero,
       ),
@@ -54,45 +54,67 @@ class ArtistPhotoOptionsSheet extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: AppColors.bottomNavBackground,
-      shape: Border(
-        top: BorderSide(
-          color: AppColors.accent,
-          width: 2.5,
-        ),
-      ),
+      color: AppColors.surfaceContainerHigh,
+      borderRadius: BorderRadius.zero,
       child: SafeArea(
+        top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 12.0),
+          padding: const EdgeInsets.symmetric(vertical: 8.0),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              ListTile(
-                leading: Icon(Icons.photo_library_outlined, color: AppColors.onSurface),
-                title: Text(
-                  context.l10n.artist.changeArtistPhoto,
-                  style: AppFonts.segoe(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w400,
-                    color: AppColors.onSurface,
-                  ),
-                ),
+              _MetroSheetOption(
+                icon: Icons.photo_library_outlined,
+                label: context.l10n.artist.changeArtistPhoto,
                 onTap: onChangePhoto,
               ),
-              ListTile(
-                leading: const Icon(Icons.delete_outline_rounded, color: Colors.redAccent),
-                title: Text(
-                  context.l10n.artist.removeCustomPhoto,
-                  style: AppFonts.segoe(
-                    fontSize: 15.5,
-                    fontWeight: FontWeight.w400,
-                    color: Colors.redAccent,
-                  ),
-                ),
+              _MetroSheetOption(
+                icon: Icons.delete_outline_rounded,
+                label: context.l10n.artist.removeCustomPhoto,
                 onTap: onRemovePhoto,
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MetroSheetOption extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  const _MetroSheetOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.zero,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 15.0),
+        child: Row(
+          children: [
+            Icon(icon, size: 22.0, color: AppColors.onSurface),
+            const SizedBox(width: 16.0),
+            Expanded(
+              child: Text(
+                label,
+                style: AppFonts.segoe(
+                  fontSize: 16.0,
+                  fontWeight: FontWeight.w400,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

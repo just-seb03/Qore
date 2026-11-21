@@ -302,7 +302,7 @@ void main() {
 
       expect(find.text('NUEVOS ÁLBUMES'), findsOneWidget);
       expect(find.text('Random Access Memories'), findsOneWidget);
-      expect(find.text('ARTISTAS NUEVOS'), findsOneWidget);
+      expect(find.text('NUEVOS ARTISTAS'), findsOneWidget);
       expect(find.text('Daft Punk'), findsWidgets);
       expect(find.text('Today Selection'), findsOneWidget);
       expect(find.text('Recientes'), findsOneWidget);

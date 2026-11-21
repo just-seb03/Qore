@@ -63,7 +63,7 @@ class EsSearchStrings implements SearchStrings {
   String get newAlbumsSectionHeader => 'NUEVOS ÁLBUMES';
 
   @override
-  String get newArtistsSectionHeader => 'ARTISTAS NUEVOS';
+  String get newArtistsSectionHeader => 'NUEVOS ARTISTAS';
 
   @override
   String get todaySelectionTitle => 'Today Selection';

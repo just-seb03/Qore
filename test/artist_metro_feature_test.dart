@@ -121,11 +121,10 @@ void main() {
       final textWidget = tester.widget<Text>(titleFinder);
       expect(textWidget.style?.fontFamily, contains('Segoe UI'));
 
-      // Check edit button icon exists and has sharp 0 radius
-      final editIconFinder = find.byIcon(Icons.edit_rounded);
-      expect(editIconFinder, findsOneWidget);
+      // No pencil badge; tapping square portrait directly triggers edit
+      expect(find.byIcon(Icons.edit_rounded), findsNothing);
 
-      final inkWellFinder = find.ancestor(of: editIconFinder, matching: find.byType(InkWell));
+      final inkWellFinder = find.byKey(const ValueKey('artist_avatar_tap_target'));
       expect(inkWellFinder, findsOneWidget);
       final inkWell = tester.widget<InkWell>(inkWellFinder);
       expect(inkWell.borderRadius, BorderRadius.zero);
@@ -221,7 +220,7 @@ void main() {
       expect(inkWell.borderRadius, BorderRadius.zero);
     });
 
-    testWidgets('ArtistPhotoOptionsSheet renders with Material accent border and Segoe UI fonts', (tester) async {
+    testWidgets('ArtistPhotoOptionsSheet renders Metro flat sheet without red or top border', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -239,8 +238,12 @@ void main() {
       final material = tester.widget<Material>(
         find.descendant(of: find.byType(ArtistPhotoOptionsSheet), matching: find.byType(Material)).first,
       );
-      expect(material.color, AppColors.bottomNavBackground);
-      expect(material.shape, isA<Border>());
+      expect(material.color, AppColors.surfaceContainerHigh);
+      expect(material.borderRadius, BorderRadius.zero);
+      expect(material.shape, isNull);
+
+      final deleteIcon = tester.widget<Icon>(find.byIcon(Icons.delete_outline_rounded));
+      expect(deleteIcon.color, AppColors.onSurface);
     });
 
     testWidgets('ArtistDiscographyScreen and ArtistTracksScreen mount AmbientParticlesCanvas', (tester) async {

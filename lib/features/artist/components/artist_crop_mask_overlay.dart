@@ -8,7 +8,7 @@ library;
 
 import 'package:flutter/material.dart';
 
-/// CustomPainter rendering a 1:1 square crop frame with corner accents and avatar reference.
+/// CustomPainter rendering a 1:1 square crop frame with corner accents.
 class ArtistCropMaskOverlay extends CustomPainter {
   /// Size of the 1:1 square viewport.
   final double viewportSize;
@@ -17,11 +17,6 @@ class ArtistCropMaskOverlay extends CustomPainter {
     ..color = Colors.white.withValues(alpha: 0.16)
     ..style = PaintingStyle.stroke
     ..strokeWidth = 0.8;
-
-  static final Paint _circleRefPaint = Paint()
-    ..color = Colors.white.withValues(alpha: 0.28)
-    ..style = PaintingStyle.stroke
-    ..strokeWidth = 1.0;
 
   static final Paint _squareBorderPaint = Paint()
     ..color = Colors.white.withValues(alpha: 0.60)
@@ -39,8 +34,6 @@ class ArtistCropMaskOverlay extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Rect.fromLTWH(0.5, 0.5, size.width - 1.0, size.height - 1.0);
-    final center = Offset(size.width / 2, size.height / 2);
-    final radius = (size.width / 2) - 2.0;
 
     // 1. Subtle rule of thirds guidelines inside the 1:1 square
     final step = size.width / 3.0;
@@ -49,10 +42,7 @@ class ArtistCropMaskOverlay extends CustomPainter {
     canvas.drawLine(Offset(0, step), Offset(size.width, step), _gridPaint);
     canvas.drawLine(Offset(0, step * 2), Offset(size.width, step * 2), _gridPaint);
 
-    // 2. Subtle circular reference guide indicating avatar framing area
-    canvas.drawCircle(center, radius, _circleRefPaint);
-
-    // 3. 1:1 Square boundary border
+    // 2. 1:1 Square boundary border
     canvas.drawRect(rect, _squareBorderPaint);
 
     // 4. Solid corner cropper brackets (classic framing accents)
