@@ -52,18 +52,15 @@ class _ModalDismissIndicatorState extends State<ModalDismissIndicator>
     with SingleTickerProviderStateMixin {
   late final AnimationController _animController;
   late final Animation<double> _bounceAnimation;
+  bool _isDisposed = false;
 
   @override
   void initState() {
     super.initState();
     _animController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 520),
     );
-
-    if (widget.animate) {
-      _animController.repeat(reverse: true);
-    }
 
     _bounceAnimation = Tween<double>(begin: 0.0, end: 6.0).animate(
       CurvedAnimation(
@@ -71,10 +68,39 @@ class _ModalDismissIndicatorState extends State<ModalDismissIndicator>
         curve: Curves.easeInOutSine,
       ),
     );
+
+    if (widget.animate) {
+      _playEntranceHint();
+    }
+  }
+
+  Future<void> _playEntranceHint() async {
+    try {
+      for (int i = 0; i < 2; i++) {
+        if (!mounted || _isDisposed) return;
+        await _animController.forward();
+        if (!mounted || _isDisposed) return;
+        await _animController.reverse();
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void didUpdateWidget(covariant ModalDismissIndicator oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.animate != oldWidget.animate) {
+      if (widget.animate) {
+        _playEntranceHint();
+      } else {
+        _animController.stop();
+        _animController.value = 0.0;
+      }
+    }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _animController.dispose();
     super.dispose();
   }

@@ -312,6 +312,24 @@ void main() {
       await tester.tap(find.byType(ModalDismissIndicator));
       expect(dismissed, isTrue);
     });
+
+    testWidgets('plays finite entrance hint and settles to 0 FPS when animate is true',
+        (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ModalDismissIndicator(
+              onDismiss: () {},
+              animate: true,
+            ),
+          ),
+        ),
+      );
+
+      // Finite entrance hint completes and settles without timing out
+      await tester.pumpAndSettle();
+      expect(find.byIcon(Icons.keyboard_arrow_down_rounded), findsOneWidget);
+    });
   });
 
   group('AlbumHeaderView Tests', () {
