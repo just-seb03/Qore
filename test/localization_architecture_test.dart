@@ -241,11 +241,11 @@ void main() {
     });
 
     test('Startup strings return valid English text', () {
-      expect(strings.startup.appTitle, equals('PROJECT ANIMA'));
+      expect(strings.startup.appTitle, equals('QORE'));
       expect(strings.startup.audioAccessRequiredTitle, equals('AUDIO ACCESS REQUIRED'));
       expect(
         strings.startup.audioAccessRequiredMessage,
-        equals('Project Anima requires access to your audio files to discover, organize, and play your local music library.'),
+        equals('Qore requires access to your audio files to discover, organize, and play your local music library.'),
       );
       expect(strings.startup.continueAction, equals('CONTINUE'));
       expect(strings.startup.scanningLibrary, equals('Scanning library...'));
@@ -356,7 +356,7 @@ void main() {
       expect(es.search.albumsSectionHeader, equals('ÁLBUMES'));
       expect(es.search.artistsSectionHeader, equals('ARTISTAS'));
       expect(es.search.songsSectionHeader, equals('CANCIONES'));
-      expect(es.startup.appTitle, equals('PROJECT ANIMA'));
+      expect(es.startup.appTitle, equals('QORE'));
       expect(es.startup.audioAccessRequiredTitle, equals('ACCESO A AUDIO REQUERIDO'));
       expect(es.startup.continueAction, equals('CONTINUAR'));
       expect(es.startup.scanningLibrary, equals('Escaneando biblioteca...'));
@@ -496,7 +496,7 @@ void main() {
       expect(find.text('NOW PLAYING'), findsOneWidget);
       expect(find.text('PLAYLIST'), findsOneWidget);
       expect(find.text('Search'), findsOneWidget);
-      expect(find.text('PROJECT ANIMA'), findsOneWidget);
+      expect(find.text('QORE'), findsOneWidget);
     });
 
     testWidgets('AppBottomNav renders localized destinations for Explore, Search, Space, Library, and Profile', (tester) async {
@@ -571,7 +571,7 @@ void main() {
       expect(find.text('Buscar'), findsNWidgets(2)); // in body search bar and bottom nav
       expect(find.text('Explorar'), findsOneWidget); // in bottom nav
       expect(find.text('Perfil'), findsOneWidget); // in bottom nav
-      expect(find.text('PROJECT ANIMA'), findsOneWidget);
+      expect(find.text('QORE'), findsOneWidget);
       expect(find.text('Space'), findsOneWidget); // bottom nav home tab
     });
   });

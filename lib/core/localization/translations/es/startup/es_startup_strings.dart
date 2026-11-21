@@ -12,7 +12,7 @@ class EsStartupStrings implements StartupStrings {
   const EsStartupStrings();
 
   @override
-  String get appTitle => 'PROJECT ANIMA';
+  String get appTitle => 'QORE';
 
   @override
   String get welcomeLine1 => 'Bienvenido';
@@ -21,11 +21,11 @@ class EsStartupStrings implements StartupStrings {
   String get welcomeLine2 => 'A';
 
   @override
-  String get welcomeLine3 => 'Anima';
+  String get welcomeLine3 => 'Qore';
 
   @override
   String get musicAccessPrompt =>
-      'Para poder utilizar Anima necesitas darle acceso a tus archivos musicales';
+      'Para poder utilizar Qore necesitas darle acceso a tus archivos musicales';
 
   @override
   String get notificationAccessPrompt =>
@@ -43,7 +43,7 @@ class EsStartupStrings implements StartupStrings {
 
   @override
   String get audioAccessRequiredMessage =>
-      'Project Anima requiere acceso a tus archivos de audio para descubrir, organizar y reproducir tu biblioteca local de música.';
+      'Qore requiere acceso a tus archivos de audio para descubrir, organizar y reproducir tu biblioteca local de música.';
 
   @override
   String get continueAction => 'CONTINUAR';
@@ -53,7 +53,7 @@ class EsStartupStrings implements StartupStrings {
 
   @override
   String get permissionsCardDescription =>
-      'Project Anima necesita los siguientes permisos para brindarte una experiencia musical óptima:';
+      'Qore necesita los siguientes permisos para brindarte una experiencia musical óptima:';
 
   @override
   String get musicAccessTitle => 'Acceso a la música';

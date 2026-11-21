@@ -143,8 +143,8 @@ void main() {
       const strings = EsStartupStrings();
       expect(strings.welcomeLine1, 'Bienvenido');
       expect(strings.welcomeLine2, 'A');
-      expect(strings.welcomeLine3, 'Anima');
-      expect(strings.musicAccessPrompt, contains('Para poder utilizar Anima'));
+      expect(strings.welcomeLine3, 'Qore');
+      expect(strings.musicAccessPrompt, contains('Para poder utilizar Qore'));
       expect(strings.notificationAccessPrompt, contains('notifiaciones'));
       expect(strings.permissionDeniedPrompt, contains('No se otorgaron los permisos'));
       expect(strings.nextAction, 'SIGUIENTE');
@@ -234,7 +234,7 @@ void main() {
     testWidgets('StartupHeader renders PROJECT ANIMA', (tester) async {
       await tester.pumpWidget(_wrapWithLocalization(child: const StartupHeader()));
 
-      expect(find.text('PROJECT ANIMA'), findsOneWidget);
+      expect(find.text('QORE'), findsOneWidget);
     });
 
     testWidgets('StartupProgressBar renders with M3 Expressive CustomPaint', (tester) async {
@@ -264,7 +264,7 @@ void main() {
 
       expect(find.text('Welcome'), findsOneWidget);
       expect(find.text('To'), findsOneWidget);
-      expect(find.text('Anima'), findsOneWidget);
+      expect(find.text('Qore'), findsOneWidget);
 
       // Tap on screen to fast-forward
       await tester.tap(find.byType(StartupSplashView));
