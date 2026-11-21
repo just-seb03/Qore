@@ -621,12 +621,16 @@ void main() {
       );
       await tester.pump();
 
-      // Verify name is reflected in real-time inside the 2:1 Metro banner
-      expect(find.text('Cyber Sunset'), findsWidgets);
+      // Library songs are not dumped upfront before searching
+      expect(find.byKey(const ValueKey('playlist_pick_row_301')), findsNothing);
+      expect(find.byKey(const ValueKey('playlist_pick_row_302')), findsNothing);
 
-      // Filter songs in-memory
+      // Filter songs via AppSearchBar
       await tester.enterText(
-        find.byKey(const ValueKey('playlist_edit_song_search')),
+        find.descendant(
+          of: find.byKey(const ValueKey('playlist_edit_song_search')),
+          matching: find.byType(TextField),
+        ),
         'Starboy',
       );
       await tester.pump();

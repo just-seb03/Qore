@@ -31,6 +31,9 @@ class PlaylistTextBanner extends StatelessWidget {
   /// Whether to show the Metro camera action badge at bottom-right (for editor).
   final bool showCameraBadge;
 
+  /// Whether to render the bottom gradient scrim and playlist title overlay.
+  final bool showTitle;
+
   const PlaylistTextBanner({
     super.key,
     required this.title,
@@ -38,6 +41,7 @@ class PlaylistTextBanner extends StatelessWidget {
     this.representativeSongId,
     this.onTap,
     this.showCameraBadge = false,
+    this.showTitle = true,
   });
 
   @override
@@ -58,45 +62,47 @@ class PlaylistTextBanner extends StatelessWidget {
             // 1. Cover Artwork or Minimalist Metro Fallback
             _buildBackground(context),
 
-            // 2. Subtle Bottom Gradient Scrim for Title Legibility
-            const Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              height: 76.0,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                    colors: [
-                      Colors.black87,
-                      Colors.black38,
-                      Colors.transparent,
-                    ],
+            // 2. Subtle Bottom Gradient Scrim & Playlist Name (when showTitle is true)
+            if (showTitle) ...[
+              const Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                height: 76.0,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.black87,
+                        Colors.black38,
+                        Colors.transparent,
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
 
-            // 3. Playlist Name in App's Standard Typography (bottom-left)
-            Positioned(
-              left: 14.0,
-              right: showCameraBadge ? 56.0 : 14.0,
-              bottom: 12.0,
-              child: Text(
-                displayTitle,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppFonts.segoe(
-                  fontSize: 16.0,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 0.2,
-                  color: Colors.white,
-                  height: 1.15,
+              // 3. Playlist Name in App's Standard Typography (bottom-left)
+              Positioned(
+                left: 14.0,
+                right: showCameraBadge ? 56.0 : 14.0,
+                bottom: 12.0,
+                child: Text(
+                  displayTitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.segoe(
+                    fontSize: 16.0,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.2,
+                    color: Colors.white,
+                    height: 1.15,
+                  ),
                 ),
               ),
-            ),
+            ],
 
             // 4. Optional Metro Camera Badge (bottom-right, for editor)
             if (showCameraBadge)

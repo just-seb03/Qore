@@ -21,6 +21,7 @@ import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/playlist/components/playlist_discard_dialog.dart';
 import 'package:project_anima/features/playlist/components/playlist_reorderable_song_list.dart';
 import 'package:project_anima/features/playlist/components/playlist_song_search_results.dart';
+import 'package:project_anima/features/search/components/search_bar.dart';
 
 /// Screen specifically for reordering, deleting, and adding songs in a playlist.
 class PlaylistTracksEditScreen extends StatefulWidget {
@@ -375,55 +376,13 @@ class _PlaylistTracksEditScreenState extends State<PlaylistTracksEditScreen>
                 ),
                 const SizedBox(height: 8.0),
 
-                // 3. Search Bar for Adding Songs
-                Padding(
+                // 3. Search Bar for Adding Songs (shared Metro AppSearchBar)
+                AppSearchBar(
+                  controller: _searchController,
+                  onChanged: _searchSongs,
+                  onClear: () => _searchSongs(''),
+                  hintText: 'Buscar canciones para añadir...',
                   padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceContainerHigh,
-                      borderRadius: BorderRadius.zero,
-                      border: Border.all(
-                        color: AppColors.outline.withValues(alpha: 0.35),
-                        width: 0.8,
-                      ),
-                    ),
-                    child: TextField(
-                      controller: _searchController,
-                      onChanged: _searchSongs,
-                      style: AppFonts.segoe(
-                        fontSize: 14.5,
-                        color: AppColors.onSurface,
-                      ),
-                      cursorColor: AppColors.accent,
-                      decoration: InputDecoration(
-                        hintText: 'Buscar canciones para añadir...',
-                        hintStyle: AppFonts.segoe(
-                          fontSize: 13.5,
-                          color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
-                        ),
-                        prefixIcon: Icon(
-                          Icons.search_rounded,
-                          size: 20.0,
-                          color: AppColors.onSurfaceVariant,
-                        ),
-                        suffixIcon: _searchController.text.isNotEmpty
-                            ? IconButton(
-                                icon: const Icon(Icons.close_rounded, size: 18.0),
-                                color: AppColors.onSurfaceVariant,
-                                onPressed: () {
-                                  _searchController.clear();
-                                  _searchSongs('');
-                                },
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 14.0,
-                          vertical: 12.0,
-                        ),
-                      ),
-                    ),
-                  ),
                 ),
 
                 const SizedBox(height: 10.0),

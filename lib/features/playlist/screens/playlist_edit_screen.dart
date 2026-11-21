@@ -1,7 +1,7 @@
 /// File: playlist_edit_screen.dart
 /// Description: Windows Phone Metro + Spotify-inspired coordinator for creating and editing playlists.
-/// Streamlined around the essentials: 2:1 Metro cover picker, playlist title input, and an
-/// instant virtualized song selector with in-memory search filtering.
+/// Clean layout: Metro header + Save, playlist name on top, photo-only 2:1 cover picker,
+/// shared Metro AppSearchBar, and a focused song list showing only added tracks or matching search results.
 ///
 /// Components / Classes / Functions:
 /// - PlaylistEditScreen: Full-screen Metro playlist creator and editor.
@@ -11,7 +11,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
-import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
@@ -20,9 +19,10 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/search/fuzzy_search_engine.dart';
 import 'package:project_anima/core/theme/theme.dart';
-import 'package:project_anima/core/utils/duration_formatter.dart';
+import 'package:project_anima/features/playlist/components/playlist_cover_banner_picker.dart';
 import 'package:project_anima/features/playlist/components/playlist_discard_dialog.dart';
-import 'package:project_anima/features/playlist/components/playlist_text_banner.dart';
+import 'package:project_anima/features/playlist/components/playlist_song_pick_row.dart';
+import 'package:project_anima/features/search/components/search_bar.dart';
 
 /// Full-screen Metro playlist creator and editor.
 class PlaylistEditScreen extends StatefulWidget {
@@ -91,6 +91,8 @@ class PlaylistEditScreen extends StatefulWidget {
 }
 
 class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
+  static const int _maxSearchResults = 50;
+
   late final PlaylistDao _playlistDao;
   late final SongDao _songDao;
 
@@ -101,7 +103,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
   final List<Song> _playlistSongs = [];
   final Set<int> _selectedMediaStoreIds = {};
   List<Song> _allLibrarySongs = [];
-  List<Song> _filteredLibrarySongs = [];
+  List<Song> _searchResults = [];
   bool _isLoadingLibrary = true;
   bool _isSaving = false;
   bool _tracksChanged = false;
@@ -114,12 +116,10 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
 
     _nameController = TextEditingController(
       text: widget.initialPlaylist?.name ?? '',
-    )..addListener(() {
-        if (mounted) setState(() {});
-      });
+    );
 
     _songSearchController = TextEditingController()
-      ..addListener(_filterLibrarySongs);
+      ..addListener(_onSearchChanged);
 
     _coverPath = widget.initialPlaylist?.coverPath;
 
@@ -163,7 +163,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
           _allLibrarySongs = songs;
           _isLoadingLibrary = false;
         });
-        _filterLibrarySongs();
+        _onSearchChanged();
       }
     } catch (e) {
       debugPrint('⚠️ [PlaylistEditScreen] Error loading library songs: $e');
@@ -173,35 +173,43 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
     }
   }
 
-  void _filterLibrarySongs() {
+  void _onSearchChanged() {
     final query = _songSearchController.text.trim().toLowerCase();
-    final List<Song> nextFiltered;
     if (query.isEmpty) {
-      // Keep selected songs surfaced first, followed by remaining library songs
-      final selected = <Song>[];
-      final unselected = <Song>[];
-      for (final song in _allLibrarySongs) {
-        if (_selectedMediaStoreIds.contains(song.mediaStoreId)) {
-          selected.add(song);
-        } else {
-          unselected.add(song);
-        }
+      if (mounted) {
+        setState(() {
+          _searchResults = const [];
+        });
       }
-      nextFiltered = [...selected, ...unselected];
-    } else {
-      nextFiltered = _allLibrarySongs.where((s) {
-        final title = s.title.toLowerCase();
-        final artist = (s.artist ?? '').toLowerCase();
-        final album = (s.album ?? '').toLowerCase();
-        return title.contains(query) ||
-            artist.contains(query) ||
-            album.contains(query);
-      }).toList();
+      return;
     }
+
+    final exactPrefix = <Song>[];
+    final containsMatch = <Song>[];
+    for (final song in _allLibrarySongs) {
+      final title = song.title.toLowerCase();
+      final artist = (song.artist ?? '').toLowerCase();
+      final album = (song.album ?? '').toLowerCase();
+      if (title.startsWith(query) || artist.startsWith(query)) {
+        exactPrefix.add(song);
+      } else if (title.contains(query) ||
+          artist.contains(query) ||
+          album.contains(query)) {
+        containsMatch.add(song);
+      }
+      if (exactPrefix.length + containsMatch.length >= _maxSearchResults * 2) {
+        break;
+      }
+    }
+
+    final combined = [...exactPrefix, ...containsMatch];
+    final capped = combined.length > _maxSearchResults
+        ? combined.sublist(0, _maxSearchResults)
+        : combined;
 
     if (mounted) {
       setState(() {
-        _filteredLibrarySongs = nextFiltered;
+        _searchResults = capped;
       });
     }
   }
@@ -346,6 +354,8 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
   @override
   Widget build(BuildContext context) {
     final bool isEditing = widget.initialPlaylist?.id != null;
+    final bool hasQuery = _songSearchController.text.trim().isNotEmpty;
+    final List<Song> visibleSongs = hasQuery ? _searchResults : _playlistSongs;
     final int? repSongId = _playlistSongs.isNotEmpty
         ? _playlistSongs.first.mediaStoreId
         : widget.initialPlaylist?.firstMediaStoreId;
@@ -364,7 +374,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
           child: CustomScrollView(
             physics: const BouncingScrollPhysics(),
             slivers: [
-              // 1. Metro Top Header + Dismiss Indicator + Save Action
+              // 1. Header + Name Input (on top) + Photo-only 2:1 Banner + AppSearchBar
               SliverToBoxAdapter(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -372,10 +382,10 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                     ModalDismissIndicator(
                       onDismiss: _handleDismiss,
                       animate: widget.animateBounce,
-                      padding: const EdgeInsets.only(top: 6.0, bottom: 4.0),
+                      padding: const EdgeInsets.only(top: 6.0, bottom: 2.0),
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(20.0, 2.0, 20.0, 14.0),
+                      padding: const EdgeInsets.fromLTRB(20.0, 2.0, 20.0, 12.0),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
@@ -387,7 +397,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppFonts.light(
-                                fontSize: 30.0,
+                                fontSize: 28.0,
                                 letterSpacing: -0.4,
                                 color: AppColors.onBackground,
                               ),
@@ -404,48 +414,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                       ),
                     ),
 
-                    // 2. 2:1 Metro Cover Banner
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: GestureDetector(
-                        onTap: _pickImage,
-                        child: PlaylistTextBanner(
-                          title: _nameController.text,
-                          coverPath: _coverPath,
-                          representativeSongId: repSongId,
-                          showCameraBadge: true,
-                          onTap: _pickImage,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8.0),
-
-                    // Cover Actions Row
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Row(
-                        children: [
-                          _MetroOutlineAction(
-                            icon: Icons.image_outlined,
-                            label: _coverPath != null
-                                ? context.l10n.playlist.changeCover
-                                : context.l10n.playlist.addCover,
-                            onTap: _pickImage,
-                          ),
-                          if (_coverPath != null) ...[
-                            const SizedBox(width: 10.0),
-                            _MetroOutlineAction(
-                              icon: Icons.close_rounded,
-                              label: 'QUITAR',
-                              onTap: _clearCover,
-                            ),
-                          ],
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16.0),
-
-                    // 3. Sharp Metro Name Input
+                    // 2. Playlist Name on Top
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
                       child: Container(
@@ -457,12 +426,12 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                             width: 1.0,
                           ),
                         ),
-                        padding: const EdgeInsets.symmetric(horizontal: 14.0, vertical: 2.0),
+                        padding: const EdgeInsets.symmetric(horizontal: 14.0),
                         child: TextField(
                           key: const ValueKey('playlist_name_input'),
                           controller: _nameController,
                           style: AppFonts.segoe(
-                            fontSize: 18.0,
+                            fontSize: 19.0,
                             fontWeight: FontWeight.w500,
                             color: AppColors.onSurface,
                           ),
@@ -470,7 +439,7 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                           decoration: InputDecoration(
                             hintText: context.l10n.playlist.playlistNameHint,
                             hintStyle: AppFonts.segoe(
-                              fontSize: 17.0,
+                              fontSize: 17.5,
                               color: AppColors.onSurfaceVariant.withValues(alpha: 0.55),
                             ),
                             border: InputBorder.none,
@@ -480,99 +449,67 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 22.0),
+                    const SizedBox(height: 14.0),
 
-                    // 4. Spotify-style Quick Track Selector Header + Search Bar
+                    // 3. Photo-only 2:1 Cover Banner (no action row below)
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'CANCIONES',
-                            style: AppFonts.segoe(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 1.4,
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                          ),
-                          Text(
-                            context.l10n.playlist.songCount(_playlistSongs.length),
-                            style: AppFonts.segoe(
-                              fontSize: 12.5,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.accent,
-                            ),
-                          ),
-                        ],
+                      child: PlaylistCoverBannerPicker(
+                        coverPath: _coverPath,
+                        representativeSongId: repSongId,
+                        onPickCover: _pickImage,
+                        onClearCover: _coverPath != null ? _clearCover : null,
                       ),
                     ),
-                    const SizedBox(height: 10.0),
-                    Padding(
+                    const SizedBox(height: 18.0),
+
+                    // 4. Shared Metro Search Bar (same as Search screen)
+                    AppSearchBar(
+                      key: const ValueKey('playlist_edit_song_search'),
+                      controller: _songSearchController,
+                      onClear: () => _songSearchController.clear(),
+                      hintText: context.l10n.playlist.searchSongsPlaceholder,
                       padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainer,
-                          borderRadius: BorderRadius.zero,
-                          border: Border.all(
-                            color: AppColors.outline.withValues(alpha: 0.55),
-                            width: 1.0,
-                          ),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                    ),
+
+                    if (_playlistSongs.isNotEmpty || hasQuery)
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(20.0, 14.0, 20.0, 6.0),
                         child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Icon(
-                              Icons.search_rounded,
-                              size: 19.0,
-                              color: AppColors.onSurfaceVariant,
-                            ),
-                            const SizedBox(width: 10.0),
-                            Expanded(
-                              child: TextField(
-                                key: const ValueKey('playlist_edit_song_search'),
-                                controller: _songSearchController,
-                                style: AppFonts.segoe(
-                                  fontSize: 14.5,
-                                  color: AppColors.onSurface,
-                                ),
-                                cursorColor: AppColors.accent,
-                                decoration: InputDecoration(
-                                  hintText: context.l10n.playlist.searchSongsPlaceholder,
-                                  hintStyle: AppFonts.segoe(
-                                    fontSize: 14.0,
-                                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.55),
-                                  ),
-                                  border: InputBorder.none,
-                                  isDense: true,
-                                  contentPadding: const EdgeInsets.symmetric(vertical: 11.0),
-                                ),
+                            Text(
+                              hasQuery
+                                  ? 'RESULTADOS (${_searchResults.length})'
+                                  : 'CANCIONES (${_playlistSongs.length})',
+                              style: AppFonts.segoe(
+                                fontSize: 12.0,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 1.3,
+                                color: AppColors.onSurfaceVariant,
                               ),
                             ),
-                            if (_songSearchController.text.isNotEmpty)
-                              GestureDetector(
-                                onTap: () => _songSearchController.clear(),
-                                child: Icon(
-                                  Icons.close_rounded,
-                                  size: 18.0,
-                                  color: AppColors.onSurfaceVariant,
+                            if (hasQuery && _playlistSongs.isNotEmpty)
+                              Text(
+                                context.l10n.playlist.songCount(_playlistSongs.length),
+                                style: AppFonts.segoe(
+                                  fontSize: 12.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.accent,
                                 ),
                               ),
                           ],
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 10.0),
                   ],
                 ),
               ),
 
-              // 5. Virtualized Song Selector List
-              if (_isLoadingLibrary)
+              // 5. Focused List: only search results when searching, or added tracks when idle
+              if (_isLoadingLibrary && hasQuery)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 32.0),
+                    padding: const EdgeInsets.symmetric(vertical: 28.0),
                     child: Center(
                       child: CircularProgressIndicator(
                         strokeWidth: 2.0,
@@ -581,18 +518,18 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                     ),
                   ),
                 )
-              else if (_filteredLibrarySongs.isEmpty)
+              else if (visibleSongs.isEmpty)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 28.0),
+                    padding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 36.0),
                     child: Text(
-                      _allLibrarySongs.isEmpty
-                          ? 'No hay canciones indexadas en tu biblioteca.'
-                          : 'Sin resultados para "${_songSearchController.text.trim()}".',
+                      hasQuery
+                          ? 'Sin resultados para "${_songSearchController.text.trim()}".'
+                          : 'Busca canciones arriba para añadirlas a tu playlist.',
                       textAlign: TextAlign.center,
                       style: AppFonts.segoe(
                         fontSize: 13.5,
-                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.65),
                       ),
                     ),
                   ),
@@ -601,17 +538,17 @@ class _PlaylistEditScreenState extends State<PlaylistEditScreen> {
                 SliverPadding(
                   padding: EdgeInsets.fromLTRB(
                     20.0,
-                    0.0,
+                    2.0,
                     20.0,
                     MediaQuery.paddingOf(context).bottom + 36.0,
                   ),
                   sliver: SliverList.builder(
-                    itemCount: _filteredLibrarySongs.length,
+                    itemCount: visibleSongs.length,
                     itemBuilder: (context, index) {
-                      final song = _filteredLibrarySongs[index];
+                      final song = visibleSongs[index];
                       final isSelected =
                           _selectedMediaStoreIds.contains(song.mediaStoreId);
-                      return _MetroPlaylistSongPickRow(
+                      return PlaylistSongPickRow(
                         key: ValueKey('playlist_pick_row_${song.mediaStoreId}'),
                         song: song,
                         isSelected: isSelected,
@@ -648,11 +585,13 @@ class _MetroSaveButton extends StatelessWidget {
       child: InkWell(
         onTap: onPressed,
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 10.0),
+          height: 36.0,
+          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+          alignment: Alignment.center,
           child: isSaving
               ? SizedBox(
-                  width: 16.0,
-                  height: 16.0,
+                  width: 14.0,
+                  height: 14.0,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.0,
                     color: AppColors.onAccent,
@@ -663,156 +602,10 @@ class _MetroSaveButton extends StatelessWidget {
                   style: AppFonts.segoe(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w700,
-                    letterSpacing: 1.3,
+                    letterSpacing: 1.0,
                     color: AppColors.onAccent,
                   ),
                 ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MetroOutlineAction extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _MetroOutlineAction({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.surfaceContainer,
-      borderRadius: BorderRadius.zero,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0),
-          decoration: BoxDecoration(
-            border: Border.all(
-              color: AppColors.outline.withValues(alpha: 0.6),
-              width: 1.0,
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 15.0, color: AppColors.onSurfaceVariant),
-              const SizedBox(width: 6.0),
-              Text(
-                label.toUpperCase(),
-                style: AppFonts.segoe(
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: 1.0,
-                  color: AppColors.onSurface,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MetroPlaylistSongPickRow extends StatelessWidget {
-  final Song song;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _MetroPlaylistSongPickRow({
-    super.key,
-    required this.song,
-    required this.isSelected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: isSelected
-          ? AppColors.surfaceContainerHigh.withValues(alpha: 0.75)
-          : Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
-          decoration: BoxDecoration(
-            border: Border(
-              bottom: BorderSide(
-                color: AppColors.outlineVariant.withValues(alpha: 0.35),
-                width: 0.6,
-              ),
-            ),
-          ),
-          child: Row(
-            children: [
-              AnimaArtworkImage(
-                mediaStoreId: song.mediaStoreId,
-                albumId: song.albumId,
-                width: 42.0,
-                height: 42.0,
-                borderRadius: 0.0,
-                fallbackIcon: Icons.music_note_rounded,
-                isThumbnail: true,
-              ),
-              const SizedBox(width: 12.0),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      song.title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.segoe(
-                        fontSize: 14.5,
-                        fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                        color: isSelected ? AppColors.accent : AppColors.onSurface,
-                      ),
-                    ),
-                    const SizedBox(height: 2.0),
-                    Text(
-                      '${song.artist ?? context.l10n.common.unknownArtist} · ${formatDurationMs(song.duration)}',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppFonts.segoe(
-                        fontSize: 12.0,
-                        color: AppColors.onSurfaceVariant,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 10.0),
-              Container(
-                width: 28.0,
-                height: 28.0,
-                decoration: BoxDecoration(
-                  color: isSelected ? AppColors.accent : Colors.transparent,
-                  borderRadius: BorderRadius.zero,
-                  border: Border.all(
-                    color: isSelected
-                        ? AppColors.accent
-                        : AppColors.outline.withValues(alpha: 0.8),
-                    width: 1.2,
-                  ),
-                ),
-                child: Icon(
-                  isSelected ? Icons.check_rounded : Icons.add_rounded,
-                  size: 17.0,
-                  color: isSelected ? AppColors.onAccent : AppColors.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
         ),
       ),
     );
