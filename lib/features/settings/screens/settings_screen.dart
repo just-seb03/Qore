@@ -307,7 +307,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     label: isSpanish ? 'Oscuro' : 'Dark',
                                     icon: Icons.dark_mode_outlined,
                                     isSelected: isDark,
-                                    onTap: () => themeCtrl.setDarkMode(true),
+                                    onTap: () {
+                                      if (!themeCtrl.isDarkMode) {
+                                        themeCtrl.setDarkMode(true);
+                                        _triggerUiRestart();
+                                      }
+                                    },
                                   ),
                                 ),
                                 const SizedBox(width: 10.0),
@@ -317,7 +322,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                     label: isSpanish ? 'Claro' : 'Light',
                                     icon: Icons.light_mode_outlined,
                                     isSelected: !isDark,
-                                    onTap: () => themeCtrl.setDarkMode(false),
+                                    onTap: () {
+                                      if (themeCtrl.isDarkMode) {
+                                        themeCtrl.setDarkMode(false);
+                                        _triggerUiRestart();
+                                      }
+                                    },
                                   ),
                                 ),
                               ],

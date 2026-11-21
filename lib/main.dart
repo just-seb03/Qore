@@ -177,7 +177,7 @@ class _AnimaAppState extends State<AnimaApp> with WidgetsBindingObserver {
   @override
   void didChangePlatformBrightness() {
     super.didChangePlatformBrightness();
-    ThemeController.instance.syncWithSystemBrightness();
+    ThemeController.instance.didChangePlatformBrightness();
   }
 
   @override
