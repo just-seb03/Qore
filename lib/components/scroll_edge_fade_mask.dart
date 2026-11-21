@@ -1,29 +1,26 @@
 /// File: scroll_edge_fade_mask.dart
-/// Description: Reusable Material Design 3 Expressive edge transparency mask that
-/// dynamically blends the top and bottom boundaries of a scrollable view into transparency.
-/// Employs a GPU-accelerated ShaderMask with dynamic edge factor calculations driven by
-/// scroll notifications, ensuring zero overhead and pristine aesthetics without hard cuts.
+/// Description: Lightweight edge fade overlay blending scrolling boundaries into the backdrop
+/// using pointer-ignored linear gradient strips driven by [ValueNotifier]s, eliminating
+/// full-viewport [ShaderMask] saveLayers and per-frame widget rebuilds during scroll.
 ///
 /// Components / Classes / Functions:
-/// - ScrollEdgeFadeMask: Stateful coordinator applying top and bottom linear gradient fades.
-/// - _ScrollEdgeFadePainter: Helper encapsulating gradient stops and shader generation.
+/// - ScrollEdgeFadeMask: Stateful coordinator rendering top and bottom edge fade strips.
 library;
 
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import 'package:project_anima/core/theme/theme.dart';
 
-/// Dynamic edge transparency mask applying fluid alpha transitions to top and bottom scroll edges.
-///
-/// Automatically activates top fade as content scrolls down, and fades the bottom edge
-/// until the user reaches the end of the scrollable extent.
+/// Edge fade overlay applying smooth linear gradients at top and bottom scroll boundaries
+/// without offscreen [ShaderMask] render targets or child subtree rebuilds.
 class ScrollEdgeFadeMask extends StatefulWidget {
   /// The scrollable child widget (e.g. ListView, GridView, CustomScrollView).
   final Widget child;
 
-  /// Maximum extent of the top fade in logical pixels. Defaults to 28.0.
+  /// Maximum extent of the top fade in logical pixels. Defaults to 24.0.
   final double topFadeExtent;
 
-  /// Maximum extent of the bottom fade in logical pixels. Defaults to 32.0.
+  /// Maximum extent of the bottom fade in logical pixels. Defaults to 24.0.
   final double bottomFadeExtent;
 
   /// Optional ScrollController to synchronize initial offset if already scrolled.
@@ -32,8 +29,8 @@ class ScrollEdgeFadeMask extends StatefulWidget {
   const ScrollEdgeFadeMask({
     super.key,
     required this.child,
-    this.topFadeExtent = 28.0,
-    this.bottomFadeExtent = 32.0,
+    this.topFadeExtent = 24.0,
+    this.bottomFadeExtent = 24.0,
     this.scrollController,
   });
 
@@ -42,35 +39,41 @@ class ScrollEdgeFadeMask extends StatefulWidget {
 }
 
 class _ScrollEdgeFadeMaskState extends State<ScrollEdgeFadeMask> {
-  double _topFactor = 0.0;
-  double _bottomFactor = 1.0;
+  final ValueNotifier<double> _topFactor = ValueNotifier<double>(0.0);
+  final ValueNotifier<double> _bottomFactor = ValueNotifier<double>(0.0);
 
   @override
   void initState() {
     super.initState();
     if (widget.scrollController != null && widget.scrollController!.hasClients) {
-      _evaluateOffset(widget.scrollController!.offset, widget.scrollController!.position.maxScrollExtent);
+      _evaluateOffset(
+        widget.scrollController!.offset,
+        widget.scrollController!.position.maxScrollExtent,
+      );
     }
   }
 
-  void _evaluateOffset(double offset, double maxScroll) {
-    // 0.0 at top resting state, smoothly ramps to 1.0 within topFadeExtent
-    final newTop = (offset / math.max(1.0, widget.topFadeExtent)).clamp(0.0, 1.0);
+  @override
+  void dispose() {
+    _topFactor.dispose();
+    _bottomFactor.dispose();
+    super.dispose();
+  }
 
-    // 1.0 while remaining content exists, smoothly ramps to 0.0 when approaching maxScrollExtent
+  void _evaluateOffset(double offset, double maxScroll) {
+    final newTop =
+        (offset / math.max(1.0, widget.topFadeExtent)).clamp(0.0, 1.0);
+
     final remaining = maxScroll - offset;
     final newBottom = maxScroll <= 0.0
         ? 0.0
         : (remaining / math.max(1.0, widget.bottomFadeExtent)).clamp(0.0, 1.0);
 
-    if ((newTop - _topFactor).abs() > 0.01 || (newBottom - _bottomFactor).abs() > 0.01) {
-      _topFactor = newTop;
-      _bottomFactor = newBottom;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          setState(() {});
-        }
-      });
+    if ((newTop - _topFactor.value).abs() > 0.02) {
+      _topFactor.value = newTop;
+    }
+    if ((newBottom - _bottomFactor.value).abs() > 0.02) {
+      _bottomFactor.value = newBottom;
     }
   }
 
@@ -84,45 +87,73 @@ class _ScrollEdgeFadeMaskState extends State<ScrollEdgeFadeMask> {
     return false;
   }
 
+  Widget _buildEdgeStrip({
+    required ValueNotifier<double> factorNotifier,
+    required double extent,
+    required Alignment begin,
+    required Alignment end,
+  }) {
+    if (extent <= 0.0) return const SizedBox.shrink();
+    return ValueListenableBuilder<double>(
+      valueListenable: factorNotifier,
+      builder: (context, factor, _) {
+        if (factor <= 0.01) return const SizedBox.shrink();
+        final baseColor = AppColors.bottomNavBackground;
+        return DecoratedBox(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: begin,
+              end: end,
+              colors: [
+                baseColor.withValues(alpha: factor * 0.92),
+                baseColor.withValues(alpha: 0.0),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return NotificationListener<ScrollNotification>(
       onNotification: _handleScrollNotification,
-      child: ShaderMask(
-        blendMode: BlendMode.dstIn,
-        shaderCallback: (Rect bounds) {
-          final height = bounds.height;
-          if (height <= 0.0) {
-            return const LinearGradient(
-              colors: [Colors.black, Colors.black],
-            ).createShader(bounds);
-          }
-
-          final effectiveTopStop = (widget.topFadeExtent * _topFactor) / height;
-          final effectiveBottomStop = 1.0 - ((widget.bottomFadeExtent * _bottomFactor) / height);
-
-          // Ensure stops are strictly monotonic
-          final clampedTop = effectiveTopStop.clamp(0.0, 0.45);
-          final clampedBottom = effectiveBottomStop.clamp(clampedTop, 1.0);
-
-          return LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.black,
-              Colors.black,
-              Colors.transparent,
-            ],
-            stops: [
-              0.0,
-              clampedTop,
-              clampedBottom,
-              1.0,
-            ],
-          ).createShader(bounds);
-        },
-        child: widget.child,
+      child: Stack(
+        fit: StackFit.passthrough,
+        children: [
+          widget.child,
+          if (widget.topFadeExtent > 0.0)
+            Positioned(
+              top: 0.0,
+              left: 0.0,
+              right: 0.0,
+              height: widget.topFadeExtent,
+              child: IgnorePointer(
+                child: _buildEdgeStrip(
+                  factorNotifier: _topFactor,
+                  extent: widget.topFadeExtent,
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
+            ),
+          if (widget.bottomFadeExtent > 0.0)
+            Positioned(
+              bottom: 0.0,
+              left: 0.0,
+              right: 0.0,
+              height: widget.bottomFadeExtent,
+              child: IgnorePointer(
+                child: _buildEdgeStrip(
+                  factorNotifier: _bottomFactor,
+                  extent: widget.bottomFadeExtent,
+                  begin: Alignment.bottomCenter,
+                  end: Alignment.topCenter,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }

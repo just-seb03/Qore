@@ -88,7 +88,7 @@ void main() {
   }
 
   group('ScrollEdgeFadeMask Tests', () {
-    testWidgets('ScrollEdgeFadeMask renders child inside ShaderMask', (tester) async {
+    testWidgets('ScrollEdgeFadeMask renders child with lightweight overlays and without ShaderMask', (tester) async {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -105,7 +105,7 @@ void main() {
       );
 
       expect(find.byType(ScrollEdgeFadeMask), findsOneWidget);
-      expect(find.byType(ShaderMask), findsOneWidget);
+      expect(find.byType(ShaderMask), findsNothing);
       expect(find.text('Item 1'), findsOneWidget);
       expect(find.text('Item 2'), findsOneWidget);
     });

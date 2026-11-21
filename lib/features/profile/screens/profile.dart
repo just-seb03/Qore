@@ -218,198 +218,182 @@ class _ProfileScreenState extends State<ProfileScreen>
                             color: AppColors.accent,
                           ),
                         )
-                      : ShaderMask(
-                          shaderCallback: (Rect bounds) {
-                            return const LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                Colors.transparent,
-                                Colors.white,
-                                Colors.white,
-                                Colors.transparent,
-                              ],
-                              stops: [0.0, 0.03, 0.92, 1.0],
-                            ).createShader(bounds);
-                          },
-                          blendMode: BlendMode.dstIn,
-                          child: SingleChildScrollView(
-                            physics: const BouncingScrollPhysics(),
-                            padding: EdgeInsets.only(
-                              top: 8.0,
-                              bottom: 196.0 + MediaQuery.paddingOf(context).bottom,
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                // 1. Tiempo Total Reproducido (Días, Horas, Minutos)
+                      : SingleChildScrollView(
+                          physics: const BouncingScrollPhysics(),
+                          padding: EdgeInsets.only(
+                            top: 8.0,
+                            bottom: 196.0 + MediaQuery.paddingOf(context).bottom,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              // 1. Tiempo Total Reproducido (Días, Horas, Minutos)
+                              _buildSectionHeader(
+                                isSpanish
+                                    ? 'TIEMPO REPRODUCIDO'
+                                    : 'LISTENING TIME',
+                              ),
+                              const SizedBox(height: 8.0),
+                              ProfileListeningTimeRow(
+                                totalPlaybackMs: _totalPlaybackMs,
+                                isSpanish: isSpanish,
+                              ),
+                              const SizedBox(height: 22.0),
+
+                              // 2. Top 3 Artistas Más Escuchados
+                              if (_topArtists.isNotEmpty) ...[
                                 _buildSectionHeader(
                                   isSpanish
-                                      ? 'TIEMPO REPRODUCIDO'
-                                      : 'LISTENING TIME',
+                                      ? 'ARTISTAS MÁS ESCUCHADOS'
+                                      : 'MOST PLAYED ARTISTS',
                                 ),
                                 const SizedBox(height: 8.0),
-                                ProfileListeningTimeRow(
-                                  totalPlaybackMs: _totalPlaybackMs,
-                                  isSpanish: isSpanish,
+                                for (int i = 0; i < _topArtists.length; i++) ...[
+                                  ProfileTopArtistTile(
+                                    artist: _topArtists[i],
+                                    rank: i + 1,
+                                    isSpanish: isSpanish,
+                                  ),
+                                  if (i < _topArtists.length - 1)
+                                    const SizedBox(height: 6.0),
+                                ],
+                                const SizedBox(height: 22.0),
+                              ],
+
+                              // 3. Top 3 Álbumes Más Escuchados
+                              if (_topAlbums.isNotEmpty) ...[
+                                _buildSectionHeader(
+                                  isSpanish
+                                      ? 'ÁLBUMES MÁS ESCUCHADOS'
+                                      : 'MOST PLAYED ALBUMS',
+                                ),
+                                const SizedBox(height: 8.0),
+                                for (int i = 0; i < _topAlbums.length; i++) ...[
+                                  ProfileTopAlbumTile(
+                                    album: _topAlbums[i],
+                                    rank: i + 1,
+                                  ),
+                                  if (i < _topAlbums.length - 1)
+                                    const SizedBox(height: 6.0),
+                                ],
+                                const SizedBox(height: 22.0),
+                              ],
+
+                              // 4. Top 5 Canciones Más Escuchadas
+                              if (_topSongs.isNotEmpty) ...[
+                                _buildSectionHeader(
+                                  isSpanish ? 'TOP CANCIONES' : 'TOP SONGS',
+                                ),
+                                const SizedBox(height: 6.0),
+                                for (int i = 0; i < _topSongs.length; i++) ...[
+                                  _buildTopSongTile(context, _topSongs[i]),
+                                  if (i < _topSongs.length - 1)
+                                    Divider(
+                                      height: 1.0,
+                                      thickness: 0.5,
+                                      indent: 82.0,
+                                      endIndent: 20.0,
+                                      color: AppColors.outline.withValues(alpha: 0.16),
+                                    ),
+                                ],
+                                const SizedBox(height: 22.0),
+                              ],
+
+                              // 5. Género Favorito
+                              if (_favoriteGenre != null &&
+                                  _favoriteGenre!.isNotEmpty) ...[
+                                _buildSectionHeader(
+                                  isSpanish
+                                      ? 'GÉNERO FAVORITO'
+                                      : 'FAVORITE GENRE',
+                                ),
+                                const SizedBox(height: 8.0),
+                                ProfileFavoriteGenreTile(
+                                  genre: _favoriteGenre!,
                                 ),
                                 const SizedBox(height: 22.0),
+                              ],
 
-                                // 2. Top 3 Artistas Más Escuchados
-                                if (_topArtists.isNotEmpty) ...[
-                                  _buildSectionHeader(
-                                    isSpanish
-                                        ? 'ARTISTAS MÁS ESCUCHADOS'
-                                        : 'MOST PLAYED ARTISTS',
-                                  ),
-                                  const SizedBox(height: 8.0),
-                                  for (int i = 0; i < _topArtists.length; i++) ...[
-                                    ProfileTopArtistTile(
-                                      artist: _topArtists[i],
-                                      rank: i + 1,
-                                      isSpanish: isSpanish,
-                                    ),
-                                    if (i < _topArtists.length - 1)
-                                      const SizedBox(height: 6.0),
-                                  ],
-                                  const SizedBox(height: 22.0),
-                                ],
-
-                                // 3. Top 3 Álbumes Más Escuchados
-                                if (_topAlbums.isNotEmpty) ...[
-                                  _buildSectionHeader(
-                                    isSpanish
-                                        ? 'ÁLBUMES MÁS ESCUCHADOS'
-                                        : 'MOST PLAYED ALBUMS',
-                                  ),
-                                  const SizedBox(height: 8.0),
-                                  for (int i = 0; i < _topAlbums.length; i++) ...[
-                                    ProfileTopAlbumTile(
-                                      album: _topAlbums[i],
-                                      rank: i + 1,
-                                    ),
-                                    if (i < _topAlbums.length - 1)
-                                      const SizedBox(height: 6.0),
-                                  ],
-                                  const SizedBox(height: 22.0),
-                                ],
-
-                                // 4. Top 5 Canciones Más Escuchadas
-                                if (_topSongs.isNotEmpty) ...[
-                                  _buildSectionHeader(
-                                    isSpanish ? 'TOP CANCIONES' : 'TOP SONGS',
-                                  ),
-                                  const SizedBox(height: 6.0),
-                                  for (int i = 0; i < _topSongs.length; i++) ...[
-                                    _buildTopSongTile(context, _topSongs[i]),
-                                    if (i < _topSongs.length - 1)
-                                      Divider(
-                                        height: 1.0,
-                                        thickness: 0.5,
-                                        indent: 82.0,
-                                        endIndent: 20.0,
-                                        color: AppColors.outline.withValues(alpha: 0.16),
-                                      ),
-                                  ],
-                                  const SizedBox(height: 22.0),
-                                ],
-
-                                // 5. Género Favorito
-                                if (_favoriteGenre != null &&
-                                    _favoriteGenre!.isNotEmpty) ...[
-                                  _buildSectionHeader(
-                                    isSpanish
-                                        ? 'GÉNERO FAVORITO'
-                                        : 'FAVORITE GENRE',
-                                  ),
-                                  const SizedBox(height: 8.0),
-                                  ProfileFavoriteGenreTile(
-                                    genre: _favoriteGenre!,
-                                  ),
-                                  const SizedBox(height: 22.0),
-                                ],
-
-                                // Empty state if no listening history yet
-                                if (!hasAnyHistory) ...[
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 20.0,
-                                      vertical: 24.0,
-                                    ),
-                                    child: Text(
-                                      isSpanish
-                                          ? 'Reproduce música para ver tus estadísticas de escucha.'
-                                          : 'Play music to see your listening stats.',
-                                      style: AppFonts.light(
-                                        fontSize: 16.0,
-                                        color: AppColors.onSurfaceVariant,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-
-                                // 6. Metro Settings Button
+                              // Empty state if no listening history yet
+                              if (!hasAnyHistory) ...[
                                 Padding(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                                  child: Container(
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceContainer
-                                          .withValues(alpha: 0.85),
-                                      borderRadius: BorderRadius.zero,
-                                      border: Border.all(
-                                        color: AppColors.outline.withValues(alpha: 0.30),
-                                        width: 1.0,
-                                      ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20.0,
+                                    vertical: 24.0,
+                                  ),
+                                  child: Text(
+                                    isSpanish
+                                        ? 'Reproduce música para ver tus estadísticas de escucha.'
+                                        : 'Play music to see your listening stats.',
+                                    style: AppFonts.light(
+                                      fontSize: 16.0,
+                                      color: AppColors.onSurfaceVariant,
                                     ),
-                                    child: Material(
-                                      color: Colors.transparent,
+                                  ),
+                                ),
+                              ],
+
+                              // 6. Metro Settings Button
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceContainer
+                                        .withValues(alpha: 0.85),
+                                    borderRadius: BorderRadius.zero,
+                                    border: Border.all(
+                                      color: AppColors.outline.withValues(alpha: 0.30),
+                                      width: 1.0,
+                                    ),
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.zero,
+                                    child: InkWell(
+                                      key: const ValueKey('profile_settings_button'),
                                       borderRadius: BorderRadius.zero,
-                                      child: InkWell(
-                                        key: const ValueKey('profile_settings_button'),
-                                        borderRadius: BorderRadius.zero,
-                                        splashColor: AppColors.accent.withValues(alpha: 0.15),
-                                        onTap: () {
-                                          Navigator.of(context).push(
-                                            SettingsScreen.route(),
-                                          );
-                                        },
-                                        child: Padding(
-                                          padding: const EdgeInsets.symmetric(
-                                            horizontal: 16.0,
-                                            vertical: 14.0,
-                                          ),
-                                          child: Row(
-                                            children: [
-                                              Icon(
-                                                Icons.settings_outlined,
-                                                size: 22.0,
-                                                color: AppColors.accent,
-                                              ),
-                                              const SizedBox(width: 14.0),
-                                              Expanded(
-                                                child: Text(
-                                                  isSpanish ? 'Ajustes' : 'Settings',
-                                                  style: AppFonts.segoe(
-                                                    fontSize: 15.5,
-                                                    fontWeight: FontWeight.w400,
-                                                    color: AppColors.onSurface,
-                                                  ),
+                                      splashColor: AppColors.accent.withValues(alpha: 0.15),
+                                      onTap: () {
+                                        Navigator.of(context).push(
+                                          SettingsScreen.route(),
+                                        );
+                                      },
+                                      child: Padding(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 16.0,
+                                          vertical: 14.0,
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.settings_outlined,
+                                              size: 22.0,
+                                              color: AppColors.accent,
+                                            ),
+                                            const SizedBox(width: 14.0),
+                                            Expanded(
+                                              child: Text(
+                                                isSpanish ? 'Ajustes' : 'Settings',
+                                                style: AppFonts.segoe(
+                                                  fontSize: 15.5,
+                                                  fontWeight: FontWeight.w400,
+                                                  color: AppColors.onSurface,
                                                 ),
                                               ),
-                                              Icon(
-                                                Icons.chevron_right_rounded,
-                                                size: 20.0,
-                                                color: AppColors.onSurfaceVariant,
-                                              ),
-                                            ],
-                                          ),
+                                            ),
+                                            Icon(
+                                              Icons.chevron_right_rounded,
+                                              size: 20.0,
+                                              color: AppColors.onSurfaceVariant,
+                                            ),
+                                          ],
                                         ),
                                       ),
                                     ),
                                   ),
                                 ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
                         ),
                 ),

@@ -350,39 +350,18 @@ class _SearchScreenState extends State<SearchScreen>
                   ),
                   const SizedBox(height: 8.0),
                   Expanded(
-                    child: ShaderMask(
-                      shaderCallback: (Rect bounds) {
-                        return const LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.transparent,
-                            Colors.white,
-                            Colors.white,
-                            Colors.transparent,
-                          ],
-                          stops: [
-                            0.0,
-                            0.04,
-                            0.92,
-                            1.0,
-                          ],
-                        ).createShader(bounds);
-                      },
-                      blendMode: BlendMode.dstIn,
-                      child: SearchResultsList(
-                        key: const ValueKey('search_results_list'),
-                        controller: _searchEngine,
-                        scrollController: _scrollController,
-                        onSongTap: _handleSongTap,
-                        onSongPlayTap: _handleSongTap,
-                        onTopSongCardTap: _handleTopSongCardTap,
-                        onAlbumTap: _handleAlbumTap,
-                        onAlbumPlayTap: _handleAlbumPlayTap,
-                        onArtistTap: _handleArtistTap,
-                        onArtistPlayTap: _handleArtistPlayTap,
-                        onRecentItemTap: _handleRecentItemTap,
-                      ),
+                    child: SearchResultsList(
+                      key: const ValueKey('search_results_list'),
+                      controller: _searchEngine,
+                      scrollController: _scrollController,
+                      onSongTap: _handleSongTap,
+                      onSongPlayTap: _handleSongTap,
+                      onTopSongCardTap: _handleTopSongCardTap,
+                      onAlbumTap: _handleAlbumTap,
+                      onAlbumPlayTap: _handleAlbumPlayTap,
+                      onArtistTap: _handleArtistTap,
+                      onArtistPlayTap: _handleArtistPlayTap,
+                      onRecentItemTap: _handleRecentItemTap,
                     ),
                   ),
                 ],

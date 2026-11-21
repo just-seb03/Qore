@@ -163,38 +163,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
                   children: [
                     // 1. Content view with constant viewport constraints (never resizes during scroll)
                     Positioned.fill(
-                      child: ShaderMask(
-                        shaderCallback: (Rect bounds) {
-                          return const LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.white,
-                              Colors.white,
-                              Colors.transparent,
-                            ],
-                            stops: [
-                              0.0,
-                              0.015,
-                              0.985,
-                              1.0,
-                            ],
-                          ).createShader(bounds);
-                        },
-                        blendMode: BlendMode.dstIn,
-                        child: ExploreMetroView(
-                          key: const ValueKey('explore_discovery_view'),
-                          initialSongCount: widget.initialSongCount,
-                          initialAlbums: widget.initialAlbums,
-                          initialArtists: widget.initialArtists,
-                          initialTodaySongs: widget.initialTodaySongs,
-                          initialRecentSongs: widget.initialRecentSongs,
-                          topPadding: 74.0,
-                          bottomPadding: 84.0,
-                          onAlbumTap: (album) => _handleAlbumTap(context, album),
-                          onArtistTap: (artist) => _handleArtistTap(context, artist),
-                        ),
+                      child: ExploreMetroView(
+                        key: const ValueKey('explore_discovery_view'),
+                        initialSongCount: widget.initialSongCount,
+                        initialAlbums: widget.initialAlbums,
+                        initialArtists: widget.initialArtists,
+                        initialTodaySongs: widget.initialTodaySongs,
+                        initialRecentSongs: widget.initialRecentSongs,
+                        topPadding: 74.0,
+                        bottomPadding: 84.0,
+                        onAlbumTap: (album) => _handleAlbumTap(context, album),
+                        onArtistTap: (artist) => _handleArtistTap(context, artist),
                       ),
                     ),
 
