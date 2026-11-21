@@ -14,12 +14,14 @@ import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
+import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/player/components/song_delete_dialog.dart';
 import 'package:project_anima/features/player/components/song_playlist_picker_sheet.dart';
 
@@ -372,7 +374,125 @@ class SongContextSheet extends StatelessWidget {
                 ),
               ),
             ),
+
+            // 5. Artists Section (Spotify-style list with square artist portrait on left)
+            if (song.artists.isNotEmpty) ...[
+              const SizedBox(height: 18.0),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'ARTISTAS',
+                    style: AppFonts.segoe(
+                      fontSize: 12.0,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
+                      color: AppColors.onSurfaceVariant,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 8.0),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 190.0),
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                  itemCount: song.artists.length,
+                  itemBuilder: (context, index) {
+                    final artistName = song.artists[index];
+                    return _ContextArtistRow(
+                      artistName: artistName,
+                      onTap: () {
+                        Navigator.of(context).pop();
+                        Navigator.of(context).push(
+                          ArtistDetailScreen.route(artistName),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+            ],
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ContextArtistRow extends StatelessWidget {
+  final String artistName;
+  final VoidCallback onTap;
+
+  const _ContextArtistRow({
+    required this.artistName,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final customSquare = ArtworkService.instance.getCustomArtistSquarePhoto(artistName);
+    final hasCustomPhoto = customSquare != null && File(customSquare).existsSync();
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        key: ValueKey('context_artist_row_$artistName'),
+        onTap: onTap,
+        borderRadius: BorderRadius.zero,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 7.0),
+          child: Row(
+            children: [
+              Container(
+                width: 38.0,
+                height: 38.0,
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerHighest,
+                  borderRadius: BorderRadius.zero,
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: hasCustomPhoto
+                    ? Image(
+                        image: ResizeImage(
+                          FileImage(File(customSquare)),
+                          width: 96,
+                          height: 96,
+                          policy: ResizeImagePolicy.fit,
+                        ),
+                        fit: BoxFit.cover,
+                        width: 38.0,
+                        height: 38.0,
+                      )
+                    : Icon(
+                        Icons.person_rounded,
+                        size: 20.0,
+                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                      ),
+              ),
+              const SizedBox(width: 12.0),
+              Expanded(
+                child: Text(
+                  artistName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppFonts.segoe(
+                    fontSize: 15.0,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+              ),
+              Icon(
+                Icons.chevron_right_rounded,
+                size: 18.0,
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+              ),
+            ],
+          ),
         ),
       ),
     );

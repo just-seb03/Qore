@@ -12,6 +12,7 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
+import 'package:project_anima/features/player/components/player_marquee_text.dart';
 
 /// Centered track title, artist, and album presentation widget.
 class PlayerMetadataView extends StatelessWidget {
@@ -96,11 +97,8 @@ class PlayerMetadataView extends StatelessWidget {
               highlightColor: Colors.white.withValues(alpha: 0.06),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                child: Text(
-                  title,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: PlayerMarqueeText(
+                  text: title,
                   style: _titleStyle,
                 ),
               ),
@@ -137,11 +135,8 @@ class PlayerMetadataView extends StatelessWidget {
                   : null,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
-                child: Text(
-                  album,
-                  textAlign: TextAlign.center,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                child: PlayerMarqueeText(
+                  text: album,
                   style: _albumStyle,
                 ),
               ),
@@ -199,38 +194,33 @@ class PlayerMetadataView extends StatelessWidget {
       );
     }
 
-    return Wrap(
-      alignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      children: [
-        for (int i = 0; i < individualArtists.length; i++) ...[
-          if (i > 0)
-            Text(
-              separator,
-              style: _artistStyle.copyWith(
-                color: AppColors.onSurfaceDisabled,
-              ),
-            ),
-          Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(6.0),
-              onTap: () {
-                Navigator.of(context).push(
-                  ArtistDetailScreen.route(individualArtists[i]),
-                );
-              },
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 2.0),
-                child: Text(
-                  individualArtists[i],
-                  style: _artistStyle,
-                ),
-              ),
-            ),
+    final String displayArtists = individualArtists.join(separator);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8.0),
+        onTap: () {
+          if (onArtistTap != null) {
+            onArtistTap!();
+          } else if (individualArtists.length > 1 && onTitleTap != null) {
+            onTitleTap!();
+          } else {
+            Navigator.of(context).push(
+              ArtistDetailScreen.route(individualArtists.first),
+            );
+          }
+        },
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 4.0),
+          child: Text(
+            displayArtists,
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: _artistStyle,
           ),
-        ],
-      ],
+        ),
+      ),
     );
   }
 }
