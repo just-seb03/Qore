@@ -336,11 +336,24 @@ class PlaybackController extends ChangeNotifier {
     unawaited(_resolvePlayingSongCoverColor(active));
   }
 
+  void _prioritizeActiveAndNeighborArtwork() {
+    if (_queue.isEmpty || _currentIndex < 0 || _currentIndex >= _queue.length) return;
+    final List<int> ids = [_queue[_currentIndex].mediaStoreId];
+    if (_queue.length > 1) {
+      final int nextIdx = (_currentIndex + 1) % _queue.length;
+      final int prevIdx = (_currentIndex - 1 + _queue.length) % _queue.length;
+      ids.add(_queue[nextIdx].mediaStoreId);
+      if (prevIdx != nextIdx) ids.add(_queue[prevIdx].mediaStoreId);
+    }
+    ArtworkService.instance.prioritizeSongIds(ids);
+  }
+
   /// Synchronizes ambient wave velocity, cover color, and rhythmic beat phase with active playback.
   void _syncAmbientBackdropBpm({
     bool resolveIfMissing = false,
     bool? overridePlaying,
   }) {
+    _prioritizeActiveAndNeighborArtwork();
     final active = _currentSong;
     final bool isPlaying = overridePlaying ?? _player.playing;
     final Color? cachedColor =

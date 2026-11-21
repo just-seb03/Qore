@@ -67,6 +67,11 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
       _pinnedItems = widget.initialPinnedItems;
       _isLoading = false;
     } else {
+      final cached = PinnedFavoritesDao.instance.cachedPinned;
+      if (cached != null) {
+        _pinnedItems = cached;
+        _isLoading = false;
+      }
       _loadPinned();
     }
     PinnedFavoritesDao.revision.addListener(_onRevisionChanged);

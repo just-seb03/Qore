@@ -155,7 +155,7 @@ class ArtworkService extends ChangeNotifier {
     notifyListeners();
 
     // Asynchronously preload album mappings from SQLite in < 5 ms
-    preloadAlbumMappings(songDao: songDao);
+    await preloadAlbumMappings(songDao: songDao);
   }
 
   /// Preloads album mappings from SQLite database in < 5 ms on app launch.

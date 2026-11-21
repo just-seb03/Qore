@@ -9,8 +9,13 @@
 /// - StartupLoadingScreen: Main stateful orchestrator switching smoothly across startup steps.
 library;
 
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:project_anima/controls/menu_transition_controller.dart';
+import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
+import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/theme/controllers/theme_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/startup/components/startup_loading_view.dart';
@@ -92,9 +97,70 @@ class _StartupLoadingScreenState extends State<StartupLoadingScreen> {
     _navigateToDestination();
   }
 
-  void _navigateToDestination() {
+  Future<void> _prewarmSpaceArtworks(BuildContext context) async {
+    try {
+      final pinned = PinnedFavoritesDao.instance.cachedPinned ??
+          await PinnedFavoritesDao.instance.getAllPinned();
+      if (!context.mounted || pinned.isEmpty) return;
+
+      final List<Future<void>> tasks = [];
+      for (final item in pinned) {
+        if (item.isArtist) {
+          final directPath = item.coverPath != null && File(item.coverPath!).existsSync()
+              ? item.coverPath
+              : null;
+          final photoPath = directPath ??
+              ArtworkService.instance.getCustomArtistSquarePhoto(item.title);
+          if (photoPath != null && File(photoPath).existsSync()) {
+            tasks.add(
+              precacheImage(FileImage(File(photoPath)), context).catchError((_) {}),
+            );
+          }
+        } else if (item.isPlaylist) {
+          if (item.coverPath != null && File(item.coverPath!).existsSync()) {
+            tasks.add(
+              precacheImage(FileImage(File(item.coverPath!)), context)
+                  .catchError((_) {}),
+            );
+          } else if (item.representativeSongId != null && item.representativeSongId! > 0) {
+            tasks.add(
+              AnimaArtworkImage.precacheSongArtwork(
+                context,
+                mediaStoreId: item.representativeSongId!,
+                width: double.infinity,
+                isThumbnail: false,
+              ),
+            );
+          }
+        } else {
+          tasks.add(
+            AnimaArtworkImage.precacheSongArtwork(
+              context,
+              mediaStoreId: item.representativeSongId ?? 0,
+              albumId: item.albumId,
+              albumName: item.title,
+              artistName: item.subtitle,
+              width: double.infinity,
+              isThumbnail: false,
+            ),
+          );
+        }
+      }
+
+      if (tasks.isNotEmpty) {
+        await Future.wait(tasks).timeout(
+          const Duration(milliseconds: 900),
+          onTimeout: () => <void>[],
+        );
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _navigateToDestination() async {
     if (_hasNavigated || !mounted) return;
     _hasNavigated = true;
+    await _prewarmSpaceArtworks(context);
+    if (!mounted) return;
     final target = widget.destinationScreen ?? const MenuTransitionControl();
     Navigator.of(context).pushReplacement(
       PageRouteBuilder<void>(

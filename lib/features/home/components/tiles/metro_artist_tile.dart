@@ -91,6 +91,7 @@ class MetroArtistTile extends StatelessWidget {
                   width: double.infinity,
                   height: double.infinity,
                   fit: BoxFit.cover,
+                  gaplessPlayback: true,
                   filterQuality: FilterQuality.medium,
                 )
               else

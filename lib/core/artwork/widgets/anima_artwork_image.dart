@@ -65,68 +65,155 @@ class AnimaArtworkImage extends StatelessWidget {
     this.fallback,
   });
 
+  /// Computes the exact integer decode dimension used in Flutter's [ImageCache]
+  /// so `Image.file` and `precacheImage` share identical cache keys.
+  static int resolveCacheSize({
+    double? width,
+    bool isThumbnail = true,
+    double? screenWidth,
+    double? devicePixelRatio,
+  }) {
+    final bool hasFiniteWidth = width != null && width.isFinite;
+    final bool preferCover = !isThumbnail;
+    final double dpr = devicePixelRatio ?? 3.0;
+
+    if (preferCover) {
+      if (hasFiniteWidth) {
+        if (width <= 300.0) {
+          return (width * dpr).round().clamp(360, 640);
+        } else {
+          return (width * dpr).round().clamp(720, 1200);
+        }
+      } else {
+        final double effectiveScreenWidth = screenWidth ?? 400.0;
+        return (effectiveScreenWidth * 0.5 * dpr).round().clamp(360, 640);
+      }
+    } else {
+      final double baseWidth = hasFiniteWidth ? width : 48.0;
+      return (baseWidth * dpr).round().clamp(120, 240);
+    }
+  }
+
+  /// Resolves the cached on-disk artwork file path for a track/album, if available.
+  static String? resolveArtworkPath({
+    required int mediaStoreId,
+    int? albumId,
+    String? albumName,
+    String? artistName,
+    bool isThumbnail = true,
+  }) {
+    var coverPath = ArtworkService.instance.getCoverPath(
+      mediaStoreId,
+      albumId: albumId,
+      album: albumName,
+      artist: artistName,
+    );
+    var thumbPath = ArtworkService.instance.getThumbnailPath(
+      mediaStoreId,
+      albumId: albumId,
+      album: albumName,
+      artist: artistName,
+    );
+
+    if ((coverPath == null || thumbPath == null) &&
+        albumName != null &&
+        artistName != null) {
+      coverPath ??= ArtworkService.instance.getCoverForAlbum(albumName, artistName);
+      thumbPath ??= ArtworkService.instance.getThumbnailForAlbum(albumName, artistName);
+    }
+
+    return isThumbnail ? (thumbPath ?? coverPath) : (coverPath ?? thumbPath);
+  }
+
+  /// Builds the exact [ResizeImage] provider matching [AnimaArtworkImage] rendering.
+  static ImageProvider<Object>? resolveImageProvider({
+    required int mediaStoreId,
+    int? albumId,
+    String? albumName,
+    String? artistName,
+    double? width,
+    bool isThumbnail = true,
+    double? screenWidth,
+    double? devicePixelRatio,
+  }) {
+    final path = resolveArtworkPath(
+      mediaStoreId: mediaStoreId,
+      albumId: albumId,
+      albumName: albumName,
+      artistName: artistName,
+      isThumbnail: isThumbnail,
+    );
+    if (path == null) return null;
+
+    final int cacheSize = resolveCacheSize(
+      width: width,
+      isThumbnail: isThumbnail,
+      screenWidth: screenWidth,
+      devicePixelRatio: devicePixelRatio,
+    );
+
+    return ResizeImage(
+      FileImage(File(path)),
+      width: cacheSize,
+      height: cacheSize,
+    );
+  }
+
+  /// Pre-decodes a track/album artwork into Flutter's [ImageCache] so transitions
+  /// render on Frame 0 without blank gaps.
+  static Future<void> precacheSongArtwork(
+    BuildContext context, {
+    required int mediaStoreId,
+    int? albumId,
+    String? albumName,
+    String? artistName,
+    double? width,
+    bool isThumbnail = false,
+  }) async {
+    final provider = resolveImageProvider(
+      mediaStoreId: mediaStoreId,
+      albumId: albumId,
+      albumName: albumName,
+      artistName: artistName,
+      width: width,
+      isThumbnail: isThumbnail,
+      screenWidth: MediaQuery.maybeSizeOf(context)?.width,
+      devicePixelRatio: MediaQuery.maybeDevicePixelRatioOf(context),
+    );
+    if (provider == null) return;
+    try {
+      await precacheImage(provider, context);
+    } catch (_) {}
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
       listenable: ArtworkService.instance,
       builder: (context, _) {
-        var coverPath = ArtworkService.instance.getCoverPath(
-          mediaStoreId,
+        final String? path = resolveArtworkPath(
+          mediaStoreId: mediaStoreId,
           albumId: albumId,
-          album: albumName,
-          artist: artistName,
+          albumName: albumName,
+          artistName: artistName,
+          isThumbnail: isThumbnail,
         );
-        var thumbPath = ArtworkService.instance.getThumbnailPath(
-          mediaStoreId,
-          albumId: albumId,
-          album: albumName,
-          artist: artistName,
-        );
-
-        // Fallback to album name & artist lookup if representative ID has no cover yet
-        if ((coverPath == null || thumbPath == null) &&
-            albumName != null &&
-            artistName != null) {
-          coverPath ??= ArtworkService.instance.getCoverForAlbum(albumName!, artistName!);
-          thumbPath ??= ArtworkService.instance.getThumbnailForAlbum(albumName!, artistName!);
-        }
-
-        // Prioritize full high-resolution cover when not in thumbnail mode.
-        final bool hasFiniteWidth = width != null && width!.isFinite;
-        final bool preferCover = !isThumbnail;
-        final String? path = preferCover
-            ? (coverPath ?? thumbPath)
-            : (thumbPath ?? coverPath);
 
         if (path != null) {
           final file = File(path);
-          final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 3.0;
-          final int cacheSize;
-          if (preferCover) {
-            if (hasFiniteWidth) {
-              if (width! <= 300.0) {
-                // Medium cards, 2-column album cards, discovery banners (140-240 dp)
-                cacheSize = (width! * dpr).round().clamp(360, 640);
-              } else {
-                // Maximized player screen or full-width hero views (360-440 dp)
-                cacheSize = (width! * dpr).round().clamp(720, 1200);
-              }
-            } else {
-              // double.infinity in 2-column grids (e.g. LibraryAlbumCard)
-              final screenWidth = MediaQuery.maybeSizeOf(context)?.width ?? 400.0;
-              cacheSize = (screenWidth * 0.5 * dpr).round().clamp(360, 640);
-            }
-          } else {
-            // Compact track tiles, search results, mini-player (48-64 dp)
-            final double baseWidth = hasFiniteWidth ? width! : 48.0;
-            cacheSize = (baseWidth * dpr).round().clamp(120, 240);
-          }
+          final int cacheSize = resolveCacheSize(
+            width: width,
+            isThumbnail: isThumbnail,
+            screenWidth: MediaQuery.maybeSizeOf(context)?.width,
+            devicePixelRatio: MediaQuery.maybeDevicePixelRatioOf(context),
+          );
 
           final imageWidget = Image.file(
             file,
             width: width,
             height: height,
             fit: fit,
+            gaplessPlayback: true,
             filterQuality: FilterQuality.medium,
             cacheWidth: cacheSize,
             cacheHeight: cacheSize,

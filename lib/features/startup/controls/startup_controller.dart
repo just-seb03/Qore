@@ -15,6 +15,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
+import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/permissions/audio_permission_service.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/selection/today_selection_service.dart';
@@ -363,6 +364,21 @@ class StartupController extends ChangeNotifier {
         await FavoriteSongsDao.instance.ensureLoaded();
       } catch (e) {
         debugPrint('⚠️ [StartupController] FavoriteSongsDao pre-warm warning: $e');
+      }
+
+      // Pre-warm Space pinned items & prioritize any pending Space covers
+      try {
+        final pinnedItems = await PinnedFavoritesDao.instance.getAllPinned();
+        final spaceSongIds = pinnedItems
+            .map((e) => e.representativeSongId)
+            .whereType<int>()
+            .where((id) => id > 0)
+            .toList();
+        if (spaceSongIds.isNotEmpty) {
+          _artworkService.prioritizeSongIds(spaceSongIds);
+        }
+      } catch (e) {
+        debugPrint('⚠️ [StartupController] PinnedFavoritesDao pre-warm warning: $e');
       }
 
       _emit(_state.copyWith(progress: 0.96));

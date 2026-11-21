@@ -41,6 +41,11 @@ class PinnedFavoritesDao {
 
   Future<Database> get _db async => AppDatabase.instance.database;
 
+  List<PinnedFavorite>? _cachedPinned;
+
+  /// Synchronous snapshot of pinned items populated during startup or latest query.
+  List<PinnedFavorite>? get cachedPinned => _cachedPinned;
+
   /// Retrieves all pinned favorites sorted by pin date descending.
   Future<List<PinnedFavorite>> getAllPinned() async {
     final db = await _db;
@@ -48,7 +53,9 @@ class PinnedFavoritesDao {
       'pinned_favorites',
       orderBy: 'pinned_at DESC',
     );
-    return rows.map((r) => PinnedFavorite.fromMap(r)).toList();
+    final items = rows.map((r) => PinnedFavorite.fromMap(r)).toList();
+    _cachedPinned = items;
+    return items;
   }
 
   /// Checks whether an entity with the given [itemKey] is currently pinned.
@@ -75,6 +82,7 @@ class PinnedFavoritesDao {
         where: 'item_key = ?',
         whereArgs: [item.itemKey],
       );
+      _cachedPinned = null;
       revision.value++;
       return false;
     } else {
@@ -83,6 +91,7 @@ class PinnedFavoritesDao {
         item.toMap(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
+      _cachedPinned = null;
       revision.value++;
       return true;
     }
@@ -97,6 +106,7 @@ class PinnedFavoritesDao {
       whereArgs: [itemKey],
     );
     if (deleted > 0) {
+      _cachedPinned = null;
       revision.value++;
     }
     return deleted;
@@ -157,8 +167,11 @@ class PinnedFavoritesDao {
         )
     ''');
 
-    if (totalDeleted > 0 && notify) {
-      revision.value++;
+    if (totalDeleted > 0) {
+      _cachedPinned = null;
+      if (notify) {
+        revision.value++;
+      }
     }
     return totalDeleted;
   }
@@ -168,6 +181,7 @@ class PinnedFavoritesDao {
   Future<void> clearAll() async {
     final db = await _db;
     await db.delete('pinned_favorites');
+    _cachedPinned = null;
     revision.value++;
   }
 }
