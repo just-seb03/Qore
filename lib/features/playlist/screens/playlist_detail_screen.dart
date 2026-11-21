@@ -164,6 +164,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
       });
 
     PlaylistDao.playlistRevision.addListener(_onPlaylistRevisionChanged);
+    SongDao.libraryRevision.addListener(_onLibraryRevisionChanged);
     if (_isRecentsPlaylist) {
       SongDao.playbackHistoryRevision.addListener(_onPlaybackHistoryChanged);
     }
@@ -288,6 +289,17 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
     }
   }
 
+  void _onLibraryRevisionChanged() {
+    if (!mounted) return;
+    if (_isFavoritesPlaylist) {
+      _loadFavoriteSongs();
+    } else if (_isRecentsPlaylist) {
+      _loadRecentSongs();
+    } else if (_isUserPlaylist) {
+      _loadPlaylistSongs();
+    }
+  }
+
   Future<void> _loadFavoriteSongs() async {
     try {
       final songs = await FavoriteSongsDao.instance.getAllFavorites();
@@ -321,6 +333,7 @@ class _PlaylistDetailScreenState extends State<PlaylistDetailScreen>
   @override
   void dispose() {
     PlaylistDao.playlistRevision.removeListener(_onPlaylistRevisionChanged);
+    SongDao.libraryRevision.removeListener(_onLibraryRevisionChanged);
     if (_isRecentsPlaylist) {
       SongDao.playbackHistoryRevision.removeListener(_onPlaybackHistoryChanged);
     }

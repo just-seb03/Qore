@@ -1,16 +1,17 @@
 /// File: playlist_discard_dialog.dart
-/// Description: Material 3 Expressive confirmation dialog presented when the user
-/// attempts to dismiss the playlist editor with unsaved changes.
+/// Description: Windows Phone Metro confirmation dialog presented when the user
+/// attempts to dismiss the playlist editor with unsaved changes, matching the
+/// Space unpin confirmation dialog style.
 ///
 /// Components / Classes / Functions:
-/// - PlaylistDiscardDialog: Confirmation dialog widget.
+/// - PlaylistDiscardDialog: Metro confirmation dialog widget.
 library;
 
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 
-/// Confirmation dialog checking whether user wants to discard unsaved playlist changes.
+/// Metro confirmation dialog checking whether user wants to discard unsaved playlist changes.
 class PlaylistDiscardDialog extends StatelessWidget {
   const PlaylistDiscardDialog({super.key});
 
@@ -24,78 +25,46 @@ class PlaylistDiscardDialog extends StatelessWidget {
     return result ?? false;
   }
 
-  static TextStyle get _titleStyle => AppFonts.segoe(
-    fontSize: 18.0,
-    fontWeight: FontWeight.w700,
-    letterSpacing: 1.2,
-    color: AppColors.onSurface,
-  );
-
-  static TextStyle get _contentStyle => AppFonts.segoe(
-    fontSize: 14.0,
-    color: AppColors.onSurfaceVariant,
-    height: 1.4,
-  );
-
-  static final TextStyle _actionStyle = AppFonts.segoe(
-    fontSize: 14.5,
-    fontWeight: FontWeight.w600,
-  );
-
   @override
   Widget build(BuildContext context) {
     final l10n = context.l10n.playlist;
 
     return AlertDialog(
       backgroundColor: AppColors.surfaceContainerHigh,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.zero,
-        side: BorderSide(
-          color: AppColors.outline.withValues(alpha: 0.4),
-          width: 0.8,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      title: Text(
+        l10n.discardDialogTitle,
+        style: AppFonts.segoe(
+          fontWeight: FontWeight.bold,
+          color: AppColors.onSurface,
         ),
-      ),
-      titlePadding: const EdgeInsets.fromLTRB(24.0, 24.0, 24.0, 12.0),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-      actionsPadding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 16.0),
-      title: Row(
-        children: [
-          const Icon(
-            Icons.warning_amber_rounded,
-            color: Color(0xFFFFB74D),
-            size: 24.0,
-          ),
-          const SizedBox(width: 10.0),
-          Expanded(
-            child: Text(
-              l10n.discardDialogTitle,
-              style: _titleStyle,
-            ),
-          ),
-        ],
       ),
       content: Text(
         l10n.discardDialogMessage,
-        style: _contentStyle,
+        style: AppFonts.segoe(
+          color: AppColors.onSurfaceVariant,
+        ),
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
-          style: TextButton.styleFrom(
-            foregroundColor: AppColors.onSurfaceVariant,
-          ),
-          child: Text(l10n.keepEditingAction, style: _actionStyle),
-        ),
-        FilledButton(
-          onPressed: () => Navigator.of(context).pop(true),
-          style: FilledButton.styleFrom(
-            backgroundColor: const Color(0xFFE53935),
-            foregroundColor: Colors.white,
-            shape: const RoundedRectangleBorder(
-              borderRadius: BorderRadius.zero,
+          child: Text(
+            l10n.keepEditingAction.toUpperCase(),
+            style: AppFonts.segoe(
+              color: AppColors.onSurfaceVariant,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          child: Text(l10n.discardAction, style: _actionStyle),
+        ),
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(true),
+          child: Text(
+            l10n.discardAction.toUpperCase(),
+            style: AppFonts.segoe(
+              color: AppColors.accent,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ),
       ],
     );

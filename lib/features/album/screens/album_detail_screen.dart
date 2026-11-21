@@ -136,8 +136,15 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
         }
       });
 
+    SongDao.libraryRevision.addListener(_onLibraryRevisionChanged);
     _loadAlbumSongs();
     _checkPinnedStatus();
+  }
+
+  void _onLibraryRevisionChanged() {
+    if (mounted) {
+      _loadAlbumSongs();
+    }
   }
 
   Future<void> _checkPinnedStatus() async {
@@ -200,6 +207,7 @@ class _AlbumDetailScreenState extends State<AlbumDetailScreen>
 
   @override
   void dispose() {
+    SongDao.libraryRevision.removeListener(_onLibraryRevisionChanged);
     _springController.dispose();
     super.dispose();
   }

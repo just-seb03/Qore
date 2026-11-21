@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
+import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -25,9 +26,18 @@ class SongDao {
   /// Allows all recent history presentation widgets to reactively reload without app restarts.
   static final ValueNotifier<int> playbackHistoryRevision = ValueNotifier<int>(0);
 
+  /// Global change notifier incremented whenever songs are deleted or mutated in SQLite.
+  /// Allows AlbumDetailScreen, ArtistDetailScreen, and PlaylistDetailScreen to reactively reload.
+  static final ValueNotifier<int> libraryRevision = ValueNotifier<int>(0);
+
   /// Dispatches a reactive update notification to all playback history listeners.
   static void notifyPlaybackHistoryChanged() {
     playbackHistoryRevision.value++;
+  }
+
+  /// Dispatches a reactive update notification to all library detail listeners.
+  static void notifyLibraryChanged() {
+    libraryRevision.value++;
   }
 
   final AppDatabase _appDatabase;
@@ -1774,7 +1784,17 @@ class SongDao {
   Future<void> deleteSong(int mediaStoreId) async {
     final db = await _appDatabase.database;
     int prunedPins = 0;
+    final List<int> affectedPlaylistIds = [];
     await db.transaction((txn) async {
+      final playlistRows = await txn.rawQuery(
+        'SELECT DISTINCT playlist_id FROM playlist_songs WHERE media_store_id = ?',
+        [mediaStoreId],
+      );
+      for (final row in playlistRows) {
+        final pid = row['playlist_id'] as int?;
+        if (pid != null) affectedPlaylistIds.add(pid);
+      }
+
       await txn.delete('playlist_songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
       await txn.delete('favorite_songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
       await txn.rawDelete(
@@ -1783,6 +1803,21 @@ class SongDao {
       );
       await txn.delete('song_artists', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
       await txn.delete('songs', where: 'media_store_id = ?', whereArgs: [mediaStoreId]);
+
+      for (final pid in affectedPlaylistIds) {
+        await txn.rawUpdate('''
+          UPDATE playlists
+          SET song_count = (SELECT COUNT(*) FROM playlist_songs WHERE playlist_id = ?),
+              total_duration = COALESCE((
+                SELECT SUM(s.duration)
+                FROM playlist_songs ps
+                JOIN songs s ON ps.media_store_id = s.media_store_id
+                WHERE ps.playlist_id = ?
+              ), 0)
+          WHERE id = ?
+        ''', [pid, pid, pid]);
+      }
+
       prunedPins = await PinnedFavoritesDao.instance.pruneOrphanedPins(
         executor: txn,
         notify: false,
@@ -1791,7 +1826,11 @@ class SongDao {
     if (prunedPins > 0) {
       PinnedFavoritesDao.revision.value++;
     }
+    if (affectedPlaylistIds.isNotEmpty) {
+      PlaylistDao.playlistRevision.value++;
+    }
     await FavoriteSongsDao.instance.refreshCache();
     notifyPlaybackHistoryChanged();
+    notifyLibraryChanged();
   }
 }

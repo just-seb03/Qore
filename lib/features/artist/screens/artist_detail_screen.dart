@@ -110,8 +110,15 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
           });
         }
       });
+    SongDao.libraryRevision.addListener(_onLibraryRevisionChanged);
     _loadArtistData();
     _checkPinnedStatus();
+  }
+
+  void _onLibraryRevisionChanged() {
+    if (mounted) {
+      _loadArtistData();
+    }
   }
 
   Future<void> _checkPinnedStatus() async {
@@ -172,6 +179,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
 
   @override
   void dispose() {
+    SongDao.libraryRevision.removeListener(_onLibraryRevisionChanged);
     _springController.dispose();
     super.dispose();
   }

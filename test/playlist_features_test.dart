@@ -484,7 +484,7 @@ void main() {
       expect(find.text('Updated Name Live'), findsOneWidget);
       expect(find.text('Initial Name'), findsNothing);
     });
-    testWidgets('PlaylistDiscardDialog renders M3 Expressive confirmation dialog', (tester) async {
+    testWidgets('PlaylistDiscardDialog renders Metro Windows Phone confirmation dialog', (tester) async {
       bool? result;
 
       await tester.pumpWidget(
@@ -505,11 +505,13 @@ void main() {
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
 
+      final dialog = tester.widget<AlertDialog>(find.byType(AlertDialog));
+      expect(dialog.shape, const RoundedRectangleBorder(borderRadius: BorderRadius.zero));
       expect(find.text('Discard playlist?'), findsOneWidget);
-      expect(find.text('Keep editing'), findsOneWidget);
-      expect(find.text('Discard'), findsOneWidget);
+      expect(find.text('KEEP EDITING'), findsOneWidget);
+      expect(find.text('DISCARD'), findsOneWidget);
 
-      await tester.tap(find.text('Discard'));
+      await tester.tap(find.text('DISCARD'));
       await tester.pumpAndSettle();
 
       expect(result, isTrue);
