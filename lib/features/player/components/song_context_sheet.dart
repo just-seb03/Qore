@@ -435,7 +435,13 @@ class _ContextArtistRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final customSquare = ArtworkService.instance.getCustomArtistSquarePhoto(artistName);
-    final hasCustomPhoto = customSquare != null && File(customSquare).existsSync();
+    final hasCustomPhoto = customSquare != null && customSquare.isNotEmpty;
+
+    Widget buildFallbackIcon() => Icon(
+          Icons.person_rounded,
+          size: 20.0,
+          color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+        );
 
     return Material(
       color: Colors.transparent,
@@ -466,12 +472,9 @@ class _ContextArtistRow extends StatelessWidget {
                         fit: BoxFit.cover,
                         width: 38.0,
                         height: 38.0,
+                        errorBuilder: (_, _, _) => buildFallbackIcon(),
                       )
-                    : Icon(
-                        Icons.person_rounded,
-                        size: 20.0,
-                        color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
-                      ),
+                    : buildFallbackIcon(),
               ),
               const SizedBox(width: 12.0),
               Expanded(

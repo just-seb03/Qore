@@ -56,14 +56,66 @@ class ExploreMetroArtistTile extends StatelessWidget {
             child: ListenableBuilder(
               listenable: ArtworkService.instance,
               builder: (context, _) {
-                final directPath = customImagePath != null && File(customImagePath!).existsSync()
+                final directPath = (customImagePath != null && customImagePath!.isNotEmpty)
                     ? customImagePath
                     : null;
                 final customPath = directPath ??
                     ArtworkService.instance.getCustomArtistSquarePhoto(artist.name);
-                final hasCustomPhoto = customPath != null && File(customPath).existsSync();
+                final hasCustomPhoto = customPath != null && customPath.isNotEmpty;
                 final int avatarVersion =
                     ArtworkService.instance.getArtistAvatarVersion(artist.name);
+
+                Widget buildSilhouetteFallback() {
+                  return Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.only(bottom: 24.0),
+                          child: Icon(
+                            Icons.person_rounded,
+                            size: size * 0.44,
+                            color: AppColors.onSurfaceVariant.withValues(alpha: 0.45),
+                          ),
+                        ),
+                      ),
+                      Positioned(
+                        left: 8.0,
+                        right: 8.0,
+                        bottom: 8.0,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              artist.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppFonts.segoe(
+                                fontSize: 13.0,
+                                fontWeight: FontWeight.w400,
+                                color: AppColors.onSurface,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 1.5),
+                            Text(
+                              '${artist.songCount} ${artist.songCount == 1 ? "canción" : "canciones"}',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppFonts.segoe(
+                                fontSize: 11.0,
+                                fontWeight: FontWeight.w300,
+                                color: AppColors.onSurfaceVariant,
+                                letterSpacing: 0.2,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+                }
 
                 if (hasCustomPhoto) {
                   final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
@@ -84,6 +136,7 @@ class ExploreMetroArtistTile extends StatelessWidget {
                         fit: BoxFit.cover,
                         width: size,
                         height: size,
+                        errorBuilder: (_, _, _) => buildSilhouetteFallback(),
                       ),
 
                       // 2. High-contrast gradient scrim for legible typography

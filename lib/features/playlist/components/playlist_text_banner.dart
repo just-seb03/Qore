@@ -138,7 +138,32 @@ class PlaylistTextBanner extends StatelessWidget {
   }
 
   Widget _buildBackground(BuildContext context) {
-    if (coverPath != null && File(coverPath!).existsSync()) {
+    Widget buildFallback() {
+      if (representativeSongId != null && representativeSongId! > 0) {
+        return AnimaArtworkImage(
+          mediaStoreId: representativeSongId!,
+          width: double.infinity,
+          height: double.infinity,
+          borderRadius: 0.0,
+          fit: BoxFit.cover,
+          fallbackIcon: Icons.queue_music_rounded,
+          isThumbnail: false,
+        );
+      }
+
+      return Container(
+        color: AppColors.surfaceContainerHigh,
+        child: Center(
+          child: Icon(
+            Symbols.queue_music_rounded,
+            size: 48.0,
+            color: AppColors.onSurfaceVariant.withValues(alpha: 0.30),
+          ),
+        ),
+      );
+    }
+
+    if (coverPath != null && coverPath!.isNotEmpty) {
       final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
       final screenW = MediaQuery.maybeSizeOf(context)?.width ?? 400.0;
       final cacheW = (screenW * dpr).round().clamp(400, 1000);
@@ -153,30 +178,10 @@ class PlaylistTextBanner extends StatelessWidget {
         cacheWidth: cacheW,
         cacheHeight: cacheH,
         filterQuality: FilterQuality.medium,
+        errorBuilder: (_, _, _) => buildFallback(),
       );
     }
 
-    if (representativeSongId != null && representativeSongId! > 0) {
-      return AnimaArtworkImage(
-        mediaStoreId: representativeSongId!,
-        width: double.infinity,
-        height: double.infinity,
-        borderRadius: 0.0,
-        fit: BoxFit.cover,
-        fallbackIcon: Icons.queue_music_rounded,
-        isThumbnail: false,
-      );
-    }
-
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: Center(
-        child: Icon(
-          Symbols.queue_music_rounded,
-          size: 48.0,
-          color: AppColors.onSurfaceVariant.withValues(alpha: 0.30),
-        ),
-      ),
-    );
+    return buildFallback();
   }
 }

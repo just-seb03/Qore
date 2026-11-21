@@ -337,44 +337,46 @@ class ArtworkService extends ChangeNotifier {
     }
   }
 
-  /// Returns the local path to a custom artist avatar in O(1) time if available.
+  /// Returns the local path to a custom artist avatar in O(1) time without disk stat() calls.
   /// Prefers the circular rasterized version if present, falling back to legacy or square.
   String? getCustomArtistAvatar(String? artist) {
     if (artist == null || artist.trim().isEmpty) return null;
     final key = _normalizeArtistKey(artist);
-    final round = _customArtistRoundCache[key];
-    if (round != null && File(round).existsSync()) {
-      return round;
-    }
-    final direct = _customArtistAvatarCache[key];
-    if (direct != null && File(direct).existsSync()) {
-      return direct;
-    }
-    final square = _customArtistSquareCache[key];
-    if (square != null && File(square).existsSync()) {
-      return square;
-    }
-    return null;
+    return _customArtistRoundCache[key] ??
+        _customArtistAvatarCache[key] ??
+        _customArtistSquareCache[key];
   }
 
-  /// Returns the local path to a custom artist square photo (for Space) in O(1) time if available.
+  /// Returns the local path to a custom artist square photo in O(1) time without disk stat() calls.
   /// Prefers the 1:1 square version if present, falling back to legacy or round.
   String? getCustomArtistSquarePhoto(String? artist) {
     if (artist == null || artist.trim().isEmpty) return null;
     final key = _normalizeArtistKey(artist);
-    final square = _customArtistSquareCache[key];
-    if (square != null && File(square).existsSync()) {
-      return square;
+    return _customArtistSquareCache[key] ??
+        _customArtistAvatarCache[key] ??
+        _customArtistRoundCache[key];
+  }
+
+  /// Evicts a stale cached artist image path if `Image.errorBuilder` reports a missing file.
+  void evictMissingArtistAvatar(String? artist, String path) {
+    if (artist == null || artist.trim().isEmpty) return;
+    final key = _normalizeArtistKey(artist);
+    bool removed = false;
+    if (_customArtistSquareCache[key] == path) {
+      _customArtistSquareCache.remove(key);
+      removed = true;
     }
-    final direct = _customArtistAvatarCache[key];
-    if (direct != null && File(direct).existsSync()) {
-      return direct;
+    if (_customArtistAvatarCache[key] == path) {
+      _customArtistAvatarCache.remove(key);
+      removed = true;
     }
-    final round = _customArtistRoundCache[key];
-    if (round != null && File(round).existsSync()) {
-      return round;
+    if (_customArtistRoundCache[key] == path) {
+      _customArtistRoundCache.remove(key);
+      removed = true;
     }
-    return null;
+    if (removed) {
+      notifyListeners();
+    }
   }
 
   /// Returns the in-memory revision counter for an artist's custom photo so

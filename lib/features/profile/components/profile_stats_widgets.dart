@@ -220,9 +220,15 @@ class _SquareArtistThumb extends StatelessWidget {
         final customSquare =
             ArtworkService.instance.getCustomArtistSquarePhoto(artistName);
         final hasPhoto =
-            customSquare != null && File(customSquare).existsSync();
+            customSquare != null && customSquare.isNotEmpty;
         final version =
             ArtworkService.instance.getArtistAvatarVersion(artistName);
+
+        Widget buildFallback() => Icon(
+              Icons.person_rounded,
+              size: 26.0,
+              color: AppColors.onSurfaceVariant.withValues(alpha: 0.65),
+            );
 
         return Container(
           width: 48.0,
@@ -244,12 +250,9 @@ class _SquareArtistThumb extends StatelessWidget {
                   fit: BoxFit.cover,
                   width: 48.0,
                   height: 48.0,
+                  errorBuilder: (_, _, _) => buildFallback(),
                 )
-              : Icon(
-                  Icons.person_rounded,
-                  size: 26.0,
-                  color: AppColors.onSurfaceVariant.withValues(alpha: 0.65),
-                ),
+              : buildFallback(),
         );
       },
     );

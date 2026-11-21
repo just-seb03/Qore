@@ -71,13 +71,21 @@ class MetroArtistTile extends StatelessWidget {
     return ListenableBuilder(
       listenable: ArtworkService.instance,
       builder: (context, _) {
-        final directPath = artist.coverPath != null && File(artist.coverPath!).existsSync()
+        final directPath = (artist.coverPath != null && artist.coverPath!.isNotEmpty)
             ? artist.coverPath
             : null;
         final photoPath = directPath ??
             ArtworkService.instance.getCustomArtistSquarePhoto(artist.title);
 
-        final bool hasPhoto = photoPath != null && File(photoPath).existsSync();
+        final bool hasPhoto = photoPath != null && photoPath.isNotEmpty;
+
+        Widget buildSilhouette() => Center(
+              child: Icon(
+                Icons.person_rounded,
+                size: 72.0,
+                color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
+              ),
+            );
 
         return Container(
           color: AppColors.surfaceContainerHigh,
@@ -93,15 +101,10 @@ class MetroArtistTile extends StatelessWidget {
                   fit: BoxFit.cover,
                   gaplessPlayback: true,
                   filterQuality: FilterQuality.medium,
+                  errorBuilder: (_, _, _) => buildSilhouette(),
                 )
               else
-                Center(
-                  child: Icon(
-                    Icons.person_rounded,
-                    size: 72.0,
-                    color: AppColors.onSurfaceVariant.withValues(alpha: 0.5),
-                  ),
-                ),
+                buildSilhouette(),
 
               // 2. Bottom gradient scrim with prominent bold artist name
               Positioned(

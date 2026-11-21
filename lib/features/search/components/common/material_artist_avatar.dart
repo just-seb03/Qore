@@ -53,14 +53,30 @@ class MaterialArtistAvatar extends StatelessWidget {
     return ListenableBuilder(
       listenable: ArtworkService.instance,
       builder: (context, _) {
-        final directPath = customImagePath != null && File(customImagePath!).existsSync()
+        final directPath = (customImagePath != null && customImagePath!.isNotEmpty)
             ? customImagePath
             : null;
         final customPath = directPath ??
             ArtworkService.instance.getCustomArtistSquarePhoto(artistName) ??
             ArtworkService.instance.getCustomArtistAvatar(artistName);
 
-        if (customPath != null && File(customPath).existsSync()) {
+        Widget buildFallback() => Container(
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                color: effectiveBg,
+                borderRadius: BorderRadius.zero,
+              ),
+              child: Center(
+                child: Icon(
+                  icon,
+                  size: radius * 1.15,
+                  color: effectiveIconColor,
+                ),
+              ),
+            );
+
+        if (customPath != null && customPath.isNotEmpty) {
           final dpr = MediaQuery.maybeDevicePixelRatioOf(context) ?? 2.5;
           final int pixelSize = (size * dpr).round().clamp(64, 400);
 
@@ -82,25 +98,12 @@ class MaterialArtistAvatar extends StatelessWidget {
               width: size,
               height: size,
               fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => buildFallback(),
             ),
           );
         }
 
-        return Container(
-          width: size,
-          height: size,
-          decoration: BoxDecoration(
-            color: effectiveBg,
-            borderRadius: BorderRadius.zero,
-          ),
-          child: Center(
-            child: Icon(
-              icon,
-              size: radius * 1.15,
-              color: effectiveIconColor,
-            ),
-          ),
-        );
+        return buildFallback();
       },
     );
   }

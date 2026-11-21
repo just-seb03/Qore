@@ -72,10 +72,21 @@ class ArtistHeaderView extends StatelessWidget {
                               .getCustomArtistSquarePhoto(artistName) ??
                           ArtworkService.instance
                               .getCustomArtistAvatar(artistName);
-                      final hasCustomPhoto = customSquare != null &&
-                          File(customSquare).existsSync();
+                      final hasCustomPhoto =
+                          customSquare != null && customSquare.isNotEmpty;
                       final int avatarVersion =
                           ArtworkService.instance.getArtistAvatarVersion(artistName);
+
+                      Widget buildFallback() => Container(
+                            color: AppColors.surfaceContainerHigh,
+                            child: Center(
+                              child: Icon(
+                                Icons.person_rounded,
+                                size: 80.0,
+                                color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                              ),
+                            ),
+                          );
 
                       if (hasCustomPhoto) {
                         return Image(
@@ -89,19 +100,11 @@ class ArtistHeaderView extends StatelessWidget {
                           fit: BoxFit.cover,
                           width: avatarSize,
                           height: avatarSize,
+                          errorBuilder: (_, _, _) => buildFallback(),
                         );
                       }
 
-                      return Container(
-                        color: AppColors.surfaceContainerHigh,
-                        child: Center(
-                          child: Icon(
-                            Icons.person_rounded,
-                            size: 80.0,
-                            color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
-                          ),
-                        ),
-                      );
+                      return buildFallback();
                     },
                   ),
                 ),
