@@ -12,8 +12,8 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
+import 'package:project_anima/features/profile/components/profile_stats_widgets.dart';
 import 'package:project_anima/features/profile/screens/profile.dart';
-import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 const _testDelegates = [
@@ -135,9 +135,11 @@ void main() {
           locale: const Locale('es'),
           home: ProfileScreen(
             showBottomNav: false,
+            initialTotalPlaybackMs: (2 * 24 * 60 + 5 * 60 + 30) * 60000,
             initialTopSongs: songs,
             initialTopArtist: topArtist,
             initialTopAlbum: topAlbum,
+            initialFavoriteGenre: 'Progressive Rock',
           ),
         ),
       );
@@ -145,16 +147,27 @@ void main() {
 
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
       expect(find.text('Perfil'), findsOneWidget);
+      expect(find.text('TIEMPO REPRODUCIDO'), findsOneWidget);
+      expect(find.text('DÍAS'), findsOneWidget);
+      expect(find.text('HORAS'), findsOneWidget);
+      expect(find.text('MINUTOS'), findsOneWidget);
+      expect(find.text('2'), findsOneWidget);
+      expect(find.text('5'), findsOneWidget);
+      expect(find.text('30'), findsOneWidget);
       expect(find.text('TOP CANCIONES'), findsOneWidget);
       expect(find.text('Breathe'), findsOneWidget);
-      expect(find.text('ARTISTA MÁS ESCUCHADO'), findsOneWidget);
-      expect(find.text('ÁLBUM MÁS ESCUCHADO'), findsOneWidget);
+      expect(find.text('ARTISTAS MÁS ESCUCHADOS'), findsOneWidget);
+      expect(find.text('ÁLBUMES MÁS ESCUCHADOS'), findsOneWidget);
+      expect(find.text('GÉNERO FAVORITO'), findsOneWidget);
+      expect(find.text('Progressive Rock'), findsOneWidget);
       expect(find.text('Pink Floyd'), findsAtLeastNWidgets(1));
       expect(find.text('The Dark Side of the Moon'), findsOneWidget);
-      expect(find.byType(MaterialArtistAvatar), findsOneWidget);
+      expect(find.byType(ProfileTopArtistTile), findsOneWidget);
 
       // Settings button exists and has sharp BorderRadius.zero
       final settingsFinder = find.byKey(const ValueKey('profile_settings_button'));
+      await tester.ensureVisible(settingsFinder);
+      await tester.pump();
       expect(settingsFinder, findsOneWidget);
       expect(find.text('Ajustes'), findsOneWidget);
       final settingsInkWell = tester.widget<InkWell>(settingsFinder);
@@ -212,12 +225,12 @@ void main() {
       expect(find.text('Profile'), findsOneWidget);
       expect(find.text('Settings'), findsOneWidget);
 
-      await tester.tap(find.text('MOST PLAYED ARTIST'));
+      await tester.tap(find.text('MOST PLAYED ARTISTS'));
       await tester.pump();
 
       // Tap artist tile
       await tester.runAsync(() async {
-        await tester.tap(find.byType(MaterialArtistAvatar));
+        await tester.tap(find.byType(ProfileTopArtistTile));
         await tester.pump();
         await tester.pump(const Duration(milliseconds: 300));
         await Future<void>.delayed(const Duration(milliseconds: 100));

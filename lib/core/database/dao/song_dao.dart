@@ -1719,8 +1719,22 @@ class SongDao {
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
-  /// Retrieves the user's overall most played artist across playback history.
-  Future<ArtistDiscoveryItem?> getMostPlayedArtist() async {
+  /// Retrieves the total playback duration in milliseconds across all recorded plays.
+  Future<int> getTotalPlaybackTimeMs() async {
+    final db = await _appDatabase.database;
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT COALESCE(SUM(s.duration), 0) AS total_ms
+      FROM playback_history ph
+      INNER JOIN songs s ON s.id = ph.song_id;
+      ''',
+    );
+    if (results.isEmpty) return 0;
+    return (results.first['total_ms'] as num?)?.toInt() ?? 0;
+  }
+
+  /// Retrieves up to [limit] most played artists across playback history.
+  Future<List<ArtistDiscoveryItem>> getTopPlayedArtists({int limit = 3}) async {
     final db = await _appDatabase.database;
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
@@ -1741,15 +1755,21 @@ class SongDao {
         AND COALESCE(NULLIF(TRIM(s.album_artist), ''), NULLIF(TRIM(s.artist), '')) != 'Unknown Artist'
       GROUP BY COALESCE(NULLIF(TRIM(s.album_artist), ''), NULLIF(TRIM(s.artist), '')) COLLATE NOCASE
       ORDER BY COUNT(ph.id) DESC, MAX(ph.played_at) DESC
-      LIMIT 1;
+      LIMIT ?;
       ''',
+      [limit],
     );
-    if (results.isEmpty) return null;
-    return ArtistDiscoveryItem.fromMap(results.first);
+    return results.map((row) => ArtistDiscoveryItem.fromMap(row)).toList();
   }
 
-  /// Retrieves the user's overall most played album across playback history.
-  Future<AlbumDiscoveryItem?> getMostPlayedAlbum() async {
+  /// Retrieves the user's overall most played artist across playback history.
+  Future<ArtistDiscoveryItem?> getMostPlayedArtist() async {
+    final top = await getTopPlayedArtists(limit: 1);
+    return top.isEmpty ? null : top.first;
+  }
+
+  /// Retrieves up to [limit] most played albums across playback history.
+  Future<List<AlbumDiscoveryItem>> getTopPlayedAlbums({int limit = 3}) async {
     final db = await _appDatabase.database;
     final List<Map<String, dynamic>> results = await db.rawQuery(
       '''
@@ -1773,11 +1793,39 @@ class SongDao {
         AND s.album != 'Unknown Album'
       GROUP BY s.album COLLATE NOCASE
       ORDER BY COUNT(ph.id) DESC, MAX(ph.played_at) DESC
+      LIMIT ?;
+      ''',
+      [limit],
+    );
+    return results.map((row) => AlbumDiscoveryItem.fromMap(row)).toList();
+  }
+
+  /// Retrieves the user's overall most played album across playback history.
+  Future<AlbumDiscoveryItem?> getMostPlayedAlbum() async {
+    final top = await getTopPlayedAlbums(limit: 1);
+    return top.isEmpty ? null : top.first;
+  }
+
+  /// Retrieves the user's most played genre across playback history, if any.
+  Future<String?> getFavoriteGenre() async {
+    final db = await _appDatabase.database;
+    final List<Map<String, dynamic>> results = await db.rawQuery(
+      '''
+      SELECT TRIM(s.genre) AS genre
+      FROM playback_history ph
+      INNER JOIN songs s ON s.id = ph.song_id
+      WHERE s.genre IS NOT NULL
+        AND TRIM(s.genre) != ''
+        AND TRIM(s.genre) != '<Desconocido>'
+        AND TRIM(s.genre) != 'Unknown'
+      GROUP BY TRIM(s.genre) COLLATE NOCASE
+      ORDER BY COUNT(ph.id) DESC, MAX(ph.played_at) DESC
       LIMIT 1;
       ''',
     );
     if (results.isEmpty) return null;
-    return AlbumDiscoveryItem.fromMap(results.first);
+    final genre = results.first['genre'] as String?;
+    return (genre == null || genre.trim().isEmpty) ? null : genre.trim();
   }
 
   /// Deletes a song from SQLite across songs, playlist_songs, favorite_songs, playback_history, and Space pins.

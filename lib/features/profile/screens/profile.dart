@@ -1,7 +1,7 @@
 /// File: profile.dart
-/// Description: Windows Phone Metro Profile screen displaying the user's global top played
-/// songs (without play counters), most played artist, most played album, and a Metro-styled
-/// Settings button over the persistent AmbientParticlesCanvas backdrop.
+/// Description: Windows Phone Metro Profile screen displaying total listening time
+/// (days, hours, minutes), top 3 artists, top 3 albums, top 5 songs, favorite genre,
+/// and a Metro-styled Settings button over the persistent AmbientParticlesCanvas backdrop.
 ///
 /// Components / Classes / Functions:
 /// - Profile: Type alias for ProfileScreen.
@@ -21,11 +21,9 @@ import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/core/utils/duration_formatter.dart';
-import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
-import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
 import 'package:project_anima/features/profile/components/profile_header.dart';
-import 'package:project_anima/features/search/components/common/material_artist_avatar.dart';
+import 'package:project_anima/features/profile/components/profile_stats_widgets.dart';
 import 'package:project_anima/features/settings/screens/settings_screen.dart';
 
 /// Type alias allowing both `Profile` and `ProfileScreen` across the codebase.
@@ -42,11 +40,23 @@ class ProfileScreen extends StatefulWidget {
   /// Optional pre-loaded top songs (skips async DB load in tests).
   final List<Song>? initialTopSongs;
 
-  /// Optional pre-loaded most played artist.
+  /// Optional pre-loaded most played artist (backward compatible single-item test helper).
   final ArtistDiscoveryItem? initialTopArtist;
 
-  /// Optional pre-loaded most played album.
+  /// Optional pre-loaded most played album (backward compatible single-item test helper).
   final AlbumDiscoveryItem? initialTopAlbum;
+
+  /// Optional pre-loaded top 3 artists.
+  final List<ArtistDiscoveryItem>? initialTopArtists;
+
+  /// Optional pre-loaded top 3 albums.
+  final List<AlbumDiscoveryItem>? initialTopAlbums;
+
+  /// Optional pre-loaded total playback time in milliseconds.
+  final int? initialTotalPlaybackMs;
+
+  /// Optional pre-loaded favorite genre.
+  final String? initialFavoriteGenre;
 
   const ProfileScreen({
     super.key,
@@ -55,6 +65,10 @@ class ProfileScreen extends StatefulWidget {
     this.initialTopSongs,
     this.initialTopArtist,
     this.initialTopAlbum,
+    this.initialTopArtists,
+    this.initialTopAlbums,
+    this.initialTotalPlaybackMs,
+    this.initialFavoriteGenre,
   });
 
   @override
@@ -66,8 +80,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   late final SongDao _songDao;
 
   List<Song> _topSongs = const [];
-  ArtistDiscoveryItem? _topArtist;
-  AlbumDiscoveryItem? _topAlbum;
+  List<ArtistDiscoveryItem> _topArtists = const [];
+  List<AlbumDiscoveryItem> _topAlbums = const [];
+  int _totalPlaybackMs = 0;
+  String? _favoriteGenre;
   bool _isLoading = true;
 
   @override
@@ -79,12 +95,26 @@ class _ProfileScreenState extends State<ProfileScreen>
     _songDao = widget.songDao ?? SongDao();
     SongDao.playbackHistoryRevision.addListener(_onPlaybackHistoryChanged);
 
-    if (widget.initialTopSongs != null ||
+    final hasInitialData = widget.initialTopSongs != null ||
         widget.initialTopArtist != null ||
-        widget.initialTopAlbum != null) {
+        widget.initialTopAlbum != null ||
+        widget.initialTopArtists != null ||
+        widget.initialTopAlbums != null ||
+        widget.initialTotalPlaybackMs != null ||
+        widget.initialFavoriteGenre != null;
+
+    if (hasInitialData) {
       _topSongs = widget.initialTopSongs ?? const [];
-      _topArtist = widget.initialTopArtist;
-      _topAlbum = widget.initialTopAlbum;
+      _topArtists = widget.initialTopArtists ??
+          (widget.initialTopArtist != null
+              ? [widget.initialTopArtist!]
+              : const []);
+      _topAlbums = widget.initialTopAlbums ??
+          (widget.initialTopAlbum != null
+              ? [widget.initialTopAlbum!]
+              : const []);
+      _totalPlaybackMs = widget.initialTotalPlaybackMs ?? 0;
+      _favoriteGenre = widget.initialFavoriteGenre;
       _isLoading = false;
     } else {
       _loadProfileStats();
@@ -104,30 +134,37 @@ class _ProfileScreenState extends State<ProfileScreen>
   Future<void> _loadProfileStats() async {
     try {
       final results = await Future.wait([
+        _songDao.getTotalPlaybackTimeMs(),
+        _songDao.getTopPlayedArtists(limit: 3),
+        _songDao.getTopPlayedAlbums(limit: 3),
         _songDao.getTopSongsGlobal(limit: 5),
-        _songDao.getMostPlayedArtist(),
-        _songDao.getMostPlayedAlbum(),
+        _songDao.getFavoriteGenre(),
       ]);
 
       if (!mounted) return;
 
-      final topSongs = results[0] as List<Song>;
-      final topArtist = results[1] as ArtistDiscoveryItem?;
-      final topAlbum = results[2] as AlbumDiscoveryItem?;
+      final totalPlaybackMs = results[0] as int;
+      final topArtists = results[1] as List<ArtistDiscoveryItem>;
+      final topAlbums = results[2] as List<AlbumDiscoveryItem>;
+      final topSongs = results[3] as List<Song>;
+      final favoriteGenre = results[4] as String?;
 
       final ids = <int>[
         ...topSongs.map((s) => s.mediaStoreId),
-        if (topAlbum != null && topAlbum.representativeSongId > 0)
-          topAlbum.representativeSongId,
+        ...topAlbums
+            .where((a) => a.representativeSongId > 0)
+            .map((a) => a.representativeSongId),
       ];
       if (ids.isNotEmpty) {
         ArtworkService.instance.prioritizeSongIds(ids);
       }
 
       setState(() {
+        _totalPlaybackMs = totalPlaybackMs;
+        _topArtists = topArtists;
+        _topAlbums = topAlbums;
         _topSongs = topSongs;
-        _topArtist = topArtist;
-        _topAlbum = topAlbum;
+        _favoriteGenre = favoriteGenre;
         _isLoading = false;
       });
     } catch (e) {
@@ -146,6 +183,10 @@ class _ProfileScreenState extends State<ProfileScreen>
   Widget build(BuildContext context) {
     super.build(context);
     final isSpanish = Localizations.localeOf(context).languageCode == 'es';
+    final bool hasAnyHistory = _totalPlaybackMs > 0 ||
+        _topArtists.isNotEmpty ||
+        _topAlbums.isNotEmpty ||
+        _topSongs.isNotEmpty;
 
     return Scaffold(
       extendBody: true,
@@ -191,31 +232,59 @@ class _ProfileScreenState extends State<ProfileScreen>
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.stretch,
                               children: [
-                                // 1. Artista Más Escuchado
-                                if (_topArtist != null) ...[
-                                  _buildSectionHeader(
-                                    isSpanish
-                                        ? 'ARTISTA MÁS ESCUCHADO'
-                                        : 'MOST PLAYED ARTIST',
-                                  ),
-                                  const SizedBox(height: 8.0),
-                                  _buildTopArtistTile(context, _topArtist!, isSpanish),
-                                  const SizedBox(height: 18.0),
-                                ],
+                                // 1. Tiempo Total Reproducido (Días, Horas, Minutos)
+                                _buildSectionHeader(
+                                  isSpanish
+                                      ? 'TIEMPO REPRODUCIDO'
+                                      : 'LISTENING TIME',
+                                ),
+                                const SizedBox(height: 8.0),
+                                ProfileListeningTimeRow(
+                                  totalPlaybackMs: _totalPlaybackMs,
+                                  isSpanish: isSpanish,
+                                ),
+                                const SizedBox(height: 22.0),
 
-                                // 2. Álbum Más Escuchado
-                                if (_topAlbum != null) ...[
+                                // 2. Top 3 Artistas Más Escuchados
+                                if (_topArtists.isNotEmpty) ...[
                                   _buildSectionHeader(
                                     isSpanish
-                                        ? 'ÁLBUM MÁS ESCUCHADO'
-                                        : 'MOST PLAYED ALBUM',
+                                        ? 'ARTISTAS MÁS ESCUCHADOS'
+                                        : 'MOST PLAYED ARTISTS',
                                   ),
                                   const SizedBox(height: 8.0),
-                                  _buildTopAlbumTile(context, _topAlbum!, isSpanish),
+                                  for (int i = 0; i < _topArtists.length; i++) ...[
+                                    ProfileTopArtistTile(
+                                      artist: _topArtists[i],
+                                      rank: i + 1,
+                                      isSpanish: isSpanish,
+                                    ),
+                                    if (i < _topArtists.length - 1)
+                                      const SizedBox(height: 6.0),
+                                  ],
                                   const SizedBox(height: 22.0),
                                 ],
 
-                                // 3. Top Canciones Generales (sin contador)
+                                // 3. Top 3 Álbumes Más Escuchados
+                                if (_topAlbums.isNotEmpty) ...[
+                                  _buildSectionHeader(
+                                    isSpanish
+                                        ? 'ÁLBUMES MÁS ESCUCHADOS'
+                                        : 'MOST PLAYED ALBUMS',
+                                  ),
+                                  const SizedBox(height: 8.0),
+                                  for (int i = 0; i < _topAlbums.length; i++) ...[
+                                    ProfileTopAlbumTile(
+                                      album: _topAlbums[i],
+                                      rank: i + 1,
+                                    ),
+                                    if (i < _topAlbums.length - 1)
+                                      const SizedBox(height: 6.0),
+                                  ],
+                                  const SizedBox(height: 22.0),
+                                ],
+
+                                // 4. Top 5 Canciones Más Escuchadas
                                 if (_topSongs.isNotEmpty) ...[
                                   _buildSectionHeader(
                                     isSpanish ? 'TOP CANCIONES' : 'TOP SONGS',
@@ -235,19 +304,32 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   const SizedBox(height: 22.0),
                                 ],
 
+                                // 5. Género Favorito
+                                if (_favoriteGenre != null &&
+                                    _favoriteGenre!.isNotEmpty) ...[
+                                  _buildSectionHeader(
+                                    isSpanish
+                                        ? 'GÉNERO FAVORITO'
+                                        : 'FAVORITE GENRE',
+                                  ),
+                                  const SizedBox(height: 8.0),
+                                  ProfileFavoriteGenreTile(
+                                    genre: _favoriteGenre!,
+                                  ),
+                                  const SizedBox(height: 22.0),
+                                ],
+
                                 // Empty state if no listening history yet
-                                if (_topSongs.isEmpty &&
-                                    _topArtist == null &&
-                                    _topAlbum == null) ...[
+                                if (!hasAnyHistory) ...[
                                   Padding(
                                     padding: const EdgeInsets.symmetric(
                                       horizontal: 20.0,
-                                      vertical: 32.0,
+                                      vertical: 24.0,
                                     ),
                                     child: Text(
                                       isSpanish
-                                          ? 'Reproduce música para ver tus canciones, artista y álbum más escuchados.'
-                                          : 'Play music to see your top songs, artist, and album.',
+                                          ? 'Reproduce música para ver tus estadísticas de escucha.'
+                                          : 'Play music to see your listening stats.',
                                       style: AppFonts.light(
                                         fontSize: 16.0,
                                         color: AppColors.onSurfaceVariant,
@@ -256,7 +338,7 @@ class _ProfileScreenState extends State<ProfileScreen>
                                   ),
                                 ],
 
-                                // 4. Metro Settings Button
+                                // 6. Metro Settings Button
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 20.0),
                                   child: Container(
@@ -424,172 +506,6 @@ class _ProfileScreenState extends State<ProfileScreen>
                 durationText: _formatDuration(song.duration),
               ),
             ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopArtistTile(
-    BuildContext context,
-    ArtistDiscoveryItem artist,
-    bool isSpanish,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainer.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.zero,
-          border: Border.all(
-            color: AppColors.outline.withValues(alpha: 0.30),
-            width: 1.0,
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.zero,
-          child: InkWell(
-            borderRadius: BorderRadius.zero,
-            splashColor: AppColors.accent.withValues(alpha: 0.15),
-            onTap: () {
-              Navigator.of(context).push(
-                ArtistDetailScreen.route(artist.name),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                children: [
-                  MaterialArtistAvatar(
-                    radius: 30.0,
-                    artistName: artist.name,
-                  ),
-                  const SizedBox(width: 14.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          artist.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppFonts.light(
-                            fontSize: 20.0,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 3.0),
-                        Text(
-                          isSpanish ? 'Artista' : 'Artist',
-                          style: AppFonts.segoe(
-                            fontSize: 13.0,
-                            fontWeight: FontWeight.w300,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.onSurfaceVariant,
-                    size: 20.0,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildTopAlbumTile(
-    BuildContext context,
-    AlbumDiscoveryItem album,
-    bool isSpanish,
-  ) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      child: Container(
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainer.withValues(alpha: 0.85),
-          borderRadius: BorderRadius.zero,
-          border: Border.all(
-            color: AppColors.outline.withValues(alpha: 0.30),
-            width: 1.0,
-          ),
-        ),
-        child: Material(
-          color: Colors.transparent,
-          borderRadius: BorderRadius.zero,
-          child: InkWell(
-            borderRadius: BorderRadius.zero,
-            splashColor: AppColors.accent.withValues(alpha: 0.15),
-            onTap: () {
-              Navigator.of(context).push(
-                AlbumDetailScreen.route(
-                  albumName: album.name,
-                  artistName: album.artist,
-                  albumId: album.albumId,
-                  representativeSongId: album.representativeSongId,
-                ),
-              );
-            },
-            child: Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                children: [
-                  AnimaArtworkImage(
-                    mediaStoreId: album.representativeSongId,
-                    albumId: album.albumId,
-                    albumName: album.name,
-                    artistName: album.artist,
-                    width: 60.0,
-                    height: 60.0,
-                    borderRadius: 0.0,
-                    isThumbnail: false,
-                    fallbackIcon: Icons.album_rounded,
-                  ),
-                  const SizedBox(width: 14.0),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          album.name,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppFonts.light(
-                            fontSize: 20.0,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 3.0),
-                        Text(
-                          album.artist,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppFonts.segoe(
-                            fontSize: 13.0,
-                            fontWeight: FontWeight.w300,
-                            color: AppColors.onSurfaceVariant,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Icon(
-                    Icons.chevron_right_rounded,
-                    color: AppColors.onSurfaceVariant,
-                    size: 22.0,
-                  ),
-                ],
-              ),
-            ),
           ),
         ),
       ),
