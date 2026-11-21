@@ -1,23 +1,21 @@
 /// File: song_playlist_picker_sheet.dart
-/// Description: Modal bottom sheet displaying the user's playlists in Space style (2:1 widescreen
-/// sharp unrounded banners) allowing one-tap addition or removal of the current track.
-/// Playlists containing the track are darkened with a checkmark badge.
+/// Description: Windows Phone Metro modal bottom sheet listing the user's playlists
+/// by name with a sharp square accent checkmark toggle for adding or removing a track.
 ///
 /// Components / Classes / Functions:
-/// - SongPlaylistPickerSheet: Bottom sheet playlist picker widget.
+/// - SongPlaylistPickerSheet: Metro bottom sheet playlist picker widget.
 library;
 
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
-import 'package:project_anima/features/playlist/components/playlist_text_banner.dart';
 
-/// Modal bottom sheet for toggling song membership in playlists with Space 2:1 tile aesthetics.
+/// Metro modal bottom sheet for toggling song membership in playlists.
 class SongPlaylistPickerSheet extends StatefulWidget {
   final Song song;
   final PlaylistDao? playlistDao;
@@ -92,7 +90,7 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
 
   Future<void> _togglePlaylist(Playlist playlist) async {
     if (playlist.id == null) return;
-    HapticFeedback.mediumImpact();
+    HapticFeedback.selectionClick();
 
     final isContained = _containedPlaylistIds.contains(playlist.id!);
 
@@ -118,7 +116,6 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
       }
     } catch (e) {
       debugPrint('⚠️ [SongPlaylistPickerSheet] Error updating playlist membership: $e');
-      // Rollback on failure
       if (mounted) {
         setState(() {
           if (isContained) {
@@ -135,17 +132,23 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
 
-    return BackdropFilter(
-      filter: ImageFilter.blur(sigmaX: 18.0, sigmaY: 18.0),
-      child: Container(
-        height: screenHeight * 0.75,
-        decoration: BoxDecoration(
-          color: AppColors.surfaceContainerHigh.withValues(alpha: 0.96),
-          borderRadius: BorderRadius.zero,
+    return Container(
+      height: screenHeight * 0.65,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.zero,
+        border: Border(
+          top: BorderSide(
+            color: AppColors.outline.withValues(alpha: 0.3),
+            width: 0.8,
+          ),
         ),
+      ),
+      child: SafeArea(
+        top: false,
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // 1. Universal Dismiss Chevron
             const SizedBox(height: 6.0),
             ModalDismissIndicator(
               onDismiss: () => Navigator.of(context).pop(),
@@ -155,42 +158,47 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
               padding: const EdgeInsets.symmetric(vertical: 6.0),
             ),
 
-            // 2. Header: Title & Track Subtitle
+            // Header: "Añadir a lista" + track subtitle
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 6.0),
+              padding: const EdgeInsets.fromLTRB(20.0, 6.0, 20.0, 12.0),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'AÑADIR A PLAYLIST',
+                    context.l10n.playlist.addToListTitle.toUpperCase(),
                     style: AppFonts.segoe(
-                      fontSize: 15.5,
-                      fontWeight: FontWeight.w400,
-                      letterSpacing: 1.5,
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.4,
                       color: AppColors.onSurface,
                     ),
                   ),
-                  const SizedBox(height: 2.0),
+                  const SizedBox(height: 3.0),
                   Text(
                     widget.song.title,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: AppFonts.segoe(
                       fontSize: 13.0,
-                      fontWeight: FontWeight.w300,
-                      color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
+                      fontWeight: FontWeight.w400,
+                      color: AppColors.onSurfaceVariant,
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8.0),
 
-            // 3. Playlists list in Space style
+            Divider(
+              color: AppColors.outlineVariant.withValues(alpha: 0.25),
+              height: 1.0,
+            ),
+
+            // Metro Playlist Name List with Square Accent Checkmark
             Expanded(
               child: _isLoading
                   ? Center(
                       child: CircularProgressIndicator(
-                        strokeWidth: 2.5,
+                        strokeWidth: 2.0,
                         color: AppColors.accent,
                       ),
                     )
@@ -203,96 +211,77 @@ class _SongPlaylistPickerSheetState extends State<SongPlaylistPickerSheet> {
                               textAlign: TextAlign.center,
                               style: AppFonts.segoe(
                                 fontSize: 14.0,
-                                color: AppColors.onSurfaceVariant.withValues(alpha: 0.6),
+                                color: AppColors.onSurfaceVariant.withValues(alpha: 0.7),
                               ),
                             ),
                           ),
                         )
                       : ListView.separated(
                           physics: const BouncingScrollPhysics(),
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 16.0,
-                            vertical: 8.0,
-                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 4.0),
                           itemCount: _playlists!.length,
-                          separatorBuilder: (context, index) =>
-                              const SizedBox(height: 14.0),
+                          separatorBuilder: (context, index) => Divider(
+                            color: AppColors.outlineVariant.withValues(alpha: 0.18),
+                            height: 1.0,
+                            indent: 20.0,
+                            endIndent: 20.0,
+                          ),
                           itemBuilder: (context, index) {
                             final playlist = _playlists![index];
                             final isContained = playlist.id != null &&
                                 _containedPlaylistIds.contains(playlist.id!);
 
-                            return AspectRatio(
-                              aspectRatio: 2.0, // Space 2:1 Aspect Ratio
-                              child: Container(
-                                decoration: BoxDecoration(
-                                  color: AppColors.surfaceContainerHigh,
-                                  borderRadius: BorderRadius.zero, // Sharp corners
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    key: ValueKey('playlist_picker_tile_${playlist.id ?? index}'),
-                                    onTap: () => _togglePlaylist(playlist),
-                                    splashColor: Colors.white.withValues(alpha: 0.12),
-                                    highlightColor: Colors.white.withValues(alpha: 0.06),
-                                    child: Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        // 1. Space 2:1 Metro Banner Artwork
-                                        PlaylistTextBanner(
-                                          title: playlist.name,
-                                          coverPath: playlist.coverPath,
-                                          representativeSongId: playlist.firstMediaStoreId,
-                                        ),
-
-                                        // 2. Darkening veil when already in playlist
-                                        AnimatedContainer(
-                                          duration: const Duration(milliseconds: 200),
-                                          color: isContained
-                                              ? Colors.black.withValues(alpha: 0.62)
-                                              : Colors.transparent,
-                                        ),
-
-                                        // 3. Status Badge in Top-Right
-                                        if (isContained)
-                                          Positioned(
-                                            top: 10.0,
-                                            right: 10.0,
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 9.0,
-                                                vertical: 4.0,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.accent,
-                                                borderRadius: BorderRadius.zero,
-                                              ),
-                                              child: Row(
-                                                mainAxisSize: MainAxisSize.min,
-                                                children: [
-                                                  const Icon(
-                                                    Icons.check_rounded,
-                                                    color: Colors.white,
-                                                    size: 14.0,
-                                                  ),
-                                                  const SizedBox(width: 4.0),
-                                                  Text(
-                                                    'EN PLAYLIST',
-                                                    style: AppFonts.segoe(
-                                                      fontSize: 11.0,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: Colors.white,
-                                                      letterSpacing: 0.8,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
+                            return Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                key: ValueKey('playlist_picker_tile_${playlist.id ?? index}'),
+                                onTap: () => _togglePlaylist(playlist),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 20.0,
+                                    vertical: 14.0,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      Expanded(
+                                        child: Text(
+                                          playlist.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: AppFonts.segoe(
+                                            fontSize: 16.0,
+                                            fontWeight: isContained
+                                                ? FontWeight.w600
+                                                : FontWeight.w400,
+                                            color: AppColors.onSurface,
                                           ),
-                                      ],
-                                    ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 12.0),
+                                      Container(
+                                        width: 24.0,
+                                        height: 24.0,
+                                        decoration: BoxDecoration(
+                                          color: isContained
+                                              ? AppColors.accent
+                                              : Colors.transparent,
+                                          borderRadius: BorderRadius.zero,
+                                          border: Border.all(
+                                            color: isContained
+                                                ? AppColors.accent
+                                                : AppColors.outline.withValues(alpha: 0.6),
+                                            width: 1.5,
+                                          ),
+                                        ),
+                                        child: isContained
+                                            ? Icon(
+                                                Icons.check_rounded,
+                                                size: 16.0,
+                                                color: AppColors.onAccent,
+                                              )
+                                            : null,
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),

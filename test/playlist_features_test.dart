@@ -1202,7 +1202,7 @@ void main() {
       expect(fakeSongDao.songDeleted, isTrue);
     });
 
-    testWidgets('SongPlaylistPickerSheet renders Space 2:1 tiles and dims/undims on toggle', (tester) async {
+    testWidgets('SongPlaylistPickerSheet renders Metro playlist names with square accent checkmark toggle', (tester) async {
       const p1 = Playlist(
         id: 101,
         name: 'Rock Classics',
@@ -1227,24 +1227,24 @@ void main() {
       );
       await tester.pump();
 
-      expect(find.text('AÑADIR A PLAYLIST'), findsOneWidget);
+      expect(find.text('ADD TO PLAYLIST'), findsOneWidget);
       expect(find.text('Rock Classics'), findsOneWidget);
 
       // Initially not in playlist
-      expect(find.text('EN PLAYLIST'), findsNothing);
+      expect(find.byIcon(Icons.check_rounded), findsNothing);
 
-      // Tap playlist card -> adds song and dims with EN PLAYLIST badge
+      // Tap playlist row -> adds song and shows square accent checkmark
       await tester.tap(find.byKey(const ValueKey('playlist_picker_tile_101')));
       await tester.pump();
 
-      expect(find.text('EN PLAYLIST'), findsOneWidget);
+      expect(find.byIcon(Icons.check_rounded), findsOneWidget);
       expect(fakePlaylistDao.songsInPlaylist.contains(888), isTrue);
 
-      // Tap again -> removes song and undims
+      // Tap again -> removes song and clears checkmark
       await tester.tap(find.byKey(const ValueKey('playlist_picker_tile_101')));
       await tester.pump();
 
-      expect(find.text('EN PLAYLIST'), findsNothing);
+      expect(find.byIcon(Icons.check_rounded), findsNothing);
       expect(fakePlaylistDao.songsInPlaylist.contains(888), isFalse);
     });
   });

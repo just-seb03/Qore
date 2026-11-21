@@ -144,5 +144,8 @@ class EnPlaylistStrings implements PlaylistStrings {
   String get addToPlaylistTooltip => 'Add to playlist';
 
   @override
+  String get addToListTitle => 'Add to playlist';
+
+  @override
   String get heroBannerPlaceholder => 'HERO BANNER 1920x620';
 }

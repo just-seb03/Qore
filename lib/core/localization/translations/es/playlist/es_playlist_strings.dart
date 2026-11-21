@@ -148,4 +148,7 @@ class EsPlaylistStrings implements PlaylistStrings {
 
   @override
   String get addToPlaylistTooltip => 'Añadir a la lista';
+
+  @override
+  String get addToListTitle => 'Añadir a lista';
 }

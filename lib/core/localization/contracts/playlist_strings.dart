@@ -131,6 +131,9 @@ abstract class PlaylistStrings {
   /// Tooltip for adding a song to the playlist.
   String get addToPlaylistTooltip;
 
+  /// Title for the add-to-playlist picker sheet.
+  String get addToListTitle;
+
   /// Placeholder label for hero banner artwork (e.g. 'HERO BANNER 1920x620').
   String get heroBannerPlaceholder;
 }
