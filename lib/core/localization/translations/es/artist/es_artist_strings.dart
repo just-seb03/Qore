@@ -49,4 +49,19 @@ class EsArtistStrings implements ArtistStrings {
 
   @override
   String get photoUpdateSuccess => 'Foto de artista actualizada correctamente';
+
+  @override
+  String get cancelCropTooltip => 'Cancelar';
+
+  @override
+  String get adjustPhotoTitle => 'Ajustar foto';
+
+  @override
+  String get savePhotoAction => 'Guardar';
+
+  @override
+  String get cropGuidanceText => 'Pellizca y arrastra para ajustar';
+
+  @override
+  String get centerCropAction => 'Centrar';
 }

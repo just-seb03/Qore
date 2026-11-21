@@ -46,4 +46,19 @@ abstract class ArtistStrings {
 
   /// SnackBar message when artist photo is updated.
   String get photoUpdateSuccess;
+
+  /// Tooltip for cancel button on photo crop screen.
+  String get cancelCropTooltip;
+
+  /// Title on photo crop screen.
+  String get adjustPhotoTitle;
+
+  /// Save button label on photo crop screen.
+  String get savePhotoAction;
+
+  /// Guidance text on photo crop screen.
+  String get cropGuidanceText;
+
+  /// Center/reset button label on photo crop screen.
+  String get centerCropAction;
 }

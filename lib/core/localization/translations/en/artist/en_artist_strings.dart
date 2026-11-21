@@ -50,4 +50,19 @@ class EnArtistStrings implements ArtistStrings {
 
   @override
   String get photoUpdateSuccess => 'Artist photo updated successfully';
+
+  @override
+  String get cancelCropTooltip => 'Cancel';
+
+  @override
+  String get adjustPhotoTitle => 'Adjust Photo';
+
+  @override
+  String get savePhotoAction => 'Save';
+
+  @override
+  String get cropGuidanceText => 'Pinch & drag to adjust';
+
+  @override
+  String get centerCropAction => 'Center';
 }

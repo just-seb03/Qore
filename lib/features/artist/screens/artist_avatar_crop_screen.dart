@@ -11,6 +11,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/components/artist_avatar_crop_view.dart';
 
@@ -106,9 +107,9 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
         leading: IconButton(
           icon: const Icon(Icons.close_rounded, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(null),
-          tooltip: 'Cancel',
+          tooltip: context.l10n.artist.cancelCropTooltip,
         ),
-        title: Text('Adjust Photo', style: _titleStyle),
+        title: Text(context.l10n.artist.adjustPhotoTitle, style: _titleStyle),
         centerTitle: true,
         actions: [
           Padding(
@@ -130,7 +131,7 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     ),
-                    child: Text('Save', style: _buttonStyle),
+                    child: Text(context.l10n.artist.savePhotoAction, style: _buttonStyle),
                   ),
           ),
         ],
@@ -140,7 +141,7 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
           children: [
             const Spacer(),
 
-            // 1. Interactive 1:1 Viewport with Circular Mask Guide
+            // 1. Interactive 1:1 Square Viewport
             ArtistAvatarCropView(
               cropKey: _cropKey,
               transformController: _transformController,
@@ -165,7 +166,7 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
                       ),
                       const SizedBox(width: 8.0),
                       Text(
-                        'Pinch & drag to adjust',
+                        context.l10n.artist.cropGuidanceText,
                         style: AppFonts.segoe(
                           fontSize: 13.0,
                           color: AppColors.onSurfaceVariant,
@@ -178,7 +179,7 @@ class _ArtistAvatarCropScreenState extends State<ArtistAvatarCropScreen> {
                       _transformController.value = Matrix4.identity();
                     },
                     icon: const Icon(Icons.refresh_rounded, size: 16.0),
-                    label: const Text('Center'),
+                    label: Text(context.l10n.artist.centerCropAction),
                     style: TextButton.styleFrom(
                       foregroundColor: AppColors.onSurfaceVariant,
                     ),
