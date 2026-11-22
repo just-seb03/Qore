@@ -1695,6 +1695,34 @@ class SongDao {
     }
   }
 
+  /// Updates detected leading silence (ms) for a song by MediaStore ID.
+  Future<void> updateSongLeadingSilence({
+    required int mediaStoreId,
+    required int leadingSilenceMs,
+  }) async {
+    final safeMs = leadingSilenceMs < 0 ? 0 : leadingSilenceMs;
+    final db = await _appDatabase.database;
+    await db.update(
+      'songs',
+      {'leading_silence_ms': safeMs},
+      where: 'media_store_id = ?',
+      whereArgs: [mediaStoreId],
+    );
+  }
+
+  /// Retrieves tracks that have not yet been analyzed for leading silence.
+  Future<List<Map<String, dynamic>>> getSongsWithoutLeadingSilence({
+    int limit = 120,
+  }) async {
+    final db = await _appDatabase.database;
+    return db.query(
+      'songs',
+      columns: ['media_store_id', 'path', 'duration'],
+      where: 'leading_silence_ms IS NULL',
+      limit: limit,
+    );
+  }
+
   /// Retrieves unique artists for search dictionary indexing.
   Future<List<ArtistDiscoveryItem>> getAllUniqueArtists({int limit = 1000}) =>
       getDiscoveryArtists(limit: limit);

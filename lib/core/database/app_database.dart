@@ -19,7 +19,7 @@ class AppDatabase {
   factory AppDatabase() => instance;
 
   static const String databaseName = 'anima_music.db';
-  static const int databaseVersion = 15;
+  static const int databaseVersion = 16;
 
   Database? _db;
 
@@ -321,6 +321,12 @@ class AppDatabase {
         await db.execute('ALTER TABLE songs ADD COLUMN bpm REAL');
       } catch (_) {}
     }
+
+    if (oldVersion < 16) {
+      try {
+        await db.execute('ALTER TABLE songs ADD COLUMN leading_silence_ms INTEGER');
+      } catch (_) {}
+    }
   }
 
   /// Verifies schema integrity on database opening.
@@ -352,6 +358,10 @@ class AppDatabase {
       final hasBpm = columns.any((col) => col['name'] == 'bpm');
       if (!hasBpm) {
         await db.execute('ALTER TABLE songs ADD COLUMN bpm REAL');
+      }
+      final hasLeadingSilence = columns.any((col) => col['name'] == 'leading_silence_ms');
+      if (!hasLeadingSilence) {
+        await db.execute('ALTER TABLE songs ADD COLUMN leading_silence_ms INTEGER');
       }
 
       // Backfill disc_number and track_number for tracks encoded as disc * 1000 + track (e.g. 1001 -> disc 1, track 1)
@@ -554,6 +564,7 @@ class AppDatabase {
         track_number INTEGER,
         disc_number INTEGER,
         bpm REAL,
+        leading_silence_ms INTEGER,
         date_modified INTEGER,
         date_added INTEGER,
         size INTEGER

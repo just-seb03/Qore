@@ -46,6 +46,9 @@ class Song {
   /// Analyzed or embedded musical tempo in beats per minute (BPM).
   final double? bpm;
 
+  /// Detected leading digital silence duration in milliseconds (trimmed on playback).
+  final int? leadingSilenceMs;
+
   /// Last modification timestamp in seconds.
   final int dateModified;
 
@@ -68,6 +71,7 @@ class Song {
     this.trackNumber,
     this.discNumber,
     this.bpm,
+    this.leadingSilenceMs,
     required this.dateModified,
     this.dateAdded,
     this.size,
@@ -94,6 +98,7 @@ class Song {
       'track_number': trackNumber,
       'disc_number': discNumber,
       'bpm': bpm,
+      'leading_silence_ms': leadingSilenceMs,
       'date_modified': dateModified,
       'date_added': dateAdded,
       'size': size,
@@ -115,6 +120,7 @@ class Song {
       trackNumber: (map['track_number'] as num?)?.toInt(),
       discNumber: (map['disc_number'] as num?)?.toInt(),
       bpm: (map['bpm'] as num?)?.toDouble(),
+      leadingSilenceMs: (map['leading_silence_ms'] as num?)?.toInt(),
       dateModified: (map['date_modified'] as int?) ?? 0,
       dateAdded: map['date_added'] as int?,
       size: map['size'] as int?,
@@ -135,6 +141,7 @@ class Song {
     int? trackNumber,
     int? discNumber,
     double? bpm,
+    int? leadingSilenceMs,
     int? dateModified,
     int? dateAdded,
     int? size,
@@ -152,6 +159,7 @@ class Song {
       trackNumber: trackNumber ?? this.trackNumber,
       discNumber: discNumber ?? this.discNumber,
       bpm: bpm ?? this.bpm,
+      leadingSilenceMs: leadingSilenceMs ?? this.leadingSilenceMs,
       dateModified: dateModified ?? this.dateModified,
       dateAdded: dateAdded ?? this.dateAdded,
       size: size ?? this.size,
