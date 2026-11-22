@@ -197,7 +197,7 @@ class PlaybackController extends ChangeNotifier {
           androidNotificationChannelName: 'Qore Reproductor',
           androidNotificationChannelDescription:
               'Control de reproducción y notificación en tiempo real de Qore',
-          androidNotificationIcon: 'mipmap/ic_launcher',
+          androidNotificationIcon: 'drawable/ic_stat_qore',
           androidNotificationOngoing: false,
           androidStopForegroundOnPause: true,
           androidResumeOnClick: false,
