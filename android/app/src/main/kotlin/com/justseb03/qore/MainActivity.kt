@@ -258,6 +258,24 @@ class MainActivity : AudioServiceActivity() {
                         }
                     }.start()
                 }
+                "detectLeadingSilence" -> {
+                    val path = call.argument<String>("path")
+                    val maxScanMs = call.argument<Number>("maxScanMs")?.toLong() ?: 8000L
+                    if (path.isNullOrBlank()) {
+                        result.success(null)
+                        return@setMethodCallHandler
+                    }
+                    Thread {
+                        val silenceMs = try {
+                            detectLeadingSilenceNative(path, maxScanMs)
+                        } catch (_: Exception) {
+                            null
+                        }
+                        runOnUiThread {
+                            result.success(silenceMs)
+                        }
+                    }.start()
+                }
                 else -> result.notImplemented()
             }
         }
@@ -764,5 +782,168 @@ class MainActivity : AudioServiceActivity() {
             return null
         }
         return (rawBpm * 10.0).roundToInt() / 10.0
+    }
+
+    /**
+     * Decodes up to [maxScanMs] from the beginning of any MediaCodec-supported audio file
+     * (MP3, FLAC, M4A/AAC, OGG, WAV, OPUS) to find the exact millisecond where non-silent
+     * audio begins (~ -55 dBFS threshold over 6 consecutive samples).
+     */
+    private fun detectLeadingSilenceNative(path: String, maxScanMs: Long = 8000L): Int? {
+        val extractor = MediaExtractor()
+        var codec: MediaCodec? = null
+        try {
+            extractor.setDataSource(path)
+            var audioTrackIndex = -1
+            var format: MediaFormat? = null
+            for (i in 0 until extractor.trackCount) {
+                val trackFormat = extractor.getTrackFormat(i)
+                val mime = trackFormat.getString(MediaFormat.KEY_MIME) ?: ""
+                if (mime.startsWith("audio/")) {
+                    audioTrackIndex = i
+                    format = trackFormat
+                    break
+                }
+            }
+            if (audioTrackIndex == -1 || format == null) return null
+
+            val mime = format.getString(MediaFormat.KEY_MIME) ?: return null
+            extractor.selectTrack(audioTrackIndex)
+
+            codec = MediaCodec.createDecoderByType(mime)
+            codec.configure(format, null, null, 0)
+            codec.start()
+
+            var sampleRate = if (format.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                format.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+            } else 44100
+            var channels = if (format.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                format.getInteger(MediaFormat.KEY_CHANNEL_COUNT)
+            } else 2
+            var pcmEncoding = AudioFormat.ENCODING_PCM_16BIT
+
+            val maxScanUs = maxScanMs * 1000L
+            val thresholdNorm = 0.0018 // ~ -55 dBFS
+            val consecutiveRequired = 6
+            var consecutiveHits = 0
+            var inputDone = false
+            var outputDone = false
+            val bufferInfo = MediaCodec.BufferInfo()
+            var detectedMs: Int? = null
+
+            while (!outputDone) {
+                if (!inputDone) {
+                    val inIdx = codec.dequeueInputBuffer(10_000)
+                    if (inIdx >= 0) {
+                        val inBuf = codec.getInputBuffer(inIdx)
+                        if (inBuf != null) {
+                            val sampleSize = extractor.readSampleData(inBuf, 0)
+                            if (sampleSize < 0) {
+                                codec.queueInputBuffer(inIdx, 0, 0, 0L, MediaCodec.BUFFER_FLAG_END_OF_STREAM)
+                                inputDone = true
+                            } else {
+                                val pts = extractor.sampleTime
+                                codec.queueInputBuffer(inIdx, 0, sampleSize, pts, 0)
+                                extractor.advance()
+                                if (pts > maxScanUs) {
+                                    inputDone = true
+                                }
+                            }
+                        }
+                    }
+                }
+
+                val outIdx = codec.dequeueOutputBuffer(bufferInfo, 10_000)
+                if (outIdx == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
+                    val outFmt = codec.outputFormat
+                    if (outFmt.containsKey(MediaFormat.KEY_SAMPLE_RATE)) {
+                        sampleRate = outFmt.getInteger(MediaFormat.KEY_SAMPLE_RATE)
+                    }
+                    if (outFmt.containsKey(MediaFormat.KEY_CHANNEL_COUNT)) {
+                        channels = max(1, outFmt.getInteger(MediaFormat.KEY_CHANNEL_COUNT))
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N &&
+                        outFmt.containsKey(MediaFormat.KEY_PCM_ENCODING)) {
+                        pcmEncoding = outFmt.getInteger(MediaFormat.KEY_PCM_ENCODING)
+                    }
+                } else if (outIdx >= 0) {
+                    val outBuf = codec.getOutputBuffer(outIdx)
+                    if (outBuf != null && bufferInfo.size > 0) {
+                        outBuf.position(bufferInfo.offset)
+                        outBuf.limit(bufferInfo.offset + bufferInfo.size)
+                        outBuf.order(ByteOrder.LITTLE_ENDIAN)
+
+                        val frameStartUs = bufferInfo.presentationTimeUs.coerceAtLeast(0L)
+                        var frameIndex = 0
+
+                        if (pcmEncoding == AudioFormat.ENCODING_PCM_FLOAT) {
+                            val floats = outBuf.asFloatBuffer()
+                            val totalSamples = floats.remaining()
+                            var i = 0
+                            while (i + channels <= totalSamples) {
+                                var peak = 0.0
+                                for (c in 0 until channels) {
+                                    val v = kotlin.math.abs(floats.get(i + c).toDouble())
+                                    if (v > peak) peak = v
+                                }
+                                if (peak > thresholdNorm) {
+                                    consecutiveHits++
+                                    if (consecutiveHits >= consecutiveRequired) {
+                                        val offsetUs = (frameIndex.toLong() * 1_000_000L) / max(1, sampleRate)
+                                        detectedMs = ((frameStartUs + offsetUs) / 1000L).toInt().coerceAtLeast(0)
+                                        break
+                                    }
+                                } else {
+                                    consecutiveHits = 0
+                                }
+                                frameIndex++
+                                i += channels
+                            }
+                        } else {
+                            val shorts = outBuf.asShortBuffer()
+                            val totalSamples = shorts.remaining()
+                            var i = 0
+                            while (i + channels <= totalSamples) {
+                                var peak = 0.0
+                                for (c in 0 until channels) {
+                                    val v = kotlin.math.abs(shorts.get(i + c).toDouble()) / 32768.0
+                                    if (v > peak) peak = v
+                                }
+                                if (peak > thresholdNorm) {
+                                    consecutiveHits++
+                                    if (consecutiveHits >= consecutiveRequired) {
+                                        val offsetUs = (frameIndex.toLong() * 1_000_000L) / max(1, sampleRate)
+                                        detectedMs = ((frameStartUs + offsetUs) / 1000L).toInt().coerceAtLeast(0)
+                                        break
+                                    }
+                                } else {
+                                    consecutiveHits = 0
+                                }
+                                frameIndex++
+                                i += channels
+                            }
+                        }
+                    }
+                    codec.releaseOutputBuffer(outIdx, false)
+                    if (detectedMs != null) {
+                        return detectedMs
+                    }
+                    if ((bufferInfo.flags and MediaCodec.BUFFER_FLAG_END_OF_STREAM) != 0 ||
+                        bufferInfo.presentationTimeUs >= maxScanUs) {
+                        outputDone = true
+                    }
+                } else if (outIdx == MediaCodec.INFO_TRY_AGAIN_LATER && inputDone) {
+                    outputDone = true
+                }
+            }
+
+            return 0
+        } catch (_: Exception) {
+            return null
+        } finally {
+            try { codec?.stop() } catch (_: Exception) {}
+            try { codec?.release() } catch (_: Exception) {}
+            try { extractor.release() } catch (_: Exception) {}
+        }
     }
 }
