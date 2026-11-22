@@ -113,15 +113,15 @@ List<ArtworkBatchResultItem> processArtworkBatchInIsolate(List<ArtworkBatchItem>
         continue;
       }
 
-      // 4. Generate 400x400 high-DPI Thumbnail (cubic interpolation, quality 92%)
+      // 4. Generate 400x400 high-DPI Thumbnail (linear interpolation for fast Dart decode/resize)
       final thumbnailImg = img.copyResize(
         decoded,
         width: 400,
         height: 400,
-        interpolation: img.Interpolation.cubic,
+        interpolation: img.Interpolation.linear,
       );
-      final thumbBytes = img.encodeJpg(thumbnailImg, quality: 92);
-      thumbJpg.writeAsBytesSync(thumbBytes, flush: true);
+      final thumbBytes = img.encodeJpg(thumbnailImg, quality: 88);
+      thumbJpg.writeAsBytesSync(thumbBytes);
 
       // 5. Generate pristine High-Definition Cover
       // If the original image is already a high-res JPEG (<= 1600px and <= 4MB),
@@ -135,7 +135,7 @@ List<ArtworkBatchResultItem> processArtworkBatchInIsolate(List<ArtworkBatchItem>
           decoded.width <= 1600 &&
           decoded.height <= 1600 &&
           rawPictureBytes.length <= 4 * 1024 * 1024) {
-        coverFile.writeAsBytesSync(rawPictureBytes, flush: true);
+        coverFile.writeAsBytesSync(rawPictureBytes);
       } else {
         final img.Image coverImg;
         if (decoded.width > 1440 || decoded.height > 1440) {
@@ -144,13 +144,13 @@ List<ArtworkBatchResultItem> processArtworkBatchInIsolate(List<ArtworkBatchItem>
             decoded,
             width: isWider ? 1440 : (decoded.width * 1440 / decoded.height).round(),
             height: isWider ? (decoded.height * 1440 / decoded.width).round() : 1440,
-            interpolation: img.Interpolation.cubic,
+            interpolation: img.Interpolation.linear,
           );
         } else {
           coverImg = decoded;
         }
         final coverBytes = img.encodeJpg(coverImg, quality: 95);
-        coverFile.writeAsBytesSync(coverBytes, flush: true);
+        coverFile.writeAsBytesSync(coverBytes);
       }
 
       results.add(ArtworkBatchResultItem(

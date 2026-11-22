@@ -39,8 +39,8 @@ class ArtworkService extends ChangeNotifier {
   ArtworkService._();
   static final ArtworkService instance = ArtworkService._();
 
-  static const int _batchSize = 4;
-  static const Duration _batchPause = Duration(milliseconds: 30);
+  static const int _batchSize = 6;
+  static const Duration _batchPause = Duration(milliseconds: 10);
   static const int _kArtworkCacheVersion = 2;
 
   bool _initialized = false;
@@ -715,14 +715,17 @@ class ArtworkService extends ChangeNotifier {
     }
   }
 
-  /// Processes the artwork extraction queue in batches of 4 with 25 ms pauses.
+  /// Processes the artwork extraction queue in batches, running 2 parallel
+  /// worker isolates during bulk first-time scans with 10 ms UI yield pauses.
   Future<void> _processQueue() async {
     if (_isProcessingQueue) return;
     _isProcessingQueue = true;
 
     try {
       while (_queue.isNotEmpty) {
-        final count = _queue.length < _batchSize ? _queue.length : _batchSize;
+        final bool runDualIsolates = _queue.length >= _batchSize * 2;
+        final int totalTake = runDualIsolates ? _batchSize * 2 : _batchSize;
+        final count = _queue.length < totalTake ? _queue.length : totalTake;
         final List<_ArtworkQueueItem> batch = _queue.sublist(0, count);
         _queue.removeRange(0, count);
 
@@ -736,11 +739,22 @@ class ArtworkService extends ChangeNotifier {
           );
         }).toList();
 
-        // Run extraction and resizing in a background worker isolate
-        final List<ArtworkBatchResultItem> results = await compute(
-          processArtworkBatchInIsolate,
-          batchItems,
-        );
+        // Run extraction and resizing across 1 or 2 background worker isolates
+        final List<ArtworkBatchResultItem> results;
+        if (runDualIsolates && batchItems.length > _batchSize) {
+          final firstHalf = batchItems.sublist(0, _batchSize);
+          final secondHalf = batchItems.sublist(_batchSize);
+          final dual = await Future.wait([
+            compute(processArtworkBatchInIsolate, firstHalf),
+            compute(processArtworkBatchInIsolate, secondHalf),
+          ]);
+          results = [...dual[0], ...dual[1]];
+        } else {
+          results = await compute(
+            processArtworkBatchInIsolate,
+            batchItems,
+          );
+        }
 
         // Update in-memory caches with produced files
         bool hasNewArtworks = false;
