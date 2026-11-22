@@ -109,6 +109,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _isScanning = false;
   bool _isResetting = false;
   bool _isManagingData = false;
+  bool _trimSilenceEnabled = AppMetadataDao.instance.isTrimSilenceEnabledSync;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadTrimSilencePref();
+  }
+
+  Future<void> _loadTrimSilencePref() async {
+    final enabled = await AppMetadataDao.instance.getTrimSilenceEnabled(
+      appDatabase: widget.appDatabase,
+    );
+    if (mounted && enabled != _trimSilenceEnabled) {
+      setState(() => _trimSilenceEnabled = enabled);
+    }
+  }
+
+  Future<void> _toggleTrimSilence() async {
+    final next = !_trimSilenceEnabled;
+    setState(() => _trimSilenceEnabled = next);
+    await AppMetadataDao.instance.setTrimSilenceEnabled(
+      next,
+      appDatabase: widget.appDatabase,
+    );
+  }
 
   void _showSnackBar(String message) {
     if (!mounted) return;
@@ -495,6 +520,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               isLoading: _isScanning,
                               onTap: _handleQuickRescan,
                             ),
+                            const SizedBox(height: 10.0),
+                            _buildMetroToggleTile(
+                              key: const ValueKey('settings_trim_silence_toggle'),
+                              title: isSpanish
+                                  ? 'Recortar silencio inicial'
+                                  : 'Trim leading silence',
+                              subtitle: isSpanish
+                                  ? 'Salta el silencio al inicio en MP3, FLAC y más'
+                                  : 'Skip leading dead air in MP3, FLAC, and more',
+                              value: _trimSilenceEnabled,
+                              isSpanish: isSpanish,
+                              onTap: _toggleTrimSilence,
+                            ),
                             const SizedBox(height: 24.0),
 
                             // Section: User Data
@@ -598,6 +636,120 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ],
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMetroToggleTile({
+    Key? key,
+    required String title,
+    required String subtitle,
+    required bool value,
+    required bool isSpanish,
+    required VoidCallback onTap,
+  }) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainer.withValues(alpha: 0.85),
+        borderRadius: BorderRadius.zero,
+        border: Border.all(
+          color: AppColors.outline.withValues(alpha: 0.35),
+          width: 1.0,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.zero,
+        child: InkWell(
+          key: key,
+          borderRadius: BorderRadius.zero,
+          splashColor: AppColors.accent.withValues(alpha: 0.15),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        style: AppFonts.segoe(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w400,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2.0),
+                      Text(
+                        subtitle,
+                        style: AppFonts.segoe(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w300,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 14.0),
+                // Authentic Windows Phone Metro rectangular ToggleSwitch
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      value
+                          ? (isSpanish ? 'Activado' : 'On')
+                          : (isSpanish ? 'Desactivado' : 'Off'),
+                      style: AppFonts.segoe(
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: value ? AppColors.accent : AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4.0),
+                    Container(
+                      width: 52.0,
+                      height: 24.0,
+                      padding: const EdgeInsets.all(3.0),
+                      decoration: BoxDecoration(
+                        color: value
+                            ? AppColors.accent.withValues(alpha: 0.25)
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.zero,
+                        border: Border.all(
+                          color: value
+                              ? AppColors.accent
+                              : AppColors.onSurfaceVariant.withValues(alpha: 0.75),
+                          width: 1.5,
+                        ),
+                      ),
+                      child: AnimatedAlign(
+                        duration: const Duration(milliseconds: 140),
+                        curve: Curves.easeOutCubic,
+                        alignment:
+                            value ? Alignment.centerRight : Alignment.centerLeft,
+                        child: Container(
+                          width: 14.0,
+                          height: 14.0,
+                          decoration: BoxDecoration(
+                            color: value
+                                ? AppColors.accent
+                                : AppColors.onSurface,
+                            borderRadius: BorderRadius.zero,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),

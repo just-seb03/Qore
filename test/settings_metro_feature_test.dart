@@ -282,5 +282,35 @@ void main() {
       expect(restoredPins.length, 1);
       expect(restoredPins.first['title'], 'The Dark Side of the Moon');
     });
+
+    testWidgets('Metro trim leading silence switch toggles state and persists in AppMetadataDao', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          localizationsDelegates: _testDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          locale: const Locale('es'),
+          home: SettingsScreen(appDatabase: appDatabase),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      final toggleFinder = find.byKey(const ValueKey('settings_trim_silence_toggle'));
+      await tester.ensureVisible(toggleFinder);
+      await tester.pumpAndSettle();
+
+      expect(toggleFinder, findsOneWidget);
+      expect(find.text('Activado'), findsOneWidget);
+
+      await tester.tap(toggleFinder);
+      await tester.pumpAndSettle();
+      expect(find.text('Desactivado'), findsOneWidget);
+
+      await tester.tap(toggleFinder);
+      await tester.pumpAndSettle();
+      expect(find.text('Activado'), findsOneWidget);
+
+      await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 50)));
+      await tester.pump();
+    });
   });
 }

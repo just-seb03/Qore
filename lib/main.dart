@@ -52,6 +52,7 @@ Future<void> main() async {
 
   try {
     await AppMetadataDao.instance.hasSeenSpaceIntro();
+    await AppMetadataDao.instance.getTrimSilenceEnabled();
   } catch (e) {
     debugPrint('AppMetadataDao space intro check warning: $e');
   }

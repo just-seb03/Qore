@@ -19,6 +19,7 @@ class AppMetadataDao {
   static const String _kSpaceIntroSeenKey = 'space_intro_seen';
   static const String _kAppLanguageKey = 'app_language';
   static const String totalListeningTimeMsKey = 'total_listening_time_ms';
+  static const String trimSilenceEnabledKey = 'trim_leading_silence_enabled';
   static AppMetadataDao? _instance;
 
   final AppDatabase _appDatabase;
@@ -32,6 +33,7 @@ class AppMetadataDao {
   bool? _cachedSpaceIntroSeen;
   String? _mockLanguage;
   String? _cachedLanguage;
+  bool _trimSilenceEnabled = true;
 
   AppMetadataDao({
     AppDatabase? appDatabase,
@@ -368,6 +370,52 @@ class AppMetadataDao {
       );
     } catch (e) {
       debugPrint('⚠️ [AppMetadataDao] Error saving app language: $e');
+    }
+  }
+
+  /// Synchronous getter for whether leading silence trimming is enabled (defaults to true).
+  bool get isTrimSilenceEnabledSync => _trimSilenceEnabled;
+
+  /// Loads whether leading silence trimming is enabled from SQLite app_metadata.
+  Future<bool> getTrimSilenceEnabled({AppDatabase? appDatabase}) async {
+    try {
+      final db = await (appDatabase ?? _appDatabase).database;
+      final results = await db.query(
+        'app_metadata',
+        columns: ['value'],
+        where: 'key = ?',
+        whereArgs: [trimSilenceEnabledKey],
+        limit: 1,
+      );
+      if (results.isEmpty || results.first['value'] == null) {
+        _trimSilenceEnabled = true;
+        return true;
+      }
+      _trimSilenceEnabled = results.first['value'] != 'false';
+      return _trimSilenceEnabled;
+    } catch (_) {
+      return _trimSilenceEnabled;
+    }
+  }
+
+  /// Persists the leading silence trimming toggle to SQLite app_metadata.
+  Future<void> setTrimSilenceEnabled(
+    bool enabled, {
+    AppDatabase? appDatabase,
+  }) async {
+    _trimSilenceEnabled = enabled;
+    try {
+      final db = await (appDatabase ?? _appDatabase).database;
+      await db.insert(
+        'app_metadata',
+        {
+          'key': trimSilenceEnabledKey,
+          'value': enabled ? 'true' : 'false',
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('⚠️ [AppMetadataDao] Error saving trim silence toggle: $e');
     }
   }
 

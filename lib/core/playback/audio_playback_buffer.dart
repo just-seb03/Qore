@@ -15,6 +15,7 @@ import 'dart:collection';
 import 'dart:math' as math;
 import 'package:flutter/foundation.dart';
 import 'package:just_audio/just_audio.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
 
 /// Coordinator for zero-latency audio buffering and ConcatenatingAudioSource lifecycle.
@@ -94,7 +95,8 @@ class AudioPlaybackBuffer {
       tag: song,
     );
     final int silenceMs = song.leadingSilenceMs ?? 0;
-    if (silenceMs >= minTrimSilenceMs &&
+    if (AppMetadataDao.instance.isTrimSilenceEnabledSync &&
+        silenceMs >= minTrimSilenceMs &&
         (song.duration <= 0 || silenceMs < song.duration - 1000)) {
       return ClippingAudioSource(
         child: baseSource,
