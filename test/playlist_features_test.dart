@@ -30,7 +30,6 @@ import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
 import 'package:project_anima/features/playlist/components/playlist_delete_dialog.dart';
 import 'package:project_anima/features/player/components/player_metadata_view.dart';
 import 'package:project_anima/features/player/components/song_context_sheet.dart';
-import 'package:project_anima/features/player/components/song_delete_dialog.dart';
 import 'package:project_anima/features/player/components/song_playlist_picker_sheet.dart';
 import 'package:project_anima/components/song_options_pill.dart';
 import 'package:project_anima/features/player/components/playback_queue_sheet.dart';
@@ -1003,12 +1002,12 @@ void main() {
       await tester.tap(find.text('Open Dialog'));
       await tester.pumpAndSettle();
 
-      expect(find.text('Eliminar playlist'), findsOneWidget);
+      expect(find.text('Delete playlist'), findsOneWidget);
       expect(find.textContaining('My Awesome Playlist'), findsOneWidget);
       expect(find.byIcon(Icons.delete_outline_rounded), findsOneWidget);
 
       // Cancel first
-      await tester.tap(find.text('CANCELAR'));
+      await tester.tap(find.text('CANCEL'));
       await tester.pumpAndSettle();
       expect(result, isFalse);
 
@@ -1054,7 +1053,7 @@ void main() {
       await tester.pumpAndSettle();
 
       // Deletion dialog is shown
-      expect(find.text('Eliminar playlist'), findsOneWidget);
+      expect(find.text('Delete playlist'), findsOneWidget);
       expect(
         find.descendant(
           of: find.byType(PlaylistDeleteDialog),
@@ -1157,52 +1156,15 @@ void main() {
       // Top action buttons
       expect(find.byKey(const ValueKey('context_add_to_playlist_button')), findsOneWidget);
       expect(find.byKey(const ValueKey('context_toggle_favorite_button')), findsOneWidget);
-      expect(find.byKey(const ValueKey('context_delete_song_button')), findsOneWidget);
+      expect(find.byKey(const ValueKey('context_delete_song_button')), findsNothing);
 
       // Audio specification card metrics
-      expect(find.text('FORMATO'), findsOneWidget);
+      expect(find.text('FORMAT'), findsOneWidget);
       expect(find.text('FLAC'), findsOneWidget);
-      expect(find.text('CALIDAD'), findsOneWidget);
+      expect(find.text('QUALITY'), findsOneWidget);
       expect(find.text('44.1 kHz'), findsOneWidget);
-      expect(find.text('PESO'), findsOneWidget);
+      expect(find.text('SIZE'), findsOneWidget);
       expect(find.text('24.0 MB'), findsOneWidget);
-    });
-
-    testWidgets('SongContextSheet delete button opens SongDeleteDialog and deletes song on confirmation', (tester) async {
-      final fakeSongDao = FakeSongDao([testSong]);
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SongContextSheet(
-              song: testSong,
-              songDao: fakeSongDao,
-              playlistDao: FakePlaylistDao(),
-            ),
-          ),
-        ),
-      );
-      await tester.pump();
-
-      // Tap delete action button
-      await tester.tap(find.byKey(const ValueKey('context_delete_song_button')));
-      await tester.pumpAndSettle();
-
-      // Delete confirmation dialog is visible
-      expect(find.text('Eliminar canción'), findsOneWidget);
-      expect(
-        find.descendant(
-          of: find.byType(SongDeleteDialog),
-          matching: find.textContaining('Starlight'),
-        ),
-        findsOneWidget,
-      );
-
-      // Confirm deletion
-      await tester.tap(find.byKey(const ValueKey('confirm_delete_song_button')));
-      await tester.pumpAndSettle();
-
-      expect(fakeSongDao.songDeleted, isTrue);
     });
 
     testWidgets('SongPlaylistPickerSheet renders Metro playlist names with square accent checkmark toggle', (tester) async {

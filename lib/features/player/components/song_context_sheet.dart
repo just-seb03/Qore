@@ -1,6 +1,6 @@
 /// File: song_context_sheet.dart
 /// Description: Contextual bottom sheet displayed when tapping the song title in the expanded player.
-/// Features three centered action icons (Add to Playlist, Favorite Heart toggle, Delete song)
+/// Features two centered action icons (Add to Playlist, Favorite Heart toggle)
 /// followed by an audio metadata specification card displaying audio format, quality (kHz), and file size.
 ///
 /// Components / Classes / Functions:
@@ -19,10 +19,8 @@ import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
-import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/artist/screens/artist_detail_screen.dart';
-import 'package:project_anima/features/player/components/song_delete_dialog.dart';
 import 'package:project_anima/features/player/components/song_playlist_picker_sheet.dart';
 
 String _formatExtension(String path) {
@@ -269,7 +267,6 @@ class _SongContextSheetState extends State<SongContextSheet> {
   Widget build(BuildContext context) {
     final song = widget.song;
     final audioInfo = _audioInfo;
-    final effectiveSongDao = widget.songDao;
     final playlistDao = widget.playlistDao;
 
     return Container(
@@ -366,59 +363,6 @@ class _SongContextSheetState extends State<SongContextSheet> {
                       HapticFeedback.mediumImpact();
                     },
                   );
-                },
-              ),
-              const SizedBox(width: 24.0),
-
-              // Button 3: Delete song
-              _buildActionButton(
-                key: const ValueKey('context_delete_song_button'),
-                icon: const Icon(
-                  Icons.delete_outline_rounded,
-                  color: Color(0xFFFF5252),
-                ),
-                label: Localizations.localeOf(context).languageCode == 'es'
-                    ? 'Eliminar'
-                    : 'Delete',
-                onTap: () async {
-                  final isSpanish =
-                      Localizations.localeOf(context).languageCode == 'es';
-                  final confirmed = await SongDeleteDialog.show(
-                    context,
-                    songTitle: song.title,
-                  );
-
-                  if (confirmed == true && context.mounted) {
-                    final resolvedSongDao = effectiveSongDao ?? SongDao();
-                    await resolvedSongDao.deleteSong(song.mediaStoreId);
-
-                    try {
-                      final file = File(song.path);
-                      if (file.existsSync()) {
-                        await file.delete();
-                      }
-                    } catch (_) {}
-
-                    if (PlaybackController.instance.currentSong?.mediaStoreId ==
-                        song.mediaStoreId) {
-                      await PlaybackController.instance.skipToNext();
-                    }
-
-                    if (context.mounted) {
-                      Navigator.of(context).pop();
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            isSpanish
-                                ? 'Canción eliminada de la biblioteca'
-                                : 'Track removed from library',
-                            style: AppFonts.segoe(color: AppColors.onSurface),
-                          ),
-                          backgroundColor: AppColors.surfaceContainerHigh,
-                        ),
-                      );
-                    }
-                  }
                 },
               ),
             ],
