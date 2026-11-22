@@ -8,6 +8,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 
 /// Singleton [NavigatorObserver] deduplicating named `anima://` routes in the navigation stack.
 class AppRouteTracker extends NavigatorObserver {
@@ -48,23 +49,32 @@ class AppRouteTracker extends NavigatorObserver {
   @visibleForTesting
   List<String?> get routeNames => _routes.map((r) => r.settings.name).toList();
 
+  void _syncExpandedPlayerParticles() {
+    final bool isPlayerOnTop =
+        _routes.isNotEmpty && _routes.last.settings.name == playerRouteName;
+    AmbientParticlesController.instance.setExpandedPlayerVisible(isPlayerOnTop);
+  }
+
   @override
   void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPush(route, previousRoute);
     _routes.add(route);
     _deduplicateIfNeeded(route, previousRoute);
+    _syncExpandedPlayerParticles();
   }
 
   @override
   void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didPop(route, previousRoute);
     _routes.remove(route);
+    _syncExpandedPlayerParticles();
   }
 
   @override
   void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) {
     super.didRemove(route, previousRoute);
     _routes.remove(route);
+    _syncExpandedPlayerParticles();
   }
 
   @override
@@ -78,12 +88,14 @@ class AppRouteTracker extends NavigatorObserver {
         } else {
           _routes.removeAt(idx);
         }
+        _syncExpandedPlayerParticles();
         return;
       }
     }
     if (newRoute != null) {
       _routes.add(newRoute);
     }
+    _syncExpandedPlayerParticles();
   }
 
   void _deduplicateIfNeeded(

@@ -27,6 +27,7 @@ import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/navigation/app_route_tracker.dart';
+import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/core/playback/audio_handler.dart';
 import 'package:project_anima/features/search/screens/search.dart';
 
@@ -386,9 +387,12 @@ void main() {
 
       nav.push(namedTestRoute(AppRouteTracker.playerRouteName, 'PlayerView'));
       await tester.pumpAndSettle();
+      expect(AmbientParticlesController.instance.isExpandedPlayerVisible, isTrue);
 
       nav.push(namedTestRoute(AppRouteTracker.artistRouteName('Daft Punk'), 'ArtistDaftPunk'));
       await tester.pumpAndSettle();
+      // Pushing Artist/Album from PlayerScreen unfreezes menu particles
+      expect(AmbientParticlesController.instance.isExpandedPlayerVisible, isFalse);
 
       // Deduplicated stack from bottom to top:
       // ['/', album(discovery::daft punk), player, artist(daft punk)]
@@ -407,10 +411,12 @@ void main() {
       await nav.maybePop();
       await tester.pumpAndSettle();
       expect(find.text('PlayerView'), findsOneWidget);
+      expect(AmbientParticlesController.instance.isExpandedPlayerVisible, isTrue);
 
       await nav.maybePop();
       await tester.pumpAndSettle();
       expect(find.text('AlbumDiscovery'), findsOneWidget);
+      expect(AmbientParticlesController.instance.isExpandedPlayerVisible, isFalse);
 
       await nav.maybePop();
       await tester.pumpAndSettle();
