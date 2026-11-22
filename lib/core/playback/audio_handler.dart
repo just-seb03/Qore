@@ -56,68 +56,74 @@ class AnimaAudioHandler extends BaseAudioHandler with SeekHandler {
   }
 
   void _broadcastState(PlaybackEvent event, {bool? forcePlaying}) {
-    final playing = forcePlaying ?? _player.playing;
-    final isFav = isFavorite?.call() ?? false;
+    try {
+      final playing = forcePlaying ?? _player.playing;
+      final isFav = isFavorite?.call() ?? false;
 
-    final favoriteControl = MediaControl.custom(
-      androidIcon: isFav ? 'drawable/ic_heart_filled' : 'drawable/ic_heart_outline',
-      label: isFav ? 'Favorited' : 'Favorite',
-      name: 'toggleFavorite',
-    );
+      final favoriteControl = MediaControl.custom(
+        androidIcon: isFav ? 'drawable/ic_heart_filled' : 'drawable/ic_heart_outline',
+        label: isFav ? 'Favorited' : 'Favorite',
+        name: 'toggleFavorite',
+      );
 
-    // Media notification controls: [Favorite, Previous, Play/Pause, Next].
-    final controls = [
-      favoriteControl,
-      MediaControl.skipToPrevious,
-      playing ? MediaControl.pause : MediaControl.play,
-      MediaControl.skipToNext,
-    ];
+      // Media notification controls: [Favorite, Previous, Play/Pause, Next].
+      final controls = [
+        favoriteControl,
+        MediaControl.skipToPrevious,
+        playing ? MediaControl.pause : MediaControl.play,
+        MediaControl.skipToNext,
+      ];
 
-    playbackState.add(playbackState.value.copyWith(
-      controls: controls,
-      systemActions: const {
-        MediaAction.seek,
-        MediaAction.seekForward,
-        MediaAction.seekBackward,
-        MediaAction.setRating,
-      },
-      androidCompactActionIndices: const [1, 2, 3],
-      processingState: switch (_player.processingState) {
-        ProcessingState.idle => forcePlaying == true
-            ? AudioProcessingState.ready
-            : AudioProcessingState.idle,
-        ProcessingState.completed => AudioProcessingState.completed,
-        ProcessingState.loading ||
-        ProcessingState.buffering ||
-        ProcessingState.ready =>
-          AudioProcessingState.ready,
-      },
-      playing: playing,
-      updatePosition: _player.position,
-      bufferedPosition: _player.bufferedPosition,
-      speed: _player.speed,
-      queueIndex: _lastMediaItem != null ? 0 : event.currentIndex,
-    ));
+      playbackState.add(playbackState.value.copyWith(
+        controls: controls,
+        systemActions: const {
+          MediaAction.seek,
+          MediaAction.seekForward,
+          MediaAction.seekBackward,
+          MediaAction.setRating,
+        },
+        androidCompactActionIndices: const [1, 2, 3],
+        processingState: switch (_player.processingState) {
+          ProcessingState.idle => forcePlaying == true
+              ? AudioProcessingState.ready
+              : AudioProcessingState.idle,
+          ProcessingState.completed => AudioProcessingState.completed,
+          ProcessingState.loading ||
+          ProcessingState.buffering ||
+          ProcessingState.ready =>
+            AudioProcessingState.ready,
+        },
+        playing: playing,
+        updatePosition: _player.position,
+        bufferedPosition: _player.bufferedPosition,
+        speed: _player.speed,
+        queueIndex: _lastMediaItem != null ? 0 : event.currentIndex,
+      ));
+    } catch (_) {
+      // Never crash audio playback if system notifications are disabled or unavailable.
+    }
   }
 
   /// Updates system notification metadata (`title`, `artist`, `album`, `artUri`, `duration`)
   /// and forces sequential `PlaybackStateCompat` refreshes so Android/MIUI SystemUI redraws reliably.
   void updateMetadata(MediaItem item, {bool? forcePlaying}) {
-    _lastMediaItem = item;
-    queue.add([item]);
-    mediaItem.add(item);
+    try {
+      _lastMediaItem = item;
+      queue.add([item]);
+      mediaItem.add(item);
 
-    // Re-broadcast immediately and after channel delivery so Android/MIUI never drops metadata changes
-    Future.microtask(() {
-      if (_lastMediaItem?.id == item.id) {
-        _broadcastState(_player.playbackEvent, forcePlaying: forcePlaying);
-      }
-    });
-    Future<void>.delayed(const Duration(milliseconds: 90), () {
-      if (_lastMediaItem?.id == item.id) {
-        _broadcastState(_player.playbackEvent);
-      }
-    });
+      // Re-broadcast immediately and after channel delivery so Android/MIUI never drops metadata changes
+      Future.microtask(() {
+        if (_lastMediaItem?.id == item.id) {
+          _broadcastState(_player.playbackEvent, forcePlaying: forcePlaying);
+        }
+      });
+      Future<void>.delayed(const Duration(milliseconds: 90), () {
+        if (_lastMediaItem?.id == item.id) {
+          _broadcastState(_player.playbackEvent);
+        }
+      });
+    } catch (_) {}
   }
 
   @override

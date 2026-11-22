@@ -664,13 +664,17 @@ class PlaybackController extends ChangeNotifier {
     _audioHandler?.updateMetadata(mediaItem, forcePlaying: forcePlaying);
   }
 
-  /// Requests notification permissions on Android 13+ (API 33+) to guarantee system media widget display.
+  bool _hasPromptedNotificationThisSession = false;
+
+  /// Requests notification permissions on Android 13+ (API 33+) once per session
+  /// if not permanently denied, without interrupting playback if user disabled them.
   Future<void> _checkNotificationPermission() async {
-    if (kIsWeb) return;
+    if (kIsWeb || _hasPromptedNotificationThisSession) return;
+    _hasPromptedNotificationThisSession = true;
     try {
       if (Platform.isAndroid) {
         final status = await Permission.notification.status;
-        if (!status.isGranted) {
+        if (!status.isGranted && !status.isPermanentlyDenied) {
           await Permission.notification.request();
         }
       }

@@ -69,8 +69,10 @@ class MainActivity : AudioServiceActivity() {
     override fun onDestroy() {
         unregisterNotchObserver()
         if (isFinishing) {
-            val intent = android.content.Intent(this, com.ryanheise.audioservice.AudioService::class.java)
-            stopService(intent)
+            try {
+                val intent = android.content.Intent(this, com.ryanheise.audioservice.AudioService::class.java)
+                stopService(intent)
+            } catch (_: Exception) {}
         }
         super.onDestroy()
     }
