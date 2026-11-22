@@ -83,13 +83,30 @@ class AudioPlaybackBuffer {
   /// Unmodifiable zero-copy view of all tracks in the active queue.
   List<Song> get bufferedSongs => UnmodifiableListView(_bufferedSongs);
 
-  /// Converts a [Song] domain model into an optimized [AudioSource].
+  /// Converts a [Song] domain model into an optimized [AudioSource], wrapping
+  /// tracks with detected leading digital silence (>= 60 ms) in a [ClippingAudioSource]
+  /// so MP3, FLAC, AAC, OGG, and WAV transition seamlessly without dead air.
+  static const int minTrimSilenceMs = 60;
+
   AudioSource _buildAudioSource(Song song) {
-    return AudioSource.file(
+    final baseSource = AudioSource.file(
       song.path,
       tag: song,
     );
+    final int silenceMs = song.leadingSilenceMs ?? 0;
+    if (silenceMs >= minTrimSilenceMs &&
+        (song.duration <= 0 || silenceMs < song.duration - 1000)) {
+      return ClippingAudioSource(
+        child: baseSource,
+        start: Duration(milliseconds: silenceMs),
+        tag: song,
+      );
+    }
+    return baseSource;
   }
+
+  @visibleForTesting
+  AudioSource buildAudioSourceForTesting(Song song) => _buildAudioSource(song);
 
   /// Loads a song queue into the buffer engine, using bounded windowed loading when
   /// [songs.length] exceeds [largeQueueThreshold] to keep native ExoPlayer allocation fast.

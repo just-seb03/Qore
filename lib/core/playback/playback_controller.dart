@@ -26,6 +26,7 @@ import 'package:project_anima/core/playback/audio_handler.dart';
 import 'package:project_anima/core/playback/audio_playback_buffer.dart';
 import 'package:project_anima/core/playback/playback_persistence_coordinator.dart';
 import 'package:project_anima/core/scanner/bpm_analyzer.dart';
+import 'package:project_anima/core/scanner/silence_analyzer.dart';
 import 'package:project_anima/features/ambient_particles/controllers/ambient_particles_controller.dart';
 
 /// Centralized audio playback coordinator.
@@ -559,7 +560,30 @@ class PlaybackController extends ChangeNotifier {
     _persistCurrentSessionImmediate();
     _recordPlaybackHistory(_currentSong!);
     _syncAmbientBackdropBpm(resolveIfMissing: true);
+    _resolveLeadingSilenceIfMissing(_currentSong!);
     notifyListeners();
+  }
+
+  void _resolveLeadingSilenceIfMissing(Song song) {
+    if (song.leadingSilenceMs != null) return;
+    unawaited(() async {
+      final detectedMs =
+          await SilenceAnalyzer.instance.detectLeadingSilence(song.path);
+      if (detectedMs == null) return;
+      try {
+        await _songDao.updateSongLeadingSilence(
+          mediaStoreId: song.mediaStoreId,
+          leadingSilenceMs: detectedMs,
+        );
+      } catch (_) {}
+      final qIdx = _queue.indexWhere((s) => s.mediaStoreId == song.mediaStoreId);
+      if (qIdx != -1) {
+        _queue[qIdx] = _queue[qIdx].copyWith(leadingSilenceMs: detectedMs);
+      }
+      if (_currentSong?.mediaStoreId == song.mediaStoreId) {
+        _currentSong = _currentSong!.copyWith(leadingSilenceMs: detectedMs);
+      }
+    }());
   }
 
   /// Records playback history in SQLite asynchronously without blocking the audio engine.

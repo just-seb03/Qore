@@ -208,5 +208,35 @@ void main() {
       expect(controller.queue.length, 1);
       expect(controller.queue.first.mediaStoreId, 101);
     });
+
+    test('buildAudioSource trims leading silence >= 60ms across MP3, FLAC, and WAV with ClippingAudioSource', () {
+      final player = AudioPlayer();
+      final buffer = AudioPlaybackBuffer(player: player);
+
+      final mp3WithSilence = testSong1.copyWith(
+        path: '/storage/emulated/0/Music/track.mp3',
+        leadingSilenceMs: 420,
+      );
+      final flacWithSilence = testSong2.copyWith(
+        path: '/storage/emulated/0/Music/track.flac',
+        leadingSilenceMs: 180,
+      );
+      final wavMinimalSilence = testSong3.copyWith(
+        path: '/storage/emulated/0/Music/track.wav',
+        leadingSilenceMs: 25,
+      );
+
+      final mp3Source = buffer.buildAudioSourceForTesting(mp3WithSilence);
+      final flacSource = buffer.buildAudioSourceForTesting(flacWithSilence);
+      final wavSource = buffer.buildAudioSourceForTesting(wavMinimalSilence);
+
+      expect(mp3Source, isA<ClippingAudioSource>());
+      expect((mp3Source as ClippingAudioSource).start, const Duration(milliseconds: 420));
+      expect(flacSource, isA<ClippingAudioSource>());
+      expect((flacSource as ClippingAudioSource).start, const Duration(milliseconds: 180));
+      expect(wavSource, isNot(isA<ClippingAudioSource>()));
+
+      player.dispose();
+    });
   });
 }

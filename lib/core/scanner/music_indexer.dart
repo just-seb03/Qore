@@ -22,6 +22,7 @@ import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/scanner/bpm_analyzer.dart';
 import 'package:project_anima/core/scanner/models/indexing_result.dart';
 import 'package:project_anima/core/scanner/models/lightweight_audio_item.dart';
+import 'package:project_anima/core/scanner/silence_analyzer.dart';
 
 /// Top-level worker function extracting physical album_artist tags in a background isolate.
 Map<int, String> extractPhysicalAlbumArtistsInIsolate(List<Map<String, dynamic>> items) {
@@ -372,6 +373,9 @@ class MusicIndexer {
         if (mockDeviceItems == null && needsBpmAnalysis && totalSongs > 0) {
           unawaited(analyzeMissingBpms());
         }
+        if (mockDeviceItems == null && totalSongs > 0) {
+          unawaited(analyzeMissingLeadingSilences());
+        }
 
         return IndexingResult(
           totalSongs: totalSongs,
@@ -427,6 +431,9 @@ class MusicIndexer {
       if (mockDeviceItems == null &&
           (needsBpmAnalysis || parsedSongs.any((s) => s.bpm == null))) {
         unawaited(analyzeMissingBpms());
+      }
+      if (mockDeviceItems == null && totalSongs > 0) {
+        unawaited(analyzeMissingLeadingSilences());
       }
 
       onProgress?.call('done', totalSongs, totalSongs);
@@ -665,6 +672,42 @@ class MusicIndexer {
       return analyzedCount;
     } finally {
       _isAnalyzingBpm = false;
+    }
+  }
+
+  bool _isAnalyzingSilence = false;
+
+  /// Detects leading digital silence in the background for tracks across MP3,
+  /// FLAC, AAC, OGG, and WAV so [AudioPlaybackBuffer] can trim dead air seamlessly.
+  Future<int> analyzeMissingLeadingSilences({int limit = 120}) async {
+    if (_isAnalyzingSilence) return 0;
+    _isAnalyzingSilence = true;
+    int analyzedCount = 0;
+
+    try {
+      final rows = await _songDao.getSongsWithoutLeadingSilence(limit: limit);
+      for (final row in rows) {
+        final int? mediaStoreId = (row['media_store_id'] as num?)?.toInt();
+        final String? path = row['path'] as String?;
+        if (mediaStoreId == null || path == null || path.isEmpty) continue;
+
+        final detectedMs =
+            await SilenceAnalyzer.instance.detectLeadingSilence(path);
+        if (detectedMs != null) {
+          await _songDao.updateSongLeadingSilence(
+            mediaStoreId: mediaStoreId,
+            leadingSilenceMs: detectedMs,
+          );
+          analyzedCount++;
+        }
+
+        await Future<void>.delayed(const Duration(milliseconds: 15));
+      }
+      return analyzedCount;
+    } catch (_) {
+      return analyzedCount;
+    } finally {
+      _isAnalyzingSilence = false;
     }
   }
 }
