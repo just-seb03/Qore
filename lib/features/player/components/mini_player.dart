@@ -70,7 +70,7 @@ class MiniPlayer extends StatelessWidget {
                     height: 64.0,
                     decoration: BoxDecoration(
                       color: AppColors.surfaceContainerHigh,
-                      borderRadius: BorderRadius.circular(20.0),
+                      borderRadius: BorderRadius.zero,
                       border: Border.all(
                         color: AppColors.outline.withValues(alpha: 0.55),
                         width: 1.0,
@@ -90,7 +90,7 @@ class MiniPlayer extends StatelessWidget {
                       ],
                     ),
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(20.0),
+                      borderRadius: BorderRadius.zero,
                       child: Stack(
                         children: [
                           // 1. Animated Subtle Liquid Water Fill Layer (Rises from base as song plays)
@@ -114,7 +114,7 @@ class MiniPlayer extends StatelessWidget {
                                 PlaybackQueueSheet.show(context);
                               },
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(20.0),
+                                borderRadius: BorderRadius.zero,
                                 onTap: onTap ??
                                     () {
                                       Navigator.of(context).push(PlayerScreen.route());
@@ -123,7 +123,7 @@ class MiniPlayer extends StatelessWidget {
                                   padding: const EdgeInsets.symmetric(horizontal: 10.0),
                                   child: Row(
                                     children: [
-                                    // 1. Album Artwork Thumbnail (Dual-Tier fast cache) with rounded corners
+                                    // 1. Album Artwork Thumbnail (Dual-Tier fast cache)
                                     AnimaArtworkImage(
                                       mediaStoreId: currentSong.mediaStoreId,
                                       albumId: currentSong.albumId,
@@ -131,7 +131,7 @@ class MiniPlayer extends StatelessWidget {
                                       artistName: currentSong.albumArtist ?? currentSong.artist,
                                       width: 46.0,
                                       height: 46.0,
-                                      borderRadius: 10.0,
+                                      borderRadius: 0.0,
                                       isThumbnail: true,
                                       fit: BoxFit.cover,
                                       fallbackIcon: Icons.music_note_rounded,

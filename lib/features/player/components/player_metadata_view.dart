@@ -91,7 +91,7 @@ class PlayerMetadataView extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               key: const ValueKey('player_metadata_title_button'),
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.zero,
               onTap: onTitleTap,
               splashColor: Colors.white.withValues(alpha: 0.12),
               highlightColor: Colors.white.withValues(alpha: 0.06),
@@ -116,7 +116,7 @@ class PlayerMetadataView extends StatelessWidget {
           Material(
             color: Colors.transparent,
             child: InkWell(
-              borderRadius: BorderRadius.circular(8.0),
+              borderRadius: BorderRadius.zero,
               onTap: hasAlbum
                   ? () {
                       if (onAlbumTap != null) {
@@ -172,7 +172,7 @@ class PlayerMetadataView extends StatelessWidget {
       return Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(8.0),
+          borderRadius: BorderRadius.zero,
           onTap: () {
             if (onArtistTap != null) {
               onArtistTap!();
@@ -198,7 +198,7 @@ class PlayerMetadataView extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(8.0),
+        borderRadius: BorderRadius.zero,
         onTap: () {
           if (onArtistTap != null) {
             onArtistTap!();

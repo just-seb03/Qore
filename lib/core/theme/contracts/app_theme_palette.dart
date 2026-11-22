@@ -138,8 +138,8 @@ abstract class AppThemePalette {
         shadowColor: Colors.transparent,
         surfaceTintColor: Colors.transparent,
         indicatorColor: navIndicator,
-        indicatorShape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16.0),
+        indicatorShape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.zero,
         ),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         labelTextStyle: WidgetStateProperty.resolveWith<TextStyle>((states) {
@@ -167,6 +167,15 @@ abstract class AppThemePalette {
           color: onBackground,
           letterSpacing: -0.5,
         ),
+      ),
+      dialogTheme: const DialogThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      ),
+      bottomSheetTheme: const BottomSheetThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.zero),
       ),
     );
   }

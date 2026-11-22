@@ -100,7 +100,7 @@ class StartupPermissionView extends StatelessWidget {
               color: Colors.transparent,
               child: InkWell(
                 onTap: onRequestPermission,
-                borderRadius: BorderRadius.circular(28.0),
+                borderRadius: BorderRadius.zero,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
                     horizontal: 36.0,
@@ -108,14 +108,7 @@ class StartupPermissionView extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: AppColors.accent,
-                    borderRadius: BorderRadius.circular(28.0),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.accent.withValues(alpha: 0.28),
-                        blurRadius: 12.0,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
+                    borderRadius: BorderRadius.zero,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,

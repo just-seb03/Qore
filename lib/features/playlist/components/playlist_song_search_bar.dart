@@ -44,7 +44,7 @@ class PlaylistSongSearchBar extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainer,
-        borderRadius: BorderRadius.circular(25.0),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: AppColors.outline.withValues(alpha: 0.6),
           width: 1.0,

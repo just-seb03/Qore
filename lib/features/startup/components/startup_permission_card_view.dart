@@ -288,19 +288,12 @@ class _StartupPermissionCardViewState extends State<StartupPermissionCardView>
                   child: InkWell(
                     key: const ValueKey('startup_permissions_next_button'),
                     onTap: _isDarkened ? null : _handleNext,
-                    borderRadius: BorderRadius.circular(16.0),
+                    borderRadius: BorderRadius.zero,
                     child: Ink(
                       height: 50.0,
                       decoration: BoxDecoration(
                         color: AppColors.accent,
-                        borderRadius: BorderRadius.circular(16.0),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.accent.withValues(alpha: 0.28),
-                            blurRadius: 12.0,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
+                        borderRadius: BorderRadius.zero,
                       ),
                       child: Center(
                         child: Text(

@@ -201,7 +201,7 @@ class _SongOptionsPillState extends State<SongOptionsPill> {
         color: Colors.transparent,
         child: InkWell(
           key: key,
-          borderRadius: BorderRadius.circular(18.0),
+          borderRadius: BorderRadius.zero,
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 7.0, vertical: 6.0),
@@ -222,7 +222,7 @@ class _SongOptionsPillState extends State<SongOptionsPill> {
       padding: const EdgeInsets.symmetric(horizontal: 4.0, vertical: 1.0),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(20.0),
+        borderRadius: BorderRadius.zero,
         border: Border.all(
           color: AppColors.outline.withValues(alpha: 0.30),
           width: 0.8,

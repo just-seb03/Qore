@@ -75,9 +75,9 @@ class PlaylistTrackTile extends StatelessWidget {
           color: isCurrentTrack
               ? AppColors.surfaceContainerHigh.withValues(alpha: 0.5)
               : Colors.transparent,
-          borderRadius: BorderRadius.circular(10.0),
+          borderRadius: BorderRadius.zero,
           child: InkWell(
-            borderRadius: BorderRadius.circular(10.0),
+            borderRadius: BorderRadius.zero,
               onTap: handleTap,
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 10.0, vertical: 8.0),
