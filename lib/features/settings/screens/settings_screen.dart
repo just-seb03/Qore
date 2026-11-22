@@ -11,11 +11,13 @@ library;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:project_anima/core/database/app_database.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/localization/app_locale.dart';
 import 'package:project_anima/core/localization/localization_controller.dart';
 import 'package:project_anima/core/navigation/app_route_tracker.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/scanner/models/indexing_result.dart';
 import 'package:project_anima/core/scanner/music_indexer.dart';
 import 'package:project_anima/core/search/recent_search_controller.dart';
@@ -66,8 +68,14 @@ class SettingsScreen extends StatefulWidget {
       await txn.delete('playlists');
       await txn.delete('pinned_favorites');
       await txn.delete('favorite_songs');
+      await txn.delete(
+        'app_metadata',
+        where: 'key = ?',
+        whereArgs: [AppMetadataDao.totalListeningTimeMsKey],
+      );
     });
 
+    PlaybackController.instance.resetListeningTime();
     await FavoriteSongsDao.instance.ensureLoaded();
     await RecentSearchController.instance.init();
     SongDao.notifyPlaybackHistoryChanged();

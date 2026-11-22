@@ -4,6 +4,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:path/path.dart' as p;
 import 'package:project_anima/core/database/app_database.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
@@ -98,6 +99,14 @@ void main() {
       expect(topAlbum, isNotNull);
       expect(topAlbum!.name, 'The Dark Side of the Moon');
       expect(topAlbum.artist, 'Pink Floyd');
+
+      // Real listening time is accumulated independently of song duration
+      expect(await songDao.getTotalPlaybackTimeMs(), 0);
+      await AppMetadataDao.instance.addListeningTimeMs(
+        65000,
+        appDatabase: appDatabase,
+      );
+      expect(await songDao.getTotalPlaybackTimeMs(), 65000);
     });
   });
 

@@ -13,9 +13,11 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:project_anima/core/database/app_database.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:sqflite_common_ffi/sqflite_ffi.dart';
 
 /// Result returned after restoring a user data JSON backup.
@@ -55,7 +57,13 @@ class UserDataBackupService {
   /// Exports user statistics (`playback_history`), `favorite_songs`, `playlists`,
   /// `playlist_songs`, and Space (`pinned_favorites`) as a formatted JSON string.
   static Future<String> exportToJson({AppDatabase? appDatabase}) async {
+    if (appDatabase == null) {
+      await PlaybackController.instance.flushListeningTime();
+    }
     final db = await (appDatabase ?? AppDatabase.instance).database;
+    final int totalListeningMs = await AppMetadataDao.instance.getTotalListeningTimeMs(
+      appDatabase: appDatabase,
+    );
 
     // 1. Playback history joined with song identity for cross-device matching.
     final historyRows = await db.rawQuery('''
@@ -150,6 +158,7 @@ class UserDataBackupService {
       'format': formatId,
       'version': currentVersion,
       'exported_at': DateTime.now().millisecondsSinceEpoch,
+      'total_listening_time_ms': totalListeningMs,
       'playback_history': historyRows
           .map(
             (r) => {
@@ -334,6 +343,19 @@ class UserDataBackupService {
     int skippedSpacePins = 0;
 
     await db.transaction((txn) async {
+      // Restore total active listening time if present in backup
+      final dynamic rawListeningMs = decoded['total_listening_time_ms'];
+      if (rawListeningMs is num && rawListeningMs >= 0) {
+        await txn.insert(
+          'app_metadata',
+          {
+            'key': AppMetadataDao.totalListeningTimeMsKey,
+            'value': rawListeningMs.toInt().toString(),
+          },
+          conflictAlgorithm: ConflictAlgorithm.replace,
+        );
+      }
+
       // Existing playback history set to prevent duplicate rows on re-import
       final existingHistory = await txn.query(
         'playback_history',
@@ -633,6 +655,9 @@ class UserDataBackupService {
       }
     });
 
+    if (appDatabase == null) {
+      await PlaybackController.instance.syncListeningTimeFromStorage();
+    }
     await FavoriteSongsDao.instance.ensureLoaded();
     await PinnedFavoritesDao.instance.getAllPinned();
     SongDao.notifyPlaybackHistoryChanged();

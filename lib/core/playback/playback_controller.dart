@@ -18,6 +18,7 @@ import 'package:just_audio/just_audio.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:project_anima/core/artwork/artwork_color_extractor.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
+import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/song.dart';
@@ -170,6 +171,7 @@ class PlaybackController extends ChangeNotifier {
         }
       });
       _isInitialized = true;
+      unawaited(syncListeningTimeFromStorage());
     } catch (_) {
       // AudioSession may be unavailable in test environments
     }
@@ -244,8 +246,17 @@ class PlaybackController extends ChangeNotifier {
     }
   }
 
+  final Stopwatch _listeningStopwatch = Stopwatch();
+  Timer? _listeningUiTimer;
+  int _persistedBaseListeningMs = 0;
+  int _listeningTickCount = 0;
+
+  /// Live total active listening time in milliseconds (updated every second while playing).
+  final ValueNotifier<int> liveListeningTimeMsNotifier = ValueNotifier<int>(0);
+
   /// Starts periodic persistence while audio is playing.
   void _startPersistencePersister() {
+    _startListeningTracker();
     _persistenceCoordinator.startThrottledPersister(
       isPlaying: () => _player.playing,
       getCurrentSong: () => _currentSong,
@@ -259,7 +270,63 @@ class PlaybackController extends ChangeNotifier {
 
   /// Stops periodic persistence when audio is paused or stopped.
   void _stopPersistencePersister() {
+    _stopListeningTracker();
     _persistenceCoordinator.stopThrottledPersister();
+  }
+
+  void _startListeningTracker() {
+    if (!_listeningStopwatch.isRunning) {
+      _listeningStopwatch.start();
+    }
+    _listeningUiTimer ??= Timer.periodic(const Duration(seconds: 1), (_) {
+      final int liveMs =
+          _persistedBaseListeningMs + _listeningStopwatch.elapsedMilliseconds;
+      if (liveListeningTimeMsNotifier.value != liveMs) {
+        liveListeningTimeMsNotifier.value = liveMs;
+      }
+      _listeningTickCount++;
+      if (_listeningTickCount >= 15) {
+        _listeningTickCount = 0;
+        unawaited(flushListeningTime());
+      }
+    });
+  }
+
+  void _stopListeningTracker() {
+    _listeningUiTimer?.cancel();
+    _listeningUiTimer = null;
+    _listeningTickCount = 0;
+    if (_listeningStopwatch.isRunning) {
+      _listeningStopwatch.stop();
+    }
+    unawaited(flushListeningTime());
+  }
+
+  /// Flushes any accumulated real playback milliseconds to SQLite `app_metadata`.
+  Future<void> flushListeningTime() async {
+    final int delta = _listeningStopwatch.elapsedMilliseconds;
+    if (delta <= 0) return;
+    _listeningStopwatch.reset();
+    _persistedBaseListeningMs = await AppMetadataDao.instance.addListeningTimeMs(
+      delta,
+    );
+    liveListeningTimeMsNotifier.value =
+        _persistedBaseListeningMs + _listeningStopwatch.elapsedMilliseconds;
+  }
+
+  /// Reloads persisted listening time into the live notifier (e.g. after JSON import).
+  Future<void> syncListeningTimeFromStorage() async {
+    _listeningStopwatch.reset();
+    _persistedBaseListeningMs =
+        await AppMetadataDao.instance.getTotalListeningTimeMs();
+    liveListeningTimeMsNotifier.value = _persistedBaseListeningMs;
+  }
+
+  /// Resets in-memory listening time counters to 0 (e.g. after clearing user data).
+  void resetListeningTime() {
+    _listeningStopwatch.reset();
+    _persistedBaseListeningMs = 0;
+    liveListeningTimeMsNotifier.value = 0;
   }
 
   /// Internal unawaited trigger for immediate state persistence.
@@ -1040,6 +1107,11 @@ class PlaybackController extends ChangeNotifier {
   void dispose() {
     ArtworkService.instance.removeListener(_onArtworkServiceUpdated);
     FavoriteSongsDao.instance.favoritesRevision.removeListener(_onFavoritesRevisionChanged);
+    _listeningUiTimer?.cancel();
+    if (_listeningStopwatch.isRunning) {
+      _listeningStopwatch.stop();
+    }
+    liveListeningTimeMsNotifier.dispose();
     _persistenceCoordinator.dispose();
     _playerStateSubscription?.cancel();
     _processingStateSubscription?.cancel();

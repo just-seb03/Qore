@@ -18,6 +18,7 @@ class AppMetadataDao {
   static const String _kIsDarkModeKey = 'is_dark_mode';
   static const String _kSpaceIntroSeenKey = 'space_intro_seen';
   static const String _kAppLanguageKey = 'app_language';
+  static const String totalListeningTimeMsKey = 'total_listening_time_ms';
   static AppMetadataDao? _instance;
 
   final AppDatabase _appDatabase;
@@ -368,5 +369,59 @@ class AppMetadataDao {
     } catch (e) {
       debugPrint('⚠️ [AppMetadataDao] Error saving app language: $e');
     }
+  }
+
+  /// Reads the accumulated real listening time in milliseconds from app_metadata.
+  Future<int> getTotalListeningTimeMs({AppDatabase? appDatabase}) async {
+    try {
+      final db = await (appDatabase ?? _appDatabase).database;
+      final results = await db.query(
+        'app_metadata',
+        columns: ['value'],
+        where: 'key = ?',
+        whereArgs: [totalListeningTimeMsKey],
+        limit: 1,
+      );
+      if (results.isEmpty || results.first['value'] == null) return 0;
+      return int.tryParse(results.first['value'].toString()) ?? 0;
+    } catch (e) {
+      debugPrint('⚠️ [AppMetadataDao] Error reading total listening time: $e');
+      return 0;
+    }
+  }
+
+  /// Sets the accumulated real listening time in milliseconds in app_metadata.
+  Future<void> setTotalListeningTimeMs(
+    int totalMs, {
+    AppDatabase? appDatabase,
+  }) async {
+    final safeMs = totalMs < 0 ? 0 : totalMs;
+    try {
+      final db = await (appDatabase ?? _appDatabase).database;
+      await db.insert(
+        'app_metadata',
+        {
+          'key': totalListeningTimeMsKey,
+          'value': safeMs.toString(),
+        },
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+    } catch (e) {
+      debugPrint('⚠️ [AppMetadataDao] Error saving total listening time: $e');
+    }
+  }
+
+  /// Atomically adds [deltaMs] to the persisted listening time and returns the new total.
+  Future<int> addListeningTimeMs(
+    int deltaMs, {
+    AppDatabase? appDatabase,
+  }) async {
+    if (deltaMs <= 0) {
+      return getTotalListeningTimeMs(appDatabase: appDatabase);
+    }
+    final current = await getTotalListeningTimeMs(appDatabase: appDatabase);
+    final updated = current + deltaMs;
+    await setTotalListeningTimeMs(updated, appDatabase: appDatabase);
+    return updated;
   }
 }

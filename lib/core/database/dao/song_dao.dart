@@ -1721,18 +1721,18 @@ class SongDao {
     return results.map((row) => Song.fromMap(row)).toList();
   }
 
-  /// Retrieves the total playback duration in milliseconds across all recorded plays.
+  /// Retrieves the total active listening time in milliseconds from app_metadata.
   Future<int> getTotalPlaybackTimeMs() async {
     final db = await _appDatabase.database;
-    final List<Map<String, dynamic>> results = await db.rawQuery(
-      '''
-      SELECT COALESCE(SUM(s.duration), 0) AS total_ms
-      FROM playback_history ph
-      INNER JOIN songs s ON s.id = ph.song_id;
-      ''',
+    final List<Map<String, dynamic>> results = await db.query(
+      'app_metadata',
+      columns: ['value'],
+      where: 'key = ?',
+      whereArgs: ['total_listening_time_ms'],
+      limit: 1,
     );
-    if (results.isEmpty) return 0;
-    return (results.first['total_ms'] as num?)?.toInt() ?? 0;
+    if (results.isEmpty || results.first['value'] == null) return 0;
+    return int.tryParse(results.first['value'].toString()) ?? 0;
   }
 
   /// Retrieves up to [limit] most played artists across playback history.

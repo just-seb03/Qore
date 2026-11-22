@@ -121,14 +121,28 @@ class _ProfileScreenState extends State<ProfileScreen>
       _favoriteGenre = widget.initialFavoriteGenre;
       _isLoading = false;
     } else {
+      PlaybackController.instance.liveListeningTimeMsNotifier
+          .addListener(_onLiveListeningTimeChanged);
       _loadProfileStats();
     }
   }
 
   @override
   void dispose() {
+    PlaybackController.instance.liveListeningTimeMsNotifier
+        .removeListener(_onLiveListeningTimeChanged);
     SongDao.playbackHistoryRevision.removeListener(_onPlaybackHistoryChanged);
     super.dispose();
+  }
+
+  void _onLiveListeningTimeChanged() {
+    if (!mounted) return;
+    final liveMs = PlaybackController.instance.liveListeningTimeMsNotifier.value;
+    if ((liveMs ~/ 60000) != (_totalPlaybackMs ~/ 60000)) {
+      setState(() {
+        _totalPlaybackMs = liveMs;
+      });
+    }
   }
 
   void _onPlaybackHistoryChanged() {
