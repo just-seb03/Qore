@@ -192,10 +192,10 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
 
   Widget _buildStepText(BuildContext context) {
     final baseStyle = AppFonts.segoe(
-      fontSize: 15.0,
-      fontWeight: FontWeight.w500,
+      fontSize: 17.5,
+      fontWeight: FontWeight.w300,
       height: 1.45,
-      letterSpacing: 0.3,
+      letterSpacing: 0.2,
       color: AppColors.onSurface,
     );
 
@@ -287,25 +287,19 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
                         children: [
                           const Spacer(flex: 3),
 
-                          // 1. Native Moon Stars Icon Badge in elevated rounded container
+                          // 1. Sharp Metro Tile Badge with Moon Stars Icon
                           Center(
                             child: Container(
                               width: 72.0,
                               height: 72.0,
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerHigh.withValues(alpha: isDark ? 0.60 : 0.85),
-                                shape: BoxShape.circle,
+                                color: AppColors.surfaceContainerHigh
+                                    .withValues(alpha: isDark ? 0.85 : 0.92),
+                                borderRadius: BorderRadius.zero,
                                 border: Border.all(
-                                  color: AppColors.outline.withValues(alpha: 0.45),
-                                  width: 1.0,
+                                  color: AppColors.accent.withValues(alpha: 0.75),
+                                  width: 1.5,
                                 ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: isDark ? 0.45 : 0.08),
-                                    blurRadius: 18.0,
-                                    offset: const Offset(0, 6),
-                                  ),
-                                ],
                               ),
                               child: Icon(
                                 Symbols.moon_stars_rounded,
