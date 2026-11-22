@@ -358,7 +358,9 @@ class _SongContextSheetState extends State<SongContextSheet> {
                       isFav ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                       color: isFav ? AppColors.accent : AppColors.onSurface,
                     ),
-                    label: isFav ? 'Favorito' : 'Favorito',
+                    label: Localizations.localeOf(context).languageCode == 'es'
+                        ? 'Favorito'
+                        : 'Favorite',
                     onTap: () {
                       FavoriteSongsDao.instance.toggleFavorite(song);
                       HapticFeedback.mediumImpact();
@@ -375,8 +377,12 @@ class _SongContextSheetState extends State<SongContextSheet> {
                   Icons.delete_outline_rounded,
                   color: Color(0xFFFF5252),
                 ),
-                label: 'Eliminar',
+                label: Localizations.localeOf(context).languageCode == 'es'
+                    ? 'Eliminar'
+                    : 'Delete',
                 onTap: () async {
+                  final isSpanish =
+                      Localizations.localeOf(context).languageCode == 'es';
                   final confirmed = await SongDeleteDialog.show(
                     context,
                     songTitle: song.title,
@@ -403,7 +409,9 @@ class _SongContextSheetState extends State<SongContextSheet> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
                           content: Text(
-                            'Canción eliminada de la biblioteca',
+                            isSpanish
+                                ? 'Canción eliminada de la biblioteca'
+                                : 'Track removed from library',
                             style: AppFonts.segoe(color: AppColors.onSurface),
                           ),
                           backgroundColor: AppColors.surfaceContainerHigh,
@@ -433,19 +441,34 @@ class _SongContextSheetState extends State<SongContextSheet> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  _buildAudioStat('FORMATO', audioInfo.format),
+                  _buildAudioStat(
+                    Localizations.localeOf(context).languageCode == 'es'
+                        ? 'FORMATO'
+                        : 'FORMAT',
+                    audioInfo.format,
+                  ),
                   Container(
                     width: 1.0,
                     height: 28.0,
                     color: AppColors.outline.withValues(alpha: 0.25),
                   ),
-                  _buildAudioStat('CALIDAD', audioInfo.quality),
+                  _buildAudioStat(
+                    Localizations.localeOf(context).languageCode == 'es'
+                        ? 'CALIDAD'
+                        : 'QUALITY',
+                    audioInfo.quality,
+                  ),
                   Container(
                     width: 1.0,
                     height: 28.0,
                     color: AppColors.outline.withValues(alpha: 0.25),
                   ),
-                  _buildAudioStat('PESO', audioInfo.size),
+                  _buildAudioStat(
+                    Localizations.localeOf(context).languageCode == 'es'
+                        ? 'PESO'
+                        : 'SIZE',
+                    audioInfo.size,
+                  ),
                 ],
               ),
             ),
@@ -459,7 +482,9 @@ class _SongContextSheetState extends State<SongContextSheet> {
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  'ARTISTAS',
+                  Localizations.localeOf(context).languageCode == 'es'
+                      ? 'ARTISTAS'
+                      : 'ARTISTS',
                   style: AppFonts.segoe(
                     fontSize: 12.0,
                     fontWeight: FontWeight.w700,

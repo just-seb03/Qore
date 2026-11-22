@@ -74,9 +74,11 @@ class MetroAlbumTile extends StatelessWidget {
         onTap: () => _handleTap(context),
         onLongPress: onLongPress,
         front: _buildFront(context),
-        back: const MetroTileGlassBack(
+        back: MetroTileGlassBack(
           icon: Icons.album_rounded,
-          label: 'ÁLBUM',
+          label: Localizations.localeOf(context).languageCode == 'es'
+              ? 'ÁLBUM'
+              : 'ALBUM',
         ),
       ),
     );

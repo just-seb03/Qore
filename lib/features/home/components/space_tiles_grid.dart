@@ -172,20 +172,23 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
   }
 
   Future<void> _confirmUnpin(PinnedFavorite item) async {
+    final isSpanish = Localizations.localeOf(context).languageCode == 'es';
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surfaceContainerHigh,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
         title: Text(
-          'Desanclar de Space',
+          isSpanish ? 'Desanclar de Space' : 'Unpin from Space',
           style: AppFonts.segoe(
             fontWeight: FontWeight.bold,
             color: AppColors.onSurface,
           ),
         ),
         content: Text(
-          '¿Deseas desanclar "${item.title}" de Space?',
+          isSpanish
+              ? '¿Deseas desanclar "${item.title}" de Space?'
+              : 'Do you want to unpin "${item.title}" from Space?',
           style: AppFonts.segoe(
             color: AppColors.onSurfaceVariant,
           ),
@@ -194,7 +197,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
             child: Text(
-              'CANCELAR',
+              isSpanish ? 'CANCELAR' : 'CANCEL',
               style: AppFonts.segoe(
                 color: AppColors.onSurfaceVariant,
                 fontWeight: FontWeight.w700,
@@ -204,7 +207,7 @@ class _SpaceTilesGridState extends State<SpaceTilesGrid> {
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             child: Text(
-              'DESANCLAR',
+              isSpanish ? 'DESANCLAR' : 'UNPIN',
               style: AppFonts.segoe(
                 color: AppColors.accent,
                 fontWeight: FontWeight.w700,

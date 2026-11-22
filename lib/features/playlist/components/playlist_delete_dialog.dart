@@ -48,6 +48,7 @@ class PlaylistDeleteDialog extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSpanish = Localizations.localeOf(context).languageCode == 'es';
     return AlertDialog(
       backgroundColor: AppColors.surfaceContainerHigh,
       shape: RoundedRectangleBorder(
@@ -70,21 +71,23 @@ class PlaylistDeleteDialog extends StatelessWidget {
           const SizedBox(width: 10.0),
           Expanded(
             child: Text(
-              'Eliminar playlist',
+              isSpanish ? 'Eliminar playlist' : 'Delete playlist',
               style: _titleStyle,
             ),
           ),
         ],
       ),
       content: Text(
-        '¿Estás seguro de que quieres eliminar "$playlistName"? Esta acción no se puede deshacer.',
+        isSpanish
+            ? '¿Estás seguro de que quieres eliminar "$playlistName"? Esta acción no se puede deshacer.'
+            : 'Are you sure you want to delete "$playlistName"? This action cannot be undone.',
         style: _contentStyle,
       ),
       actions: [
         TextButton(
           onPressed: () => Navigator.of(context).pop(false),
           child: Text(
-            'CANCELAR',
+            isSpanish ? 'CANCELAR' : 'CANCEL',
             style: _actionStyle.copyWith(color: AppColors.onSurfaceVariant),
           ),
         ),
@@ -92,7 +95,7 @@ class PlaylistDeleteDialog extends StatelessWidget {
           key: const ValueKey('confirm_delete_playlist_button'),
           onPressed: () => Navigator.of(context).pop(true),
           child: Text(
-            'ELIMINAR',
+            isSpanish ? 'ELIMINAR' : 'DELETE',
             style: _actionStyle.copyWith(
               color: Colors.redAccent,
               fontWeight: FontWeight.w700,

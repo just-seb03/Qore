@@ -39,10 +39,11 @@ class MetroFavoritesTile extends StatelessWidget {
   });
 
   void _handleTap(BuildContext context) {
+    final isSpanish = Localizations.localeOf(context).languageCode == 'es';
     final nowMs = DateTime.now().millisecondsSinceEpoch;
     final favoritesPlaylist = Playlist(
       id: PlaylistDetailScreen.favoritesPlaylistId,
-      name: "Favorites",
+      name: isSpanish ? 'Favoritos' : 'Favorites',
       createdAt: nowMs,
       updatedAt: nowMs,
       firstMediaStoreId:
@@ -61,6 +62,7 @@ class MetroFavoritesTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isSpanish = Localizations.localeOf(context).languageCode == 'es';
     return AspectRatio(
       aspectRatio: 1.0,
       child: MetroLiveTile(
@@ -70,16 +72,16 @@ class MetroFavoritesTile extends StatelessWidget {
         flipTrigger: flipTrigger,
         flipSlot: flipSlot,
         onTap: () => _handleTap(context),
-        front: _buildFront(context),
-        back: const MetroTileGlassBack(
+        front: _buildFront(context, isSpanish: isSpanish),
+        back: MetroTileGlassBack(
           icon: Icons.favorite_rounded,
-          label: 'CANCIONES',
+          label: isSpanish ? 'CANCIONES' : 'SONGS',
         ),
       ),
     );
   }
 
-  Widget _buildFront(BuildContext context) {
+  Widget _buildFront(BuildContext context, {required bool isSpanish}) {
     return Container(
       color: AppColors.surfaceContainerHigh,
       child: Stack(
@@ -100,7 +102,7 @@ class MetroFavoritesTile extends StatelessWidget {
             right: 12.0,
             bottom: 10.0,
             child: Text(
-              'FAVORITOS',
+              isSpanish ? 'FAVORITOS' : 'FAVORITES',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppFonts.segoe(

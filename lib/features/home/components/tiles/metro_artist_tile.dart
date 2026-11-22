@@ -70,9 +70,11 @@ class MetroArtistTile extends StatelessWidget {
         onTap: () => _handleTap(context),
         onLongPress: onLongPress,
         front: _buildFront(context),
-        back: const MetroTileGlassBack(
+        back: MetroTileGlassBack(
           icon: Icons.person_rounded,
-          label: 'ARTISTA',
+          label: Localizations.localeOf(context).languageCode == 'es'
+              ? 'ARTISTA'
+              : 'ARTIST',
         ),
       ),
     );
