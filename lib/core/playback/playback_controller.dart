@@ -193,10 +193,10 @@ class PlaybackController extends ChangeNotifier {
               FavoriteSongsDao.instance.isFavorite(_currentSong!.mediaStoreId),
         ),
         config: const AudioServiceConfig(
-          androidNotificationChannelId: 'com.example.project_anima.channel.audio',
-          androidNotificationChannelName: 'Project Anima Reproductor',
+          androidNotificationChannelId: 'com.justseb03.qore.channel.audio',
+          androidNotificationChannelName: 'Qore Reproductor',
           androidNotificationChannelDescription:
-              'Control de reproducción y notificación en tiempo real de Project Anima',
+              'Control de reproducción y notificación en tiempo real de Qore',
           androidNotificationIcon: 'mipmap/ic_launcher',
           androidNotificationOngoing: false,
           androidStopForegroundOnPause: true,

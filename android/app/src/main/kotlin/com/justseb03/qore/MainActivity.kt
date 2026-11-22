@@ -1,4 +1,4 @@
-package com.example.project_anima
+package com.justseb03.qore
 
 import android.app.Activity
 import android.content.ContentResolver
