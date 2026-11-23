@@ -13,7 +13,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart' as p;
 import 'package:project_anima/core/database/app_database.dart';
 import 'package:project_anima/core/database/dao/favorite_songs_dao.dart';
@@ -31,7 +30,6 @@ import 'package:project_anima/features/playlist/screens/playlist_detail_screen.d
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   setUpAll(() {
     AppDatabase.initializeFfiIfNeeded();

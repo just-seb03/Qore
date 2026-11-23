@@ -6,7 +6,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/components/bottom_nav.dart';
 import 'package:project_anima/controls/menu_transition_controller.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
@@ -24,7 +23,6 @@ import 'package:project_anima/features/search/screens/search.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   setUp(() {
     NavigationController.instance.reset();

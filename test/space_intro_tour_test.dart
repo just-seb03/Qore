@@ -6,7 +6,6 @@ library;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/material_symbols_icons.dart';
 import 'package:project_anima/controls/navigation_controller.dart';
 import 'package:project_anima/core/database/dao/app_metadata_dao.dart';
@@ -17,7 +16,6 @@ import 'package:project_anima/features/home/components/space_intro_overlay.dart'
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   setUp(() {
     NavigationController.instance.reset();

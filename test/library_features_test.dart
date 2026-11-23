@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:path/path.dart' as p;
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/artwork/widgets/anima_artwork_image.dart';
@@ -26,7 +25,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   late Directory tempDir;
   late AppDatabase appDatabase;

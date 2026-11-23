@@ -7,7 +7,6 @@ library;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/theme/theme.dart';
@@ -42,7 +41,6 @@ Song createMockSong({
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   group('MetroLiveTile 3D Animation Tests', () {
     testWidgets('renders front widget initially and rotates on axis', (tester) async {

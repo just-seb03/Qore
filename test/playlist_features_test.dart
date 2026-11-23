@@ -1,7 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:material_symbols_icons/symbols.dart';
 import 'package:path/path.dart' as p;
 import 'package:project_anima/components/modal_dismiss_indicator.dart';
@@ -202,7 +201,6 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   sqfliteFfiInit();
   databaseFactory = databaseFactoryFfi;
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   late Directory tempDir;
   late AppDatabase appDatabase;

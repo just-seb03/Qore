@@ -9,7 +9,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:project_anima/core/artwork/artwork_color_extractor.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
@@ -97,7 +96,6 @@ Future<({double avgR, double avgG, double avgB, double avgA})> _sampleBottomBand
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  GoogleFonts.config.allowRuntimeFetching = false;
 
   group('MiniPlayer.resolveWaterColor Tests', () {
     test('preserves cyan hue for #5BABCE default fallback and clamps extreme monochrome covers', () {
