@@ -60,7 +60,7 @@ void main() {
 
   group('SpaceIntroOverlay Staged Steps and Iconography Tests', () {
     testWidgets('renders moon_stars badge, welcome text, and down arrow on step 0', (tester) async {
-      NavigationController.instance.setIndex(0);
+      NavigationController.instance.setIndex(NavigationTab.home.index);
 
       await tester.pumpWidget(buildTestHost(forceShow: true));
       await tester.pump();
@@ -80,7 +80,7 @@ void main() {
     });
 
     testWidgets('transitions through step 1 and step 2 on tap, then dismisses on step 3', (tester) async {
-      NavigationController.instance.setIndex(0);
+      NavigationController.instance.setIndex(NavigationTab.home.index);
       bool dismissed = false;
 
       await tester.pumpWidget(
@@ -142,7 +142,7 @@ void main() {
     });
 
     testWidgets('does not render when hasSeenSpaceIntroSync is true', (tester) async {
-      NavigationController.instance.setIndex(0);
+      NavigationController.instance.setIndex(NavigationTab.home.index);
       AppMetadataDao.instance.setMockSpaceIntroSeen(true);
 
       await tester.pumpWidget(buildTestHost(forceShow: false));
@@ -164,7 +164,7 @@ void main() {
       expect(find.byIcon(Symbols.moon_stars_rounded), findsNothing);
 
       // User switches to Space tab (0)
-      NavigationController.instance.setIndex(0);
+      NavigationController.instance.setIndex(NavigationTab.home.index);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 
@@ -177,7 +177,7 @@ void main() {
     });
 
     testWidgets('uses white background scrim in light mode and black in dark mode', (tester) async {
-      NavigationController.instance.setIndex(0);
+      NavigationController.instance.setIndex(NavigationTab.home.index);
 
       // Light mode test
       ThemeController.instance.setDarkMode(false);

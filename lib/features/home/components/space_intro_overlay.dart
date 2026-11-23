@@ -70,7 +70,7 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
     _initControllers();
 
     // Check if Space is already active
-    if (NavigationController.instance.currentIndex == 0) {
+    if (NavigationController.instance.currentIndex == NavigationTab.home.index) {
       _startIntro();
     } else {
       NavigationController.instance.addListener(_onNavigationChanged);
@@ -143,7 +143,9 @@ class _SpaceIntroOverlayState extends State<SpaceIntroOverlay>
   }
 
   void _onNavigationChanged() {
-    if (NavigationController.instance.currentIndex == 0 && !_isActive && !_isDismissed) {
+    if (NavigationController.instance.currentIndex == NavigationTab.home.index &&
+        !_isActive &&
+        !_isDismissed) {
       NavigationController.instance.removeListener(_onNavigationChanged);
       _startIntro();
     }
