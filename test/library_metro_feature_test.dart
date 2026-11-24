@@ -323,12 +323,14 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+      expect(find.byKey(const ValueKey('library_shuffle_play_songs_fab')), findsOneWidget);
 
       // 4. Switch to Playlists tab
       await tester.tap(find.byKey(const ValueKey('library_category_playlists')));
       await tester.pumpAndSettle();
 
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+      expect(find.byKey(const ValueKey('library_shuffle_play_songs_fab')), findsNothing);
     });
   });
 }

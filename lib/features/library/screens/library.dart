@@ -234,6 +234,23 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
+  Future<void> _handleShufflePlayAllSongs() async {
+    try {
+      final songs = widget.initialSongs ??
+          await (widget.songDao ?? SongDao()).getAllSongs();
+      if (songs.isEmpty) return;
+
+      final shuffled = List<Song>.from(songs)..shuffle();
+      final playback = PlaybackController.instance;
+      if (playback.isShuffleEnabled) {
+        await playback.toggleShuffle();
+      }
+      await playback.playSong(shuffled.first, queue: shuffled);
+    } catch (e) {
+      debugPrint('LibraryScreen error starting shuffled playback: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -360,10 +377,36 @@ class _LibraryScreenState extends State<LibraryScreen> {
                           child: const Icon(Icons.add_rounded, size: 28.0),
                         ),
                       )
-                    : null,
-                floatingActionButtonLocation: currentFilter == LibraryFilter.playlists
-                    ? LibraryPlaylistsFabLocation(fabBottomOffset)
-                    : null,
+                    : currentFilter == LibraryFilter.songs
+                        ? Container(
+                            key: const ValueKey(
+                                'library_shuffle_play_songs_fab_container'),
+                            decoration: const BoxDecoration(
+                              borderRadius: BorderRadius.zero,
+                            ),
+                            child: FloatingActionButton(
+                              key: const ValueKey(
+                                  'library_shuffle_play_songs_fab'),
+                              onPressed: _handleShufflePlayAllSongs,
+                              backgroundColor: AppColors.accent,
+                              foregroundColor: AppColors.onAccent,
+                              elevation: 0.0,
+                              highlightElevation: 0.0,
+                              shape: const RoundedRectangleBorder(
+                                borderRadius: BorderRadius.zero,
+                              ),
+                              child: const Icon(
+                                Icons.play_arrow_rounded,
+                                size: 30.0,
+                              ),
+                            ),
+                          )
+                        : null,
+                floatingActionButtonLocation:
+                    (currentFilter == LibraryFilter.playlists ||
+                            currentFilter == LibraryFilter.songs)
+                        ? LibraryPlaylistsFabLocation(fabBottomOffset)
+                        : null,
                 floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
                 bottomNavigationBar: widget.showBottomNav
                     ? const AppBottomNav(
