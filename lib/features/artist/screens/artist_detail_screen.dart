@@ -22,6 +22,7 @@ import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/pinned_favorite.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/search/models/recent_search_item.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
@@ -215,6 +216,45 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
     Navigator.of(context).pop();
   }
 
+  Future<void> _handlePlayArtist() async {
+    try {
+      final List<Song> featured = List<Song>.from(_topSongs);
+      final Set<int> featuredIds =
+          featured.map((s) => s.mediaStoreId).toSet();
+
+      final List<Song> allArtistSongs =
+          await _songDao.getSongsByArtist(_resolvedArtistName, limit: 1000);
+      final List<Song> remaining = allArtistSongs
+          .where((s) => !featuredIds.contains(s.mediaStoreId))
+          .toList()
+        ..shuffle();
+
+      final List<Song> initialQueue = [...featured, ...remaining];
+      if (initialQueue.isEmpty) return;
+
+      final playback = PlaybackController.instance;
+      if (playback.isShuffleEnabled) {
+        await playback.toggleShuffle();
+      }
+      await playback.playSong(initialQueue.first, queue: initialQueue);
+
+      final Set<int> excludeIds =
+          initialQueue.map((s) => s.mediaStoreId).toSet();
+      final List<Song> suggested = await _songDao.getSuggestedRadioSongs(
+        artist: _resolvedArtistName,
+        excludeMediaStoreIds: excludeIds,
+        limit: 25,
+      );
+      if (suggested.isNotEmpty &&
+          playback.queue.isNotEmpty &&
+          playback.queue.first.mediaStoreId == initialQueue.first.mediaStoreId) {
+        playback.appendSongsToQueue(suggested);
+      }
+    } catch (e) {
+      debugPrint('ArtistDetailScreen error starting artist radio: $e');
+    }
+  }
+
   Future<void> _loadArtistData() async {
     setState(() => _isLoading = true);
 
@@ -359,6 +399,7 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
                               onEditTap: _handleEditPhoto,
                               isPinned: _isPinned,
                               onToggleFavorite: _togglePinned,
+                              onPlayTap: _handlePlayArtist,
                             ),
                             const SizedBox(height: 30.0),
 

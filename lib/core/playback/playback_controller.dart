@@ -1041,6 +1041,28 @@ class PlaybackController extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Appends [songs] to the end of the active queue (e.g. suggested radio tracks
+  /// after an artist queue finishes) without interrupting current playback.
+  void appendSongsToQueue(List<Song> songs) {
+    if (songs.isEmpty) return;
+    bool added = false;
+    for (final song in songs) {
+      if (_queue.any((s) => _matchesSong(s, song))) continue;
+      _queue.add(song);
+      if (!_originalQueue.any((s) => _matchesSong(s, song))) {
+        _originalQueue.add(song);
+      }
+      if (_audioBuffer.hasSource) {
+        unawaited(_audioBuffer.add(song));
+      }
+      added = true;
+    }
+    if (added) {
+      _persistCurrentSessionImmediate();
+      notifyListeners();
+    }
+  }
+
   /// Appends a song to the very end of the playback queue without interrupting playback.
   void addToQueueEnd(Song song) {
     if (_queue.isEmpty || _currentIndex < 0) {
