@@ -313,6 +313,42 @@ void main() {
       expect(editTapped, isTrue);
     });
 
+    testWidgets('ArtistHeaderView aligns FavoriteHeartButton on left margin and Play button on right margin', (tester) async {
+      bool favTapped = false;
+      bool playTapped = false;
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ArtistHeaderView(
+              artistName: 'Daft Punk',
+              onEditTap: () {},
+              isPinned: false,
+              onToggleFavorite: () => favTapped = true,
+              onPlayTap: () => playTapped = true,
+            ),
+          ),
+        ),
+      );
+
+      final heartFinder = find.byKey(const ValueKey('artist_favorite_button'));
+      final playFinder = find.byKey(const ValueKey('artist_play_button'));
+      expect(heartFinder, findsOneWidget);
+      expect(playFinder, findsOneWidget);
+
+      expect(
+        tester.getTopLeft(heartFinder).dx,
+        lessThan(tester.getTopLeft(playFinder).dx),
+      );
+
+      await tester.tap(heartFinder);
+      await tester.tap(playFinder);
+      await tester.pump();
+
+      expect(favTapped, isTrue);
+      expect(playTapped, isTrue);
+    });
+
     testWidgets('ArtistTopTracksSection renders FEATURED header and tracks', (tester) async {
       final songs = [
         Song(

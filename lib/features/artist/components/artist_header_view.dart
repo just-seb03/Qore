@@ -27,12 +27,16 @@ class ArtistHeaderView extends StatelessWidget {
   /// Callback when the favorite heart button is tapped.
   final VoidCallback? onToggleFavorite;
 
+  /// Callback when the Metro play button is tapped.
+  final VoidCallback? onPlayTap;
+
   const ArtistHeaderView({
     super.key,
     required this.artistName,
     required this.onEditTap,
     this.isPinned = false,
     this.onToggleFavorite,
+    this.onPlayTap,
   });
 
   @override
@@ -130,13 +134,43 @@ class ArtistHeaderView extends StatelessWidget {
             ),
           ),
 
-          // 3. Favorite Heart Button directly below title
-          if (onToggleFavorite != null) ...[
-            const SizedBox(height: 10.0),
-            FavoriteHeartButton(
-              isPinned: isPinned,
-              onToggle: onToggleFavorite!,
-              size: 28.0,
+          // 3. Action row: Favorite Heart on left margin, Metro Play button on right margin
+          if (onToggleFavorite != null || onPlayTap != null) ...[
+            const SizedBox(height: 12.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: Row(
+                children: [
+                  if (onToggleFavorite != null)
+                    FavoriteHeartButton(
+                      key: const ValueKey('artist_favorite_button'),
+                      isPinned: isPinned,
+                      onToggle: onToggleFavorite!,
+                      size: 28.0,
+                    ),
+                  const Spacer(),
+                  if (onPlayTap != null)
+                    Material(
+                      color: AppColors.accent,
+                      borderRadius: BorderRadius.zero,
+                      child: InkWell(
+                        key: const ValueKey('artist_play_button'),
+                        onTap: onPlayTap,
+                        borderRadius: BorderRadius.zero,
+                        splashColor: AppColors.onAccent.withValues(alpha: 0.2),
+                        child: SizedBox(
+                          width: 40.0,
+                          height: 40.0,
+                          child: Icon(
+                            Icons.play_arrow_rounded,
+                            size: 26.0,
+                            color: AppColors.onAccent,
+                          ),
+                        ),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ],
         ],
