@@ -245,6 +245,52 @@ void main() {
       expect(assorted.first.title, 'Song 14');
       expect(assorted.last.title, 'Song 5');
     });
+
+    test('getSuggestedRadioSongs returns collaborator tracks excluding already queued IDs', () async {
+      final db = await appDatabase.database;
+      final testSongs = [
+        Song(
+          mediaStoreId: 301,
+          title: 'Collab Hit',
+          artist: 'Daft Punk, Pharrell Williams',
+          album: 'RAM',
+          duration: 240000,
+          path: '/music/collab.mp3',
+          dateModified: 100,
+        ),
+        Song(
+          mediaStoreId: 302,
+          title: 'Happy',
+          artist: 'Pharrell Williams',
+          album: 'G I R L',
+          duration: 230000,
+          path: '/music/happy.mp3',
+          dateModified: 100,
+        ),
+        Song(
+          mediaStoreId: 303,
+          title: 'Unrelated Song',
+          artist: 'Other Artist',
+          album: 'Other Album',
+          duration: 200000,
+          path: '/music/other.mp3',
+          dateModified: 100,
+        ),
+      ];
+      for (final s in testSongs) {
+        await db.insert('songs', s.toMap());
+      }
+
+      final suggested = await songDao.getSuggestedRadioSongs(
+        artist: 'Daft Punk',
+        excludeMediaStoreIds: {301},
+        limit: 10,
+      );
+
+      expect(suggested.map((s) => s.mediaStoreId), contains(302));
+      expect(suggested.map((s) => s.mediaStoreId), isNot(contains(301)));
+      expect(suggested.map((s) => s.mediaStoreId), isNot(contains(303)));
+    });
   });
 
   group('ArtworkService Custom Artist Avatar Tests', () {

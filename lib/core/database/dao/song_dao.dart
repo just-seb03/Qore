@@ -7,6 +7,7 @@
 library;
 
 import 'dart:io';
+import 'dart:isolate';
 import 'package:audio_metadata_reader/audio_metadata_reader.dart';
 import 'package:flutter/foundation.dart';
 import 'package:project_anima/core/database/app_database.dart';
@@ -1949,4 +1950,178 @@ class SongDao {
     notifyPlaybackHistoryChanged();
     notifyLibraryChanged();
   }
+
+  /// Builds a suggested radio queue for [artist] using:
+  /// 1. Tracks by collaborating artists (artists who appear alongside [artist]),
+  /// 2. Tracks with matching or similar genre names (analyzed in an isolate).
+  Future<List<Song>> getSuggestedRadioSongs({
+    required String artist,
+    required Set<int> excludeMediaStoreIds,
+    int limit = 25,
+  }) async {
+    final cleanArtist = artist.trim();
+    if (cleanArtist.isEmpty || limit <= 0) return const [];
+
+    final String normArtist = cleanArtist.toLowerCase();
+    final Set<int> seenIds = Set<int>.from(excludeMediaStoreIds);
+    final List<Song> suggested = [];
+
+    // 1. Collect collaborating artists from tracks where this artist appears
+    final artistSongs = await getSongsByArtist(cleanArtist, limit: 1000);
+    final Set<String> collaborators = {};
+    for (final s in artistSongs) {
+      for (final a in s.artists) {
+        final trimmed = a.trim();
+        if (trimmed.isNotEmpty &&
+            trimmed.toLowerCase() != normArtist &&
+            trimmed != '<Desconocido>' &&
+            trimmed.toLowerCase() != 'unknown artist') {
+          collaborators.add(trimmed);
+        }
+      }
+    }
+
+    final List<Song> collabPool = [];
+    for (final collab in collaborators.take(8)) {
+      final songs = await getSongsByArtist(collab, limit: 25);
+      for (final s in songs) {
+        if (!seenIds.contains(s.mediaStoreId)) {
+          seenIds.add(s.mediaStoreId);
+          collabPool.add(s);
+        }
+      }
+    }
+    collabPool.shuffle();
+    for (final s in collabPool) {
+      if (suggested.length >= limit) return suggested;
+      suggested.add(s);
+    }
+
+    // 2. Fill remaining slots using exact or name-similar genres in a background isolate
+    final int remainingNeeded = limit - suggested.length;
+    if (remainingNeeded <= 0) return suggested;
+
+    final List<String> artistPaths = artistSongs
+        .map((s) => s.path)
+        .where((p) => p.isNotEmpty)
+        .take(8)
+        .toList();
+    if (artistPaths.isEmpty) return suggested;
+
+    final db = await _appDatabase.database;
+    final candidateRows = await db.rawQuery(
+      '''
+      SELECT * FROM songs
+      WHERE path IS NOT NULL AND TRIM(path) != ''
+      ORDER BY RANDOM()
+      LIMIT 140;
+      ''',
+    );
+    final List<Song> candidateSongs = candidateRows
+        .map((r) => Song.fromMap(r))
+        .where((s) => !seenIds.contains(s.mediaStoreId))
+        .toList();
+    if (candidateSongs.isEmpty) return suggested;
+
+    final List<Map<String, dynamic>> candidatePayload = candidateSongs
+        .map((s) => {'id': s.mediaStoreId, 'path': s.path})
+        .toList();
+
+    final List<int> matchedIds = await Isolate.run(
+      () => _matchSongsByGenreInIsolate(artistPaths, candidatePayload),
+    );
+
+    final Map<int, Song> byId = {
+      for (final s in candidateSongs) s.mediaStoreId: s,
+    };
+    for (final id in matchedIds) {
+      if (suggested.length >= limit) break;
+      final song = byId[id];
+      if (song != null && seenIds.add(song.mediaStoreId)) {
+        suggested.add(song);
+      }
+    }
+
+    return suggested;
+  }
+}
+
+/// Isolate helper extracting genre tags and ranking candidate tracks by exact or
+/// token-similar genre names.
+List<int> _matchSongsByGenreInIsolate(
+  List<String> artistPaths,
+  List<Map<String, dynamic>> candidates,
+) {
+  List<String> readGenres(String path) {
+    try {
+      final file = File(path);
+      if (!file.existsSync()) return const [];
+      final metadata = readMetadata(file, getImage: false);
+      return metadata.genres
+          .map((g) => g.trim().toLowerCase())
+          .where((g) =>
+              g.isNotEmpty &&
+              g != '<desconocido>' &&
+              g != 'unknown' &&
+              g != 'other')
+          .toList();
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  final Set<String> artistGenres = {};
+  final Set<String> artistTokens = {};
+  for (final path in artistPaths) {
+    for (final g in readGenres(path)) {
+      artistGenres.add(g);
+      for (final tok in g.split(RegExp(r'[\s/&,\-]+'))) {
+        if (tok.length >= 3) artistTokens.add(tok);
+      }
+    }
+  }
+  if (artistGenres.isEmpty) return const [];
+
+  final List<int> exactMatches = [];
+  final List<int> similarMatches = [];
+
+  for (final c in candidates) {
+    final int id = c['id'] as int;
+    final String path = c['path'] as String;
+    final cGenres = readGenres(path);
+    if (cGenres.isEmpty) continue;
+
+    bool isExact = false;
+    bool isSimilar = false;
+    for (final cg in cGenres) {
+      if (artistGenres.contains(cg)) {
+        isExact = true;
+        break;
+      }
+      for (final ag in artistGenres) {
+        if (cg.contains(ag) || ag.contains(cg)) {
+          isSimilar = true;
+          break;
+        }
+      }
+      if (!isSimilar) {
+        for (final tok in cg.split(RegExp(r'[\s/&,\-]+'))) {
+          if (tok.length >= 3 && artistTokens.contains(tok)) {
+            isSimilar = true;
+            break;
+          }
+        }
+      }
+    }
+
+    if (isExact) {
+      exactMatches.add(id);
+    } else if (isSimilar) {
+      similarMatches.add(id);
+    }
+  }
+
+  exactMatches.shuffle();
+  similarMatches.shuffle();
+  return [...exactMatches, ...similarMatches];
 }
