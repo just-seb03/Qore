@@ -291,6 +291,52 @@ void main() {
       expect(suggested.map((s) => s.mediaStoreId), isNot(contains(301)));
       expect(suggested.map((s) => s.mediaStoreId), isNot(contains(303)));
     });
+
+    test('getEndlessRadioSuggestions prioritizes same album/artist/collaborators then library fallback', () async {
+      final db = await appDatabase.database;
+      final songs = [
+        Song(
+          mediaStoreId: 401,
+          title: 'Seed Song',
+          artist: 'Daft Punk',
+          album: 'Discovery',
+          duration: 210000,
+          path: '/music/seed.mp3',
+          dateModified: 100,
+        ),
+        Song(
+          mediaStoreId: 402,
+          title: 'Same Album Track',
+          artist: 'Daft Punk',
+          album: 'Discovery',
+          duration: 220000,
+          path: '/music/album_track.mp3',
+          dateModified: 100,
+        ),
+        Song(
+          mediaStoreId: 403,
+          title: 'Other Song',
+          artist: 'Justice',
+          album: 'Cross',
+          duration: 200000,
+          path: '/music/justice.mp3',
+          dateModified: 100,
+        ),
+      ];
+      for (final s in songs) {
+        await db.insert('songs', s.toMap());
+      }
+
+      final suggestions = await songDao.getEndlessRadioSuggestions(
+        songs.first,
+        excludeMediaStoreIds: {401},
+        limit: 10,
+      );
+
+      expect(suggestions.first.mediaStoreId, 402);
+      expect(suggestions.map((s) => s.mediaStoreId), contains(403));
+      expect(suggestions.map((s) => s.mediaStoreId), isNot(contains(401)));
+    });
   });
 
   group('ArtworkService Custom Artist Avatar Tests', () {

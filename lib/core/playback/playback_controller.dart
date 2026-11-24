@@ -561,6 +561,9 @@ class PlaybackController extends ChangeNotifier {
     _recordPlaybackHistory(_currentSong!);
     _syncAmbientBackdropBpm(resolveIfMissing: true);
     _resolveLeadingSilenceIfMissing(_currentSong!);
+    if (_player.loopMode == LoopMode.off && index >= _queue.length - 2) {
+      unawaited(_prefetchEndlessSuggestions());
+    }
     notifyListeners();
   }
 
@@ -623,9 +626,53 @@ class PlaybackController extends ChangeNotifier {
       return;
     }
 
-    // Natural end of queue with LoopMode.off
-    _player.pause();
-    _player.seek(Duration.zero);
+    // Natural end of queue with LoopMode.off -> continue with similar music seamlessly
+    unawaited(_continueEndlessPlaybackOnCompletion());
+  }
+
+  bool _isPrefetchingEndless = false;
+
+  Future<void> _prefetchEndlessSuggestions() async {
+    final seed = _currentSong;
+    if (seed == null || _isPrefetchingEndless) return;
+    _isPrefetchingEndless = true;
+    try {
+      final excludeIds = _queue.map((s) => s.mediaStoreId).toSet();
+      final suggested = await _songDao.getEndlessRadioSuggestions(
+        seed,
+        excludeMediaStoreIds: excludeIds,
+        limit: 15,
+      );
+      if (suggested.isNotEmpty && _currentSong != null) {
+        appendSongsToQueue(suggested);
+      }
+    } catch (e) {
+      debugPrint('PlaybackController endless prefetch error: $e');
+    } finally {
+      _isPrefetchingEndless = false;
+    }
+  }
+
+  Future<void> _continueEndlessPlaybackOnCompletion() async {
+    final seed = _currentSong;
+    if (seed != null) {
+      try {
+        final excludeIds = _queue.map((s) => s.mediaStoreId).toSet();
+        final suggested = await _songDao.getEndlessRadioSuggestions(
+          seed,
+          excludeMediaStoreIds: excludeIds,
+          limit: 20,
+        );
+        if (suggested.isNotEmpty) {
+          await playSong(suggested.first, queue: suggested);
+          return;
+        }
+      } catch (e) {
+        debugPrint('PlaybackController endless completion error: $e');
+      }
+    }
+    await _player.pause();
+    await _player.seek(Duration.zero);
     _persistCurrentSessionImmediate(overridePosition: Duration.zero);
     notifyListeners();
   }

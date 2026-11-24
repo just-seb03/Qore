@@ -2044,6 +2044,97 @@ class SongDao {
 
     return suggested;
   }
+
+  /// Builds a continuous radio queue from [seedSong] so playback never stops
+  /// when a queue ends:
+  /// 1. Same album tracks not yet in [excludeMediaStoreIds]
+  /// 2. Same artist, collaborators, and exact/similar genre matches
+  /// 3. Remaining library tracks (or shuffled library if everything was played)
+  Future<List<Song>> getEndlessRadioSuggestions(
+    Song seedSong, {
+    required Set<int> excludeMediaStoreIds,
+    int limit = 20,
+  }) async {
+    if (limit <= 0) return const [];
+
+    final Set<int> seenIds = Set<int>.from(excludeMediaStoreIds)
+      ..add(seedSong.mediaStoreId);
+    final List<Song> suggested = [];
+
+    // 1. Same album tracks
+    final albumName = seedSong.album?.trim() ?? '';
+    if (albumName.isNotEmpty && albumName != '<Desconocido>') {
+      final albumSongs = await getSongsByAlbum(
+        albumName,
+        artist: seedSong.albumArtist ?? seedSong.artist,
+      );
+      final albumPool = albumSongs
+          .where((s) => !seenIds.contains(s.mediaStoreId))
+          .toList()
+        ..shuffle();
+      for (final s in albumPool) {
+        if (suggested.length >= limit) return suggested;
+        if (seenIds.add(s.mediaStoreId)) suggested.add(s);
+      }
+    }
+
+    // 2. Same artist tracks not yet played
+    final primaryArtist = seedSong.primaryArtist.trim();
+    if (primaryArtist.isNotEmpty &&
+        primaryArtist != '<Desconocido>' &&
+        primaryArtist.toLowerCase() != 'unknown artist') {
+      final sameArtist = await getSongsByArtist(primaryArtist, limit: 30);
+      final artistPool = sameArtist
+          .where((s) => !seenIds.contains(s.mediaStoreId))
+          .toList()
+        ..shuffle();
+      for (final s in artistPool) {
+        if (suggested.length >= limit) return suggested;
+        if (seenIds.add(s.mediaStoreId)) suggested.add(s);
+      }
+
+      // 3. Collaborators & similar genres
+      final radio = await getSuggestedRadioSongs(
+        artist: primaryArtist,
+        excludeMediaStoreIds: seenIds,
+        limit: limit - suggested.length,
+      );
+      for (final s in radio) {
+        if (suggested.length >= limit) return suggested;
+        if (seenIds.add(s.mediaStoreId)) suggested.add(s);
+      }
+    }
+
+    // 4. General library fallback so music never stops
+    final db = await _appDatabase.database;
+    if (suggested.length < limit) {
+      final fallbackRows = await db.rawQuery(
+        'SELECT * FROM songs ORDER BY RANDOM() LIMIT ?;',
+        [limit * 3],
+      );
+      for (final row in fallbackRows) {
+        if (suggested.length >= limit) break;
+        final s = Song.fromMap(row);
+        if (seenIds.add(s.mediaStoreId)) {
+          suggested.add(s);
+        }
+      }
+    }
+
+    // 5. Tiny-library fallback: if every song was already in excludeMediaStoreIds,
+    // replay shuffled tracks excluding only the just-finished track.
+    if (suggested.isEmpty) {
+      final allRows = await db.rawQuery(
+        'SELECT * FROM songs WHERE media_store_id != ? ORDER BY RANDOM() LIMIT ?;',
+        [seedSong.mediaStoreId, limit],
+      );
+      for (final row in allRows) {
+        suggested.add(Song.fromMap(row));
+      }
+    }
+
+    return suggested;
+  }
 }
 
 /// Isolate helper extracting genre tags and ranking candidate tracks by exact or
