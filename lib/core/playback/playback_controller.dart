@@ -294,6 +294,7 @@ class PlaybackController extends ChangeNotifier {
   }
 
   void _stopListeningTracker() {
+    _deferredTrackEffectsTimer?.cancel();
     _listeningUiTimer?.cancel();
     _listeningUiTimer = null;
     _listeningTickCount = 0;
@@ -632,6 +633,10 @@ class PlaybackController extends ChangeNotifier {
 
   bool _isPrefetchingEndless = false;
   bool _isContinuingEndless = false;
+  int? _pendingSeekIndex;
+  bool _isProcessingSeekLoop = false;
+  Timer? _deferredTrackEffectsTimer;
+  int _trackEffectsToken = 0;
 
   Future<void> _prefetchEndlessSuggestions() async {
     final seed = _currentSong;
@@ -836,6 +841,9 @@ class PlaybackController extends ChangeNotifier {
     bool forceSequential = false,
   }) async {
     unawaited(_checkNotificationPermission());
+    _deferredTrackEffectsTimer?.cancel();
+    _pendingSeekIndex = null;
+    _trackEffectsToken++;
 
     if (forceSequential && _isShuffleEnabled) {
       _isShuffleEnabled = false;
@@ -900,30 +908,60 @@ class PlaybackController extends ChangeNotifier {
   }
 
   /// Internal helper to play a track by queue index using the buffer.
+  /// Serializes native seeks with latest-wins coalescing and debounces heavy
+  /// side-effects so rapid consecutive skips never freeze the audio engine or UI.
   Future<void> _playIndex(int index) async {
     if (index < 0 || index >= _queue.length) return;
+
+    final targetSong = _queue[index];
+    _currentIndex = index;
+    _currentSong = targetSong;
+    _pendingSeekIndex = index;
+    final token = ++_trackEffectsToken;
+    notifyListeners();
+
+    _scheduleDeferredTrackEffects(token, targetSong, index);
+
+    if (_isProcessingSeekLoop) return;
+    _isProcessingSeekLoop = true;
     _isSyncingBuffer = true;
     try {
-      _currentIndex = index;
-      _currentSong = _queue[index];
-      notifyListeners();
+      while (_pendingSeekIndex != null) {
+        final targetIndex = _pendingSeekIndex!;
+        _pendingSeekIndex = null;
+        if (targetIndex < 0 || targetIndex >= _queue.length) continue;
 
-      if (_audioBuffer.hasSource) {
-        await _audioBuffer.seekToIndex(index);
-      } else {
-        await _audioBuffer.loadQueue(_queue, initialIndex: index);
+        if (_audioBuffer.hasSource) {
+          await _audioBuffer.seekToIndex(targetIndex);
+        } else {
+          await _audioBuffer.loadQueue(_queue, initialIndex: targetIndex);
+        }
       }
       unawaited(_player.play());
-
-      _persistCurrentSessionImmediate();
-      _updateSystemNotification(_currentSong!, forcePlaying: true);
-      _recordPlaybackHistory(_currentSong!);
-      _syncAmbientBackdropBpm(resolveIfMissing: true, overridePlaying: true);
     } catch (e) {
       debugPrint('PlaybackController Error loading audio buffer at index $index: $e');
     } finally {
       _isSyncingBuffer = false;
+      _isProcessingSeekLoop = false;
     }
+  }
+
+  void _scheduleDeferredTrackEffects(int token, Song song, int index) {
+    _deferredTrackEffectsTimer?.cancel();
+    _deferredTrackEffectsTimer = Timer(const Duration(milliseconds: 180), () {
+      if (token != _trackEffectsToken ||
+          _currentSong?.mediaStoreId != song.mediaStoreId) {
+        return;
+      }
+      _persistCurrentSessionImmediate();
+      _updateSystemNotification(song, forcePlaying: true);
+      _recordPlaybackHistory(song);
+      _syncAmbientBackdropBpm(resolveIfMissing: true, overridePlaying: true);
+      _resolveLeadingSilenceIfMissing(song);
+      if (_player.loopMode == LoopMode.off && index >= _queue.length - 2) {
+        unawaited(_prefetchEndlessSuggestions());
+      }
+    });
   }
 
   /// Toggles between playing and paused states.
@@ -1211,6 +1249,7 @@ class PlaybackController extends ChangeNotifier {
   void dispose() {
     ArtworkService.instance.removeListener(_onArtworkServiceUpdated);
     FavoriteSongsDao.instance.favoritesRevision.removeListener(_onFavoritesRevisionChanged);
+    _deferredTrackEffectsTimer?.cancel();
     _listeningUiTimer?.cancel();
     if (_listeningStopwatch.isRunning) {
       _listeningStopwatch.stop();
