@@ -126,8 +126,13 @@ void main() {
     test('Library strings provide header, filters, and empty states', () {
       expect(strings.library.headerTitle, equals('Library'));
       expect(strings.library.filterAlbums, equals('Albums'));
+      expect(strings.library.filterSingles, equals('Singles'));
       expect(strings.library.filterArtists, equals('Artists'));
+      expect(strings.library.filterSongs, equals('Songs'));
+      expect(strings.library.filterGenres, equals('Genres'));
       expect(strings.library.filterPlaylists, equals('Playlists'));
+      expect(strings.library.emptyGenresTitle, equals('NO GENRES FOUND'));
+      expect(strings.library.songCount(3), equals('3 songs'));
       expect(strings.library.artistSubtitle, equals('Artist'));
       expect(strings.library.emptyAlbumsTitle, equals('NO ALBUMS FOUND'));
       expect(
@@ -319,8 +324,13 @@ void main() {
       expect(es.home.artistSubtitle, equals('Artista'));
       expect(es.library.headerTitle, equals('Biblioteca'));
       expect(es.library.filterAlbums, equals('Álbumes'));
+      expect(es.library.filterSingles, equals('Sencillos'));
       expect(es.library.filterArtists, equals('Artistas'));
+      expect(es.library.filterSongs, equals('Canciones'));
+      expect(es.library.filterGenres, equals('Géneros'));
       expect(es.library.filterPlaylists, equals('Listas'));
+      expect(es.library.emptyGenresTitle, equals('NO SE ENCONTRARON GÉNEROS'));
+      expect(es.library.songCount(3), equals('3 canciones'));
       expect(es.library.emptyAlbumsTitle, equals('NO SE ENCONTRARON ÁLBUMES'));
       expect(es.library.emptyArtistsTitle, equals('NO SE ENCONTRARON ARTISTAS'));
       expect(es.library.emptyPlaylistsTitle, equals('AÚN NO HAY LISTAS'));

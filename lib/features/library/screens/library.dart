@@ -18,13 +18,16 @@ import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/database/models/genre_discovery_item.dart';
 import 'package:project_anima/core/database/models/playlist.dart';
 import 'package:project_anima/core/database/models/song.dart';
+import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/library/components/albums/library_albums_grid.dart';
 import 'package:project_anima/features/library/components/artists/library_artists_list.dart';
+import 'package:project_anima/features/library/components/genres/library_genres_list.dart';
 import 'package:project_anima/features/library/components/library_category_bar.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
@@ -79,11 +82,17 @@ class LibraryScreen extends StatefulWidget {
   /// Optional pre-loaded albums for dependency injection.
   final List<AlbumDiscoveryItem>? initialAlbums;
 
+  /// Optional pre-loaded singles for dependency injection.
+  final List<AlbumDiscoveryItem>? initialSingles;
+
   /// Optional pre-loaded artists for dependency injection.
   final List<ArtistDiscoveryItem>? initialArtists;
 
   /// Optional pre-loaded songs for dependency injection.
   final List<Song>? initialSongs;
+
+  /// Optional pre-loaded genres for dependency injection.
+  final List<GenreDiscoveryItem>? initialGenres;
 
   /// Optional pre-loaded playlists for dependency injection.
   final List<Playlist>? initialPlaylists;
@@ -103,8 +112,10 @@ class LibraryScreen extends StatefulWidget {
     this.showAmbientBackdrop = true,
     this.initialFilter = LibraryFilter.albums,
     this.initialAlbums,
+    this.initialSingles,
     this.initialArtists,
     this.initialSongs,
+    this.initialGenres,
     this.initialPlaylists,
     this.playlistDao,
     this.songDao,
@@ -121,6 +132,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
   final GlobalKey<LibraryPlaylistsViewState> _playlistsViewKey =
       GlobalKey<LibraryPlaylistsViewState>();
   bool _isHeaderVisible = true;
+  bool _showSinglesOnly = false;
 
   bool _onScrollNotification(ScrollNotification notification) {
     if (notification.metrics.axis != Axis.vertical) return false;
@@ -251,6 +263,42 @@ class _LibraryScreenState extends State<LibraryScreen> {
     }
   }
 
+  Future<void> _handleShufflePlaySingles() async {
+    try {
+      final dao = widget.songDao ?? SongDao();
+      final sourceAlbums = widget.initialSingles ??
+          widget.initialAlbums ??
+          await dao.getLibraryAlbums();
+      final singleIds = sourceAlbums
+          .where((a) => a.songCount == 1 && a.representativeSongId > 0)
+          .map((a) => a.representativeSongId)
+          .toList();
+      if (singleIds.isEmpty) return;
+
+      final songs = await dao.getSongsByMediaStoreIds(singleIds);
+      if (songs.isEmpty) return;
+
+      final shuffled = List<Song>.from(songs)..shuffle();
+      final playback = PlaybackController.instance;
+      if (playback.isShuffleEnabled) {
+        await playback.toggleShuffle();
+      }
+      await playback.playSong(shuffled.first, queue: shuffled);
+    } catch (e) {
+      debugPrint('LibraryScreen error starting shuffled singles playback: $e');
+    }
+  }
+
+  double _resolveFabBottomOffset(BuildContext context) {
+    final hasMiniPlayer = PlaybackController.instance.currentSong != null;
+    final mqBottom = MediaQuery.paddingOf(context).bottom;
+    const double separation = 16.0;
+    final double baseBottomOffset = (mqBottom > 60.0)
+        ? mqBottom
+        : (80.0 + (hasMiniPlayer ? 72.0 : 0.0) + mqBottom);
+    return baseBottomOffset + separation;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -268,18 +316,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
               PlaybackController.instance,
               _transitionController,
             ]),
-            builder: (context, _) {
+            builder: (context, child) {
               final currentFilter = _transitionController.currentFilter;
-              final hasMiniPlayer = PlaybackController.instance.currentSong != null;
-              final mqBottom = MediaQuery.paddingOf(context).bottom;
-              // When hosted in MenuTransitionControl, mqBottom already contains the exact height
-              // of the bottom navigation bar (and MiniPlayer if active) plus device safe area.
-              // In standalone/test environments, fallback to explicit baseline offsets.
-              const double separation = 16.0;
-              final double baseBottomOffset = (mqBottom > 60.0)
-                  ? mqBottom
-                  : (80.0 + (hasMiniPlayer ? 72.0 : 0.0) + mqBottom);
-              final fabBottomOffset = baseBottomOffset + separation;
+              final bool showFab = currentFilter == LibraryFilter.playlists ||
+                  currentFilter == LibraryFilter.songs ||
+                  (currentFilter == LibraryFilter.albums && _showSinglesOnly);
 
               return Scaffold(
                 extendBody: true,
@@ -316,97 +357,25 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         ),
                         const SizedBox(height: 6.0),
                         Expanded(
-                          child: ScrollEdgeFadeMask(
-                            key: const ValueKey('library_scroll_edge_fade_mask'),
-                            topFadeExtent: 36.0,
-                            bottomFadeExtent: 64.0,
-                            child: LibraryTransitionControl(
-                              controller: _transitionController,
-                              children: [
-                                LibraryAlbumsGrid(
-                                  key: const ValueKey('library_albums_view'),
-                                  albums: widget.initialAlbums,
-                                  songDao: widget.songDao,
-                                ),
-                                LibraryArtistsList(
-                                  key: const ValueKey('library_artists_view'),
-                                  artists: widget.initialArtists,
-                                  songDao: widget.songDao,
-                                ),
-                                LibrarySongsList(
-                                  key: const ValueKey('library_songs_view'),
-                                  songs: widget.initialSongs ??
-                                      ((widget.initialAlbums != null || widget.initialArtists != null)
-                                          ? const []
-                                          : null),
-                                  songDao: widget.songDao,
-                                ),
-                                LibraryPlaylistsView(
-                                  key: _playlistsViewKey,
-                                  playlists: widget.initialPlaylists ??
-                                      ((widget.initialAlbums != null || widget.initialArtists != null)
-                                          ? const []
-                                          : null),
-                                  playlistDao: widget.playlistDao,
-                                  songDao: widget.songDao,
-                                ),
-                              ],
-                            ),
-                          ),
+                          child: child!,
                         ),
                       ],
                     ),
                   ),
                 ),
-                floatingActionButton: currentFilter == LibraryFilter.playlists
-                    ? Container(
-                        key: const ValueKey('library_create_playlist_fab_container'),
-                        decoration: const BoxDecoration(
-                          borderRadius: BorderRadius.zero,
-                        ),
-                        child: FloatingActionButton(
-                          key: const ValueKey('library_create_playlist_fab'),
-                          onPressed: _openCreatePlaylistScreen,
-                          backgroundColor: AppColors.accent,
-                          foregroundColor: AppColors.onAccent,
-                          elevation: 0.0,
-                          highlightElevation: 0.0,
-                          shape: const RoundedRectangleBorder(
-                            borderRadius: BorderRadius.zero,
-                          ),
-                          child: const Icon(Icons.add_rounded, size: 28.0),
-                        ),
+                floatingActionButton: showFab
+                    ? _LibraryDynamicFab(
+                        currentFilter: currentFilter,
+                        onCreatePlaylist: _openCreatePlaylistScreen,
+                        onShufflePlaySongs: _handleShufflePlayAllSongs,
+                        onShufflePlaySingles: _handleShufflePlaySingles,
                       )
-                    : currentFilter == LibraryFilter.songs
-                        ? Container(
-                            key: const ValueKey(
-                                'library_shuffle_play_songs_fab_container'),
-                            decoration: const BoxDecoration(
-                              borderRadius: BorderRadius.zero,
-                            ),
-                            child: FloatingActionButton(
-                              key: const ValueKey(
-                                  'library_shuffle_play_songs_fab'),
-                              onPressed: _handleShufflePlayAllSongs,
-                              backgroundColor: AppColors.accent,
-                              foregroundColor: AppColors.onAccent,
-                              elevation: 0.0,
-                              highlightElevation: 0.0,
-                              shape: const RoundedRectangleBorder(
-                                borderRadius: BorderRadius.zero,
-                              ),
-                              child: const Icon(
-                                Icons.play_arrow_rounded,
-                                size: 30.0,
-                              ),
-                            ),
-                          )
-                        : null,
-                floatingActionButtonLocation:
-                    (currentFilter == LibraryFilter.playlists ||
-                            currentFilter == LibraryFilter.songs)
-                        ? LibraryPlaylistsFabLocation(fabBottomOffset)
-                        : null,
+                    : null,
+                floatingActionButtonLocation: showFab
+                    ? LibraryPlaylistsFabLocation(
+                        _resolveFabBottomOffset(context),
+                      )
+                    : null,
                 floatingActionButtonAnimator: FloatingActionButtonAnimator.noAnimation,
                 bottomNavigationBar: widget.showBottomNav
                     ? const AppBottomNav(
@@ -415,8 +384,237 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     : null,
               );
             },
+            child: ScrollEdgeFadeMask(
+              key: const ValueKey('library_scroll_edge_fade_mask'),
+              topFadeExtent: 36.0,
+              bottomFadeExtent: 64.0,
+              child: LibraryTransitionControl(
+                controller: _transitionController,
+                children: [
+                  LibraryAlbumsGrid(
+                    key: const ValueKey('library_albums_view'),
+                    albums: _showSinglesOnly
+                        ? (widget.initialSingles ?? widget.initialAlbums)
+                        : widget.initialAlbums,
+                    singlesOnly: _showSinglesOnly,
+                    songDao: widget.songDao,
+                  ),
+                  LibraryArtistsList(
+                    key: const ValueKey('library_artists_view'),
+                    artists: widget.initialArtists,
+                    songDao: widget.songDao,
+                  ),
+                  LibrarySongsList(
+                    key: const ValueKey('library_songs_view'),
+                    songs: widget.initialSongs ??
+                        ((widget.initialAlbums != null ||
+                                widget.initialArtists != null)
+                            ? const []
+                            : null),
+                    songDao: widget.songDao,
+                  ),
+                  LibraryGenresList(
+                    key: const ValueKey('library_genres_view'),
+                    genres: widget.initialGenres ??
+                        ((widget.initialAlbums != null ||
+                                widget.initialArtists != null)
+                            ? const []
+                            : null),
+                    songDao: widget.songDao,
+                  ),
+                  LibraryPlaylistsView(
+                    key: _playlistsViewKey,
+                    playlists: widget.initialPlaylists ??
+                        ((widget.initialAlbums != null ||
+                                widget.initialArtists != null)
+                            ? const []
+                            : null),
+                    playlistDao: widget.playlistDao,
+                    songDao: widget.songDao,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          ListenableBuilder(
+            listenable: Listenable.merge([
+              PlaybackController.instance,
+              _transitionController,
+            ]),
+            builder: (context, _) {
+              if (_transitionController.currentFilter != LibraryFilter.albums) {
+                return const SizedBox.shrink();
+              }
+              return Positioned(
+                left: 16.0,
+                bottom: _resolveFabBottomOffset(context),
+                child: _MetroAlbumsSinglesSwitch(
+                  showSinglesOnly: _showSinglesOnly,
+                  onChanged: (singlesOnly) {
+                    if (_showSinglesOnly != singlesOnly) {
+                      setState(() {
+                        _showSinglesOnly = singlesOnly;
+                      });
+                    }
+                  },
+                ),
+              );
+            },
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Dynamic FAB for Playlists, Songs, and Singles modes.
+class _LibraryDynamicFab extends StatelessWidget {
+  final LibraryFilter currentFilter;
+  final VoidCallback onCreatePlaylist;
+  final VoidCallback onShufflePlaySongs;
+  final VoidCallback onShufflePlaySingles;
+
+  const _LibraryDynamicFab({
+    required this.currentFilter,
+    required this.onCreatePlaylist,
+    required this.onShufflePlaySongs,
+    required this.onShufflePlaySingles,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    if (currentFilter == LibraryFilter.playlists) {
+      return Container(
+        key: const ValueKey('library_create_playlist_fab_container'),
+        decoration: const BoxDecoration(borderRadius: BorderRadius.zero),
+        child: FloatingActionButton(
+          key: const ValueKey('library_create_playlist_fab'),
+          onPressed: onCreatePlaylist,
+          backgroundColor: AppColors.accent,
+          foregroundColor: AppColors.onAccent,
+          elevation: 0.0,
+          highlightElevation: 0.0,
+          shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+          child: const Icon(Icons.add_rounded, size: 28.0),
+        ),
+      );
+    }
+
+    final isSongs = currentFilter == LibraryFilter.songs;
+    return Container(
+      key: ValueKey(
+        isSongs
+            ? 'library_shuffle_play_songs_fab_container'
+            : 'library_shuffle_play_singles_fab_container',
+      ),
+      decoration: const BoxDecoration(borderRadius: BorderRadius.zero),
+      child: FloatingActionButton(
+        key: ValueKey(
+          isSongs
+              ? 'library_shuffle_play_songs_fab'
+              : 'library_shuffle_play_singles_fab',
+        ),
+        onPressed: isSongs ? onShufflePlaySongs : onShufflePlaySingles,
+        backgroundColor: AppColors.accent,
+        foregroundColor: AppColors.onAccent,
+        elevation: 0.0,
+        highlightElevation: 0.0,
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.zero),
+        child: const Icon(Icons.play_arrow_rounded, size: 30.0),
+      ),
+    );
+  }
+}
+
+/// Windows Phone Metro segmented switch toggling between Albums and Singles.
+class _MetroAlbumsSinglesSwitch extends StatelessWidget {
+  final bool showSinglesOnly;
+  final ValueChanged<bool> onChanged;
+
+  const _MetroAlbumsSinglesSwitch({
+    required this.showSinglesOnly,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = context.l10n.library;
+
+    return Container(
+      key: const ValueKey('library_albums_singles_switch'),
+      height: 44.0,
+      decoration: BoxDecoration(
+        color: AppColors.bottomNavBackground.withValues(alpha: 0.92),
+        border: Border.all(
+          color: AppColors.outlineVariant,
+          width: 1.0,
+        ),
+        borderRadius: BorderRadius.zero,
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _SwitchSegment(
+            key: const ValueKey('library_switch_albums'),
+            label: l10n.filterAlbums,
+            isSelected: !showSinglesOnly,
+            onTap: () => onChanged(false),
+          ),
+          Container(
+            width: 1.0,
+            height: double.infinity,
+            color: AppColors.outlineVariant,
+          ),
+          _SwitchSegment(
+            key: const ValueKey('library_switch_singles'),
+            label: l10n.filterSingles,
+            isSelected: showSinglesOnly,
+            onTap: () => onChanged(true),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SwitchSegment extends StatelessWidget {
+  final String label;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SwitchSegment({
+    super.key,
+    required this.label,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.zero,
+        splashColor: AppColors.accent.withValues(alpha: 0.2),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 14.0),
+          color: isSelected ? AppColors.accent : Colors.transparent,
+          child: Text(
+            label,
+            style: AppFonts.segoe(
+              fontSize: 13.0,
+              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+              color: isSelected
+                  ? AppColors.onAccent
+                  : AppColors.onSurfaceVariant,
+              letterSpacing: 0.1,
+            ),
+          ),
+        ),
       ),
     );
   }

@@ -18,10 +18,16 @@ class EnLibraryStrings implements LibraryStrings {
   String get filterAlbums => 'Albums';
 
   @override
+  String get filterSingles => 'Singles';
+
+  @override
   String get filterArtists => 'Artists';
 
   @override
   String get filterSongs => 'Songs';
+
+  @override
+  String get filterGenres => 'Genres';
 
   @override
   String get filterPlaylists => 'Playlists';
@@ -40,6 +46,13 @@ class EnLibraryStrings implements LibraryStrings {
       'Add music to your device to see your albums here';
 
   @override
+  String get emptySinglesTitle => 'NO SINGLES FOUND';
+
+  @override
+  String get emptySinglesSubtitle =>
+      'Single-track releases will appear here';
+
+  @override
   String get emptyArtistsTitle => 'NO ARTISTS FOUND';
 
   @override
@@ -53,5 +66,15 @@ class EnLibraryStrings implements LibraryStrings {
   String get emptyPlaylistsSubtitle => 'Custom playlists will appear here';
 
   @override
+  String get emptyGenresTitle => 'NO GENRES FOUND';
+
+  @override
+  String get emptyGenresSubtitle =>
+      'Add music with genre tags to see your genres here';
+
+  @override
   String get artistSubtitle => 'Artist';
+
+  @override
+  String songCount(int count) => '$count ${count == 1 ? "song" : "songs"}';
 }

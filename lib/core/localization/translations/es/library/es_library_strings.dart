@@ -18,10 +18,16 @@ class EsLibraryStrings implements LibraryStrings {
   String get filterAlbums => 'Álbumes';
 
   @override
+  String get filterSingles => 'Sencillos';
+
+  @override
   String get filterArtists => 'Artistas';
 
   @override
   String get filterSongs => 'Canciones';
+
+  @override
+  String get filterGenres => 'Géneros';
 
   @override
   String get filterPlaylists => 'Listas';
@@ -44,6 +50,13 @@ class EsLibraryStrings implements LibraryStrings {
       'Añade música a tu dispositivo para ver tus álbumes aquí';
 
   @override
+  String get emptySinglesTitle => 'NO SE ENCONTRARON SENCILLOS';
+
+  @override
+  String get emptySinglesSubtitle =>
+      'Los lanzamientos de una sola canción aparecerán aquí';
+
+  @override
   String get emptyArtistsTitle => 'NO SE ENCONTRARON ARTISTAS';
 
   @override
@@ -55,4 +68,14 @@ class EsLibraryStrings implements LibraryStrings {
 
   @override
   String get emptyPlaylistsSubtitle => 'Las listas personalizadas aparecerán aquí';
+
+  @override
+  String get emptyGenresTitle => 'NO SE ENCONTRARON GÉNEROS';
+
+  @override
+  String get emptyGenresSubtitle =>
+      'Añade música con etiquetas de género para ver tus géneros aquí';
+
+  @override
+  String songCount(int count) => '$count ${count == 1 ? "canción" : "canciones"}';
 }

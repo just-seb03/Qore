@@ -16,6 +16,7 @@ import 'package:project_anima/core/database/dao/pinned_favorites_dao.dart';
 import 'package:project_anima/core/database/dao/playlist_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/database/models/genre_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/database/models/song_artwork_meta.dart';
 import 'package:project_anima/core/utils/artist_splitter.dart';
@@ -2135,6 +2136,91 @@ class SongDao {
 
     return suggested;
   }
+
+  /// Extracts all distinct genres present across the indexed library by reading
+  /// audio metadata tags in a background isolate, sorted alphabetically.
+  Future<List<GenreDiscoveryItem>> getLibraryGenres() async {
+    final db = await _appDatabase.database;
+    final List<Map<String, dynamic>> rows = await db.rawQuery(
+      '''
+      SELECT * FROM songs
+      WHERE path IS NOT NULL AND TRIM(path) != ''
+      ORDER BY title COLLATE NOCASE ASC;
+      ''',
+    );
+    if (rows.isEmpty) return const [];
+
+    final songs = rows.map((row) => Song.fromMap(row)).toList();
+    final paths = songs.map((s) => s.path).toList();
+
+    final extracted = await Isolate.run(
+      () => _extractLibraryGenresInIsolate(paths),
+    );
+    if (extracted.isEmpty) return const [];
+
+    final List<GenreDiscoveryItem> items = [];
+    for (final entry in extracted) {
+      final name = entry['name'] as String;
+      final indices = entry['indices'] as List<int>;
+      if (indices.isEmpty) continue;
+      final genreSongs = [for (final idx in indices) songs[idx]];
+      final rep = genreSongs.first;
+      items.add(
+        GenreDiscoveryItem(
+          name: name,
+          songCount: genreSongs.length,
+          representativeSongId: rep.mediaStoreId,
+          representativeAlbumId: rep.albumId,
+          songs: genreSongs,
+        ),
+      );
+    }
+
+    items.sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()));
+    return items;
+  }
+}
+
+/// Isolate helper scanning audio file tags for genre names and grouping song
+/// indices by normalized genre.
+List<Map<String, dynamic>> _extractLibraryGenresInIsolate(List<String> paths) {
+  final Map<String, String> displayNames = {};
+  final Map<String, List<int>> groupedIndices = {};
+
+  for (int i = 0; i < paths.length; i++) {
+    final path = paths[i];
+    if (path.isEmpty) continue;
+    try {
+      final file = File(path);
+      if (!file.existsSync()) continue;
+      final metadata = readMetadata(file, getImage: false);
+      final Set<String> seenForSong = {};
+      for (final rawGenre in metadata.genres) {
+        final clean = rawGenre.trim();
+        final normalized = clean.toLowerCase();
+        if (clean.isEmpty ||
+            normalized == '<desconocido>' ||
+            normalized == 'unknown' ||
+            normalized == 'unknown genre' ||
+            normalized == 'género desconocido') {
+          continue;
+        }
+        if (!seenForSong.add(normalized)) continue;
+        displayNames.putIfAbsent(normalized, () => clean);
+        groupedIndices.putIfAbsent(normalized, () => []).add(i);
+      }
+    } catch (_) {
+      // Skip unreadable files gracefully
+    }
+  }
+
+  return [
+    for (final entry in groupedIndices.entries)
+      {
+        'name': displayNames[entry.key]!,
+        'indices': entry.value,
+      },
+  ];
 }
 
 /// Isolate helper extracting genre tags and ranking candidate tracks by exact or

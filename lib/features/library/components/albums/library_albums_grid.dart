@@ -11,7 +11,9 @@ import 'package:flutter/material.dart';
 import 'package:project_anima/core/artwork/artwork_service.dart';
 import 'package:project_anima/core/database/dao/song_dao.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
+import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
+import 'package:project_anima/core/playback/playback_controller.dart';
 import 'package:project_anima/core/theme/theme.dart';
 import 'package:project_anima/features/album/screens/album_detail_screen.dart';
 import 'package:project_anima/features/library/components/albums/library_album_card.dart';
@@ -31,12 +33,16 @@ class LibraryAlbumsGrid extends StatefulWidget {
   /// Optional scroll controller.
   final ScrollController? scrollController;
 
+  /// When true, displays only single-track releases (`songCount == 1`).
+  final bool singlesOnly;
+
   const LibraryAlbumsGrid({
     super.key,
     this.albums,
     this.songDao,
     this.onAlbumTap,
     this.scrollController,
+    this.singlesOnly = false,
   });
 
   @override
@@ -60,12 +66,17 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
     color: AppColors.futuristicWhite.withValues(alpha: 0.25),
   );
 
+  List<AlbumDiscoveryItem> _applyFilter(List<AlbumDiscoveryItem> source) {
+    if (!widget.singlesOnly) return source;
+    return source.where((album) => album.songCount == 1).toList();
+  }
+
   @override
   void initState() {
     super.initState();
     _songDao = widget.songDao ?? SongDao();
     if (widget.albums != null) {
-      _albums = widget.albums;
+      _albums = _applyFilter(widget.albums!);
       _isLoading = false;
     } else {
       _loadAlbums();
@@ -75,17 +86,22 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
   @override
   void didUpdateWidget(covariant LibraryAlbumsGrid oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.albums != null && widget.albums != oldWidget.albums) {
+    if (widget.albums != null &&
+        (widget.albums != oldWidget.albums ||
+            widget.singlesOnly != oldWidget.singlesOnly)) {
       setState(() {
-        _albums = widget.albums;
+        _albums = _applyFilter(widget.albums!);
         _isLoading = false;
       });
+    } else if (widget.albums == null &&
+        widget.singlesOnly != oldWidget.singlesOnly) {
+      _loadAlbums();
     }
   }
 
   Future<void> _loadAlbums() async {
     try {
-      final albums = await _songDao.getLibraryAlbums();
+      final albums = _applyFilter(await _songDao.getLibraryAlbums());
       final repIds = albums.map((a) => a.representativeSongId).toList();
       ArtworkService.instance.prioritizeSongIds(repIds);
       if (mounted) {
@@ -105,9 +121,35 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
     }
   }
 
-  void _handleTap(AlbumDiscoveryItem album) {
+  Future<void> _handleTap(AlbumDiscoveryItem album) async {
     if (widget.onAlbumTap != null) {
       widget.onAlbumTap!(album);
+      return;
+    }
+
+    if (widget.singlesOnly) {
+      try {
+        final singles = _albums ?? const [];
+        final ids = singles
+            .map((a) => a.representativeSongId)
+            .where((id) => id > 0)
+            .toList();
+        final songs = await _songDao.getSongsByMediaStoreIds(ids);
+        Song? target;
+        for (final s in songs) {
+          if (s.mediaStoreId == album.representativeSongId) {
+            target = s;
+            break;
+          }
+        }
+        target ??= await _songDao.getSongByMediaStoreId(album.representativeSongId);
+        if (target == null) return;
+
+        final queue = songs.isNotEmpty ? songs : [target];
+        await PlaybackController.instance.playSong(target, queue: queue);
+      } catch (e) {
+        debugPrint('⚠️ [LibraryAlbumsGrid] Error playing single: $e');
+      }
       return;
     }
 
@@ -147,13 +189,17 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
               ),
               const SizedBox(height: 16.0),
               Text(
-                context.l10n.library.emptyAlbumsTitle,
+                widget.singlesOnly
+                    ? context.l10n.library.emptySinglesTitle
+                    : context.l10n.library.emptyAlbumsTitle,
                 textAlign: TextAlign.center,
                 style: _emptyHeaderStyle,
               ),
               const SizedBox(height: 6.0),
               Text(
-                context.l10n.library.emptyAlbumsSubtitle,
+                widget.singlesOnly
+                    ? context.l10n.library.emptySinglesSubtitle
+                    : context.l10n.library.emptyAlbumsSubtitle,
                 textAlign: TextAlign.center,
                 style: _emptySubtitleStyle,
               ),

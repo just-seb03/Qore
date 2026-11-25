@@ -23,6 +23,7 @@ enum LibraryFilter {
   albums,
   artists,
   songs,
+  genres,
   playlists,
 }
 
@@ -115,6 +116,11 @@ class LibraryFilterPills extends StatelessWidget {
         filter: LibraryFilter.songs,
         icon: Symbols.music_note_rounded,
         label: context.l10n.library.filterSongs,
+      ),
+      _PillItem(
+        filter: LibraryFilter.genres,
+        icon: Symbols.category_rounded,
+        label: context.l10n.library.filterGenres,
       ),
       _PillItem(
         filter: LibraryFilter.playlists,

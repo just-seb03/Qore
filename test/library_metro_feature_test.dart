@@ -10,11 +10,14 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:project_anima/core/database/models/album_discovery_item.dart';
 import 'package:project_anima/core/database/models/artist_discovery_item.dart';
+import 'package:project_anima/core/database/models/genre_discovery_item.dart';
 import 'package:project_anima/core/database/models/song.dart';
 import 'package:project_anima/core/localization/app_localizations.dart';
 import 'package:project_anima/features/ambient_particles/ambient_particles.dart';
 import 'package:project_anima/features/library/components/albums/library_album_card.dart';
+import 'package:project_anima/features/library/components/albums/library_albums_grid.dart';
 import 'package:project_anima/features/library/components/common/metro_alphabet_scroller.dart';
+import 'package:project_anima/features/library/components/genres/library_genres_list.dart';
 import 'package:project_anima/features/library/components/library_category_bar.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/library/components/library_header.dart';
@@ -162,7 +165,13 @@ void main() {
       expect(find.text('Álbumes'), findsOneWidget);
       expect(find.text('Artistas'), findsOneWidget);
       expect(find.text('Canciones'), findsOneWidget);
+      expect(find.text('Géneros'), findsOneWidget);
       expect(find.text('Listas'), findsOneWidget);
+
+      // Verify Géneros is positioned before Listas
+      final genresDx = tester.getTopLeft(find.text('Géneros')).dx;
+      final playlistsDx = tester.getTopLeft(find.text('Listas')).dx;
+      expect(genresDx, lessThan(playlistsDx));
 
       // Verify navigation chevrons exist
       expect(find.byKey(const ValueKey('library_nav_previous')), findsOneWidget);
@@ -325,12 +334,175 @@ void main() {
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
       expect(find.byKey(const ValueKey('library_shuffle_play_songs_fab')), findsOneWidget);
 
-      // 4. Switch to Playlists tab
+      // 4. Switch to Genres tab
+      await tester.tap(find.byKey(const ValueKey('library_category_genres')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
+      expect(find.byType(LibraryGenresList), findsOneWidget);
+
+      // 5. Switch to Playlists tab
       await tester.tap(find.byKey(const ValueKey('library_category_playlists')));
       await tester.pumpAndSettle();
 
       expect(find.byType(AmbientParticlesCanvas), findsOneWidget);
       expect(find.byKey(const ValueKey('library_shuffle_play_songs_fab')), findsNothing);
+    });
+  });
+
+  group('LibraryGenresList Widget Tests', () {
+    testWidgets('renders genres with song counts and fires tap callback', (tester) async {
+      GenreDiscoveryItem? tappedGenre;
+      final testGenres = [
+        GenreDiscoveryItem(
+          name: 'Electronic',
+          songCount: 2,
+          representativeSongId: 1002,
+          songs: testSongs,
+        ),
+        GenreDiscoveryItem(
+          name: 'Rock',
+          songCount: 1,
+          representativeSongId: 1001,
+          songs: [testSongs.first],
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: LibraryGenresList(
+              genres: testGenres,
+              onGenreTap: (g) => tappedGenre = g,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Electronic'), findsOneWidget);
+      expect(find.text('2 songs'), findsOneWidget);
+      expect(find.text('Rock'), findsOneWidget);
+      expect(find.text('1 song'), findsOneWidget);
+
+      await tester.tap(find.text('Electronic'));
+      expect(tappedGenre?.name, 'Electronic');
+    });
+  });
+
+  group('LibraryAlbumsGrid singlesOnly Tests', () {
+    testWidgets('filters albums to only those with songCount == 1', (tester) async {
+      final mixedAlbums = [
+        const AlbumDiscoveryItem(
+          name: 'Full Album',
+          artist: 'Artist A',
+          albumId: 1,
+          representativeSongId: 101,
+          songCount: 10,
+          totalDuration: 2000000,
+        ),
+        const AlbumDiscoveryItem(
+          name: 'Only One Song',
+          artist: 'Artist B',
+          albumId: 2,
+          representativeSongId: 102,
+          songCount: 1,
+          totalDuration: 210000,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('en'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: Scaffold(
+            body: LibraryAlbumsGrid(
+              albums: mixedAlbums,
+              singlesOnly: true,
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Only One Song'), findsOneWidget);
+      expect(find.text('Full Album'), findsNothing);
+    });
+
+    testWidgets('LibraryScreen Metro switch toggles between Albums and Singles with Play FAB', (tester) async {
+      final mixedAlbums = [
+        const AlbumDiscoveryItem(
+          name: 'Full Album',
+          artist: 'Artist A',
+          albumId: 1,
+          representativeSongId: 101,
+          songCount: 10,
+          totalDuration: 2000000,
+        ),
+        const AlbumDiscoveryItem(
+          name: 'Single Track Release',
+          artist: 'Artist B',
+          albumId: 2,
+          representativeSongId: 102,
+          songCount: 1,
+          totalDuration: 210000,
+        ),
+      ];
+
+      await tester.pumpWidget(
+        MaterialApp(
+          locale: const Locale('es'),
+          supportedLocales: AppLocalizations.supportedLocales,
+          localizationsDelegates: const [
+            AppLocalizations.delegate,
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate,
+          ],
+          home: LibraryScreen(
+            showBottomNav: false,
+            initialAlbums: mixedAlbums,
+            initialArtists: testArtists,
+            initialSongs: testSongs,
+            initialPlaylists: const [],
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('library_albums_singles_switch')), findsOneWidget);
+      expect(find.text('Full Album'), findsOneWidget);
+      expect(find.text('Single Track Release'), findsOneWidget);
+      expect(find.byKey(const ValueKey('library_shuffle_play_singles_fab')), findsNothing);
+
+      // Toggle to Sencillos
+      await tester.tap(find.byKey(const ValueKey('library_switch_singles')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Single Track Release'), findsOneWidget);
+      expect(find.text('Full Album'), findsNothing);
+      expect(find.byKey(const ValueKey('library_shuffle_play_singles_fab')), findsOneWidget);
+
+      // Toggle back to Álbumes
+      await tester.tap(find.byKey(const ValueKey('library_switch_albums')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Full Album'), findsOneWidget);
+      expect(find.byKey(const ValueKey('library_shuffle_play_singles_fab')), findsNothing);
     });
   });
 }

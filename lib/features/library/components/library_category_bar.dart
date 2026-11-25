@@ -103,7 +103,7 @@ class _LibraryCategoryBarState extends State<LibraryCategoryBar> {
           ),
           const SizedBox(width: 12.0),
 
-          // 3. Songs Pivot Button (New before Playlists)
+          // 3. Songs Pivot Button
           _buildCategoryButton(
             key: const ValueKey('library_category_songs'),
             filter: LibraryFilter.songs,
@@ -115,7 +115,19 @@ class _LibraryCategoryBarState extends State<LibraryCategoryBar> {
           ),
           const SizedBox(width: 12.0),
 
-          // 4. Playlists Pivot Button
+          // 4. Genres Pivot Button
+          _buildCategoryButton(
+            key: const ValueKey('library_category_genres'),
+            filter: LibraryFilter.genres,
+            label: _capitalize(l10n.library.filterGenres),
+            tooltip: l10n.library.filterGenres,
+            filledIcon: Icons.category_rounded,
+            outlinedIcon: Icons.category_outlined,
+            size: 26.0,
+          ),
+          const SizedBox(width: 12.0),
+
+          // 5. Playlists Pivot Button
           _buildCategoryButton(
             key: const ValueKey('library_category_playlists'),
             filter: LibraryFilter.playlists,

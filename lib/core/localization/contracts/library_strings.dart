@@ -14,11 +14,17 @@ abstract class LibraryStrings {
   /// Filter pill label for Albums view (e.g. 'Albums').
   String get filterAlbums;
 
+  /// Filter pill label for Singles view (e.g. 'Singles').
+  String get filterSingles;
+
   /// Filter pill label for Artists view (e.g. 'Artists').
   String get filterArtists;
 
   /// Filter pill label for Songs view (e.g. 'Songs').
   String get filterSongs;
+
+  /// Filter pill label for Genres view (e.g. 'Genres').
+  String get filterGenres;
 
   /// Filter pill label for Playlists view (e.g. 'Playlists').
   String get filterPlaylists;
@@ -35,6 +41,12 @@ abstract class LibraryStrings {
   /// Empty state subtitle when no albums are indexed.
   String get emptyAlbumsSubtitle;
 
+  /// Empty state title when no singles are indexed.
+  String get emptySinglesTitle;
+
+  /// Empty state subtitle when no singles are indexed.
+  String get emptySinglesSubtitle;
+
   /// Empty state title when no artists are indexed.
   String get emptyArtistsTitle;
 
@@ -47,6 +59,15 @@ abstract class LibraryStrings {
   /// Empty state subtitle when no playlists exist yet.
   String get emptyPlaylistsSubtitle;
 
+  /// Empty state title when no genres are indexed.
+  String get emptyGenresTitle;
+
+  /// Empty state subtitle when no genres are indexed.
+  String get emptyGenresSubtitle;
+
   /// Subtitle label for artist list tiles (e.g. 'Artist').
   String get artistSubtitle;
+
+  /// Formatted song count label (e.g. '5 songs').
+  String songCount(int count);
 }

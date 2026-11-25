@@ -13,6 +13,7 @@ import 'package:project_anima/features/library/components/albums/library_album_c
 import 'package:project_anima/features/library/components/albums/library_albums_grid.dart';
 import 'package:project_anima/features/library/components/artists/library_artist_tile.dart';
 import 'package:project_anima/features/library/components/artists/library_artists_list.dart';
+import 'package:project_anima/features/library/components/genres/library_genres_list.dart';
 import 'package:project_anima/features/library/components/library_category_bar.dart';
 import 'package:project_anima/features/library/components/library_filter_pills.dart';
 import 'package:project_anima/features/library/components/playlists/library_playlists_placeholder.dart';
@@ -607,19 +608,33 @@ void main() {
       expect(find.byType(LibraryArtistsList), findsNothing);
       expect(find.byType(LibrarySongsList), findsOneWidget);
 
-      // Swipe left again -> moves to Playlists
+      // Swipe left again -> moves to Genres
       await tester.fling(find.byType(LibraryTransitionControl), const Offset(-500.0, 0.0), 1000.0);
       await tester.pumpAndSettle();
 
       expect(find.byType(LibrarySongsList), findsNothing);
+      expect(find.byType(LibraryGenresList), findsOneWidget);
+
+      // Swipe left again -> moves to Playlists
+      await tester.fling(find.byType(LibraryTransitionControl), const Offset(-500.0, 0.0), 1000.0);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LibraryGenresList), findsNothing);
       expect(find.byType(LibraryPlaylistsPlaceholder), findsOneWidget);
 
-      // Swipe right -> moves backward to Songs
+      // Swipe right -> moves backward to Genres
+      await tester.fling(find.byType(LibraryTransitionControl), const Offset(500.0, 0.0), 1000.0);
+      await tester.pumpAndSettle();
+
+      expect(find.byType(LibraryGenresList), findsOneWidget);
+      expect(find.byType(LibraryPlaylistsPlaceholder), findsNothing);
+
+      // Swipe right again -> moves backward to Songs
       await tester.fling(find.byType(LibraryTransitionControl), const Offset(500.0, 0.0), 1000.0);
       await tester.pumpAndSettle();
 
       expect(find.byType(LibrarySongsList), findsOneWidget);
-      expect(find.byType(LibraryPlaylistsPlaceholder), findsNothing);
+      expect(find.byType(LibraryGenresList), findsNothing);
 
       // Swipe right again -> moves backward to Artists
       await tester.fling(find.byType(LibraryTransitionControl), const Offset(500.0, 0.0), 1000.0);
@@ -663,6 +678,12 @@ void main() {
       expect(controller.currentFilter, LibraryFilter.songs);
       expect(controller.direction, LibraryTransitionDirection.forward);
 
+      // Animate next to Genres
+      final nextToGenres = controller.animateToNext();
+      expect(nextToGenres, isTrue);
+      expect(controller.currentFilter, LibraryFilter.genres);
+      expect(controller.direction, LibraryTransitionDirection.forward);
+
       // Animate next to Playlists
       final nextSuccess = controller.animateToNext();
       expect(nextSuccess, isTrue);
@@ -672,10 +693,10 @@ void main() {
       // Attempting to animate past Playlists returns false
       expect(controller.animateToNext(), isFalse);
 
-      // Animate previous back to Songs
+      // Animate previous back to Genres
       final prevSuccess = controller.animateToPrevious();
       expect(prevSuccess, isTrue);
-      expect(controller.currentFilter, LibraryFilter.songs);
+      expect(controller.currentFilter, LibraryFilter.genres);
       expect(controller.direction, LibraryTransitionDirection.backward);
 
       // Reset
