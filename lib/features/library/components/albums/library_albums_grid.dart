@@ -67,8 +67,10 @@ class _LibraryAlbumsGridState extends State<LibraryAlbumsGrid> {
   );
 
   List<AlbumDiscoveryItem> _applyFilter(List<AlbumDiscoveryItem> source) {
-    if (!widget.singlesOnly) return source;
-    return source.where((album) => album.songCount == 1).toList();
+    if (widget.singlesOnly) {
+      return source.where((album) => album.songCount == 1).toList();
+    }
+    return source.where((album) => album.songCount > 1).toList();
   }
 
   @override

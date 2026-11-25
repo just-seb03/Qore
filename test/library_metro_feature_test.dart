@@ -486,7 +486,7 @@ void main() {
 
       expect(find.byKey(const ValueKey('library_albums_singles_switch')), findsOneWidget);
       expect(find.text('Full Album'), findsOneWidget);
-      expect(find.text('Single Track Release'), findsOneWidget);
+      expect(find.text('Single Track Release'), findsNothing);
       expect(find.byKey(const ValueKey('library_shuffle_play_singles_fab')), findsNothing);
 
       // Toggle to Sencillos
@@ -502,6 +502,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('Full Album'), findsOneWidget);
+      expect(find.text('Single Track Release'), findsNothing);
       expect(find.byKey(const ValueKey('library_shuffle_play_singles_fab')), findsNothing);
     });
   });
