@@ -240,11 +240,18 @@ class _ArtistDetailScreenState extends State<ArtistDetailScreen>
 
       final Set<int> excludeIds =
           initialQueue.map((s) => s.mediaStoreId).toSet();
-      final List<Song> suggested = await _songDao.getSuggestedRadioSongs(
+      List<Song> suggested = await _songDao.getSuggestedRadioSongs(
         artist: _resolvedArtistName,
         excludeMediaStoreIds: excludeIds,
         limit: 25,
       );
+      if (suggested.isEmpty) {
+        suggested = await _songDao.getEndlessRadioSuggestions(
+          initialQueue.last,
+          excludeMediaStoreIds: excludeIds,
+          limit: 25,
+        );
+      }
       if (suggested.isNotEmpty &&
           playback.queue.isNotEmpty &&
           playback.queue.first.mediaStoreId == initialQueue.first.mediaStoreId) {

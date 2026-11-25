@@ -235,16 +235,22 @@ class AudioPlaybackBuffer {
 
   /// Dynamically appends a track to the end of the queue/buffer.
   Future<void> add(Song song) async {
-    if (_source == null) return;
+    await addAll([song]);
+  }
+
+  /// Dynamically appends multiple tracks to the end of the queue/buffer in one batch.
+  Future<void> addAll(List<Song> songs) async {
+    if (_source == null || songs.isEmpty) return;
     try {
       final int currentEnd = _windowStart + _source!.length;
       final bool windowCoversEnd = currentEnd == _bufferedSongs.length;
-      _bufferedSongs.add(song);
+      _bufferedSongs.addAll(songs);
       if (windowCoversEnd) {
-        await _source!.add(_buildAudioSource(song));
+        final sources = songs.map(_buildAudioSource).toList();
+        await _source!.addAll(sources);
       }
     } catch (e) {
-      debugPrint('AudioPlaybackBuffer Error appending song to buffer: $e');
+      debugPrint('AudioPlaybackBuffer Error appending songs to buffer: $e');
     }
   }
 

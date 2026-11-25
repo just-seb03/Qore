@@ -631,6 +631,7 @@ class PlaybackController extends ChangeNotifier {
   }
 
   bool _isPrefetchingEndless = false;
+  bool _isContinuingEndless = false;
 
   Future<void> _prefetchEndlessSuggestions() async {
     final seed = _currentSong;
@@ -654,27 +655,33 @@ class PlaybackController extends ChangeNotifier {
   }
 
   Future<void> _continueEndlessPlaybackOnCompletion() async {
-    final seed = _currentSong;
-    if (seed != null) {
-      try {
-        final excludeIds = _queue.map((s) => s.mediaStoreId).toSet();
-        final suggested = await _songDao.getEndlessRadioSuggestions(
-          seed,
-          excludeMediaStoreIds: excludeIds,
-          limit: 20,
-        );
-        if (suggested.isNotEmpty) {
-          await playSong(suggested.first, queue: suggested);
-          return;
+    if (_isContinuingEndless) return;
+    _isContinuingEndless = true;
+    try {
+      final seed = _currentSong;
+      if (seed != null) {
+        try {
+          final excludeIds = _queue.map((s) => s.mediaStoreId).toSet();
+          final suggested = await _songDao.getEndlessRadioSuggestions(
+            seed,
+            excludeMediaStoreIds: excludeIds,
+            limit: 20,
+          );
+          if (suggested.isNotEmpty) {
+            await playSong(suggested.first, queue: suggested);
+            return;
+          }
+        } catch (e) {
+          debugPrint('PlaybackController endless completion error: $e');
         }
-      } catch (e) {
-        debugPrint('PlaybackController endless completion error: $e');
       }
+      await _player.pause();
+      await _player.seek(Duration.zero);
+      _persistCurrentSessionImmediate(overridePosition: Duration.zero);
+      notifyListeners();
+    } finally {
+      _isContinuingEndless = false;
     }
-    await _player.pause();
-    await _player.seek(Duration.zero);
-    _persistCurrentSessionImmediate(overridePosition: Duration.zero);
-    notifyListeners();
   }
 
   /// Resolves the filesystem URI or MediaStore content URI for notification artwork.
@@ -964,8 +971,7 @@ class PlaybackController extends ChangeNotifier {
     } else if (_player.loopMode == LoopMode.all) {
       await _playIndex(0);
     } else {
-      await _player.seek(Duration.zero);
-      _persistCurrentSessionImmediate(overridePosition: Duration.zero);
+      await _continueEndlessPlaybackOnCompletion();
     }
   }
 
@@ -1092,19 +1098,20 @@ class PlaybackController extends ChangeNotifier {
   /// after an artist queue finishes) without interrupting current playback.
   void appendSongsToQueue(List<Song> songs) {
     if (songs.isEmpty) return;
-    bool added = false;
+    final List<Song> addedSongs = [];
     for (final song in songs) {
       if (_queue.any((s) => _matchesSong(s, song))) continue;
+      if (addedSongs.any((s) => _matchesSong(s, song))) continue;
       _queue.add(song);
       if (!_originalQueue.any((s) => _matchesSong(s, song))) {
         _originalQueue.add(song);
       }
-      if (_audioBuffer.hasSource) {
-        unawaited(_audioBuffer.add(song));
-      }
-      added = true;
+      addedSongs.add(song);
     }
-    if (added) {
+    if (addedSongs.isNotEmpty) {
+      if (_audioBuffer.hasSource) {
+        unawaited(_audioBuffer.addAll(addedSongs));
+      }
       _persistCurrentSessionImmediate();
       notifyListeners();
     }
